@@ -1,0 +1,497 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* HSL Color Palette */
+  --bg-app: #F6F8FB;
+  --bg-sidebar: #0F1F3D;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F8FAFC;
+  --border-color: #E6EAF0;
+  --border-focus: #1D4ED8;
+  
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --text-muted: #94A3B8;
+
+  /* Theme Accents */
+  --primary: HSL(175, 84%, 37%);
+  --primary-hover: HSL(175, 84%, 43%);
+  --primary-glow: rgba(13, 148, 136, 0.25);
+  
+  --secondary: HSL(193, 82%, 40%);
+  --secondary-glow: rgba(14, 165, 233, 0.2);
+
+  /* Clinical Tooth Status Colors (from SQL constraints & styling) */
+  --tooth-healthy: HSL(142, 69%, 45%);
+  --tooth-caries: HSL(350, 89%, 60%);
+  --tooth-filled: HSL(175, 84%, 43%);
+  --tooth-crown: HSL(217, 91%, 60%);
+  --tooth-missing: HSL(224, 12%, 25%);
+  --tooth-rootcanal: HSL(280, 76%, 60%);
+  --tooth-bridge: HSL(38, 92%, 50%);
+  --tooth-implant: HSL(325, 78%, 55%);
+  --tooth-extraction: HSL(0, 0%, 50%);
+  --tooth-watch: HSL(25, 95%, 55%);
+
+  /* Standard Action Colors */
+  --color-success: HSL(142, 69%, 45%);
+  --color-warning: HSL(38, 92%, 50%);
+  --color-danger: HSL(350, 89%, 60%);
+  --color-info: HSL(193, 82%, 45%);
+
+  --shadow-sm: 0 2px 8px -1px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px -2px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 32px -4px rgba(0, 0, 0, 0.7);
+
+  --font-title: 'Outfit', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+/* Base reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg-app);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+.MuiCard-root,
+.MuiPaper-root {
+  animation: fadeIn 0.24s ease both;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.4); }
+  70% { transform: scale(1.02); box-shadow: 0 0 0 8px rgba(13, 148, 136, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(13, 148, 136, 0); }
+}
+
+.animate-fade {
+  animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale {
+  animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Common Layout Elements */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+  width: 100vw;
+  background: var(--bg-sidebar);
+}
+
+.sidebar {
+  width: 280px;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.03);
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(13, 148, 136, 0.08), transparent 18%),
+    var(--bg-app);
+  overflow-y: auto;
+  position: relative;
+}
+
+.brand-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(45, 212, 191, 0.18), rgba(56, 189, 248, 0.12));
+  border: 1px solid rgba(45, 212, 191, 0.22);
+  box-shadow: 0 8px 18px rgba(13, 148, 136, 0.12);
+}
+
+.topbar-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: rgba(15, 23, 42, 0.65);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.page-shell {
+  padding: 24px;
+}
+
+/* Glassmorphism Containers */
+.glass-panel {
+  background: linear-gradient(180deg, rgba(17, 24, 39, 0.92), rgba(15, 23, 42, 0.82));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 16px;
+  box-shadow: 0 18px 30px -18px rgba(15, 23, 42, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  padding: 20px;
+}
+
+/* Utility Cards */
+.metric-card {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(12, 18, 32, 0.94));
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 26px -18px rgba(15, 23, 42, 0.95);
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--primary);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--text-muted);
+  box-shadow: var(--shadow-md);
+}
+
+.metric-card:hover::before {
+  opacity: 1;
+}
+
+/* Inputs & Form Fields */
+.form-input, .form-select, .form-textarea {
+  background-color: HSL(224, 32%, 6%);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  padding: 10px 14px;
+  width: 100%;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+/* Standard Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-title);
+  font-weight: 500;
+  font-size: 14px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, hsl(175, 84%, 40%), hsl(193, 82%, 45%));
+  color: var(--text-primary);
+  box-shadow: 0 10px 18px -12px rgba(45, 212, 191, 0.9);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+.btn-secondary {
+  background: rgba(15, 23, 42, 0.65);
+  border-color: rgba(148, 163, 184, 0.18);
+  color: var(--text-secondary);
+}
+
+.btn-secondary:hover {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.btn-danger {
+  background-color: var(--color-danger);
+  color: #fff;
+}
+
+.btn-danger:hover {
+  background-color: HSL(350, 89%, 50%);
+}
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+/* Custom Status Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.badge-success { background-color: rgba(16, 185, 129, 0.15); color: HSL(142, 69%, 55%); }
+.badge-warning { background-color: rgba(245, 158, 11, 0.15); color: HSL(38, 92%, 60%); }
+.badge-danger { background-color: rgba(239, 68, 68, 0.15); color: HSL(350, 89%, 65%); }
+.badge-info { background-color: rgba(14, 165, 233, 0.15); color: HSL(193, 82%, 60%); }
+.badge-muted { background-color: rgba(107, 114, 128, 0.15); color: var(--text-secondary); }
+
+/* Table styling */
+.custom-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.custom-table th {
+  font-family: var(--font-title);
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 13px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-sidebar);
+}
+
+.custom-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 13.5px;
+}
+
+.custom-table tr:hover td {
+  background-color: rgba(255, 255, 255, 0.015);
+}
+
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-body {
+  padding: 20px;
+  flex: 1;
+}
+
+.modal-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* Interactive Dental Chart Layout */
+.dental-chart-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+.tooth-grid {
+  display: grid;
+  grid-template-columns: repeat(16, 1fr);
+  gap: 6px;
+  width: 100%;
+}
+
+.tooth-item {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  background-color: HSL(224, 32%, 6%);
+  border-radius: 6px;
+  padding: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.tooth-item:hover {
+  border-color: var(--border-focus);
+  transform: translateY(-2px);
+  background-color: var(--bg-card-hover);
+}
+
+.tooth-item.selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-glow);
+}
+
+.tooth-number {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.tooth-visual {
+  width: 100%;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.tooth-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--text-muted);
+}
+
+.surface-indicator {
+  position: absolute;
+  border-radius: 2px;
+  background-color: rgba(255,255,255,0.1);
+  font-size: 8px;
+}
+
+/* Tooth status colors dynamically set in react */
+.status-Healthy { background-color: var(--tooth-healthy) !important; }
+.status-Caries { background-color: var(--tooth-caries) !important; }
+.status-Filled { background-color: var(--tooth-filled) !important; }
+.status-Crown { background-color: var(--tooth-crown) !important; }
+.status-Missing { background-color: var(--tooth-missing) !important; opacity: 0.4; }
+.status-Rootcanal { background-color: var(--tooth-rootcanal) !important; }
+.status-Bridge { background-color: var(--tooth-bridge) !important; }
+.status-Implant { background-color: var(--tooth-implant) !important; }
+.status-Extraction { background-color: var(--tooth-extraction) !important; }
+.status-Watch { background-color: var(--tooth-watch) !important; }
