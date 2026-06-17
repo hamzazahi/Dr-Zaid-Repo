@@ -1,70 +1,63 @@
-import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AppBar,
   Toolbar,
   Typography,
   Box,
-  Chip,
   IconButton,
   Badge,
   Tooltip,
   Avatar,
   Menu,
   MenuItem,
-  Stack,
-  AvatarGroup,
+  Divider,
+  ListItemIcon,
 } from '@mui/material';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import SearchIcon from '@mui/icons-material/Search';
+import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import LogoutIcon from '@mui/icons-material/Logout';
+import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import { colors } from '../../theme/theme';
+import { useAuth } from '../../hooks/useAuth';
+import { useClinicData } from '../../hooks/useClinicData';
+
+const PAGE_TITLES = {
+  '/': 'Clinical Dashboard',
+  '/patients': 'Patient Registry',
+  '/appointments': 'Appointment Scheduler',
+  '/treatments': 'Treatment Management',
+  '/billing': 'Billing & Invoicing',
+  '/payments': 'Payments Ledger',
+  '/prescriptions': 'Prescriptions',
+  '/inventory': 'Inventory Management',
+  '/reports': 'Analytics & Reports',
+  '/settings': 'Settings & Configuration',
+};
+
+const getPageTitle = (pathname) => {
+  for (const [key, value] of Object.entries(PAGE_TITLES)) {
+    if (pathname === key || (key !== '/' && pathname.startsWith(key))) return value;
+  }
+  return 'Dental Clinic Management';
+};
 
 const Header = () => {
   const location = useLocation();
-  const [time, setTime] = useState(new Date());
-  const [notificationAnchor, setNotificationAnchor] = useState(null);
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+  const { invoices } = useClinicData();
+
+  const [notifAnchor, setNotifAnchor] = useState(null);
   const [profileAnchor, setProfileAnchor] = useState(null);
 
-  useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const overdueInvoices = invoices.filter(
+    (inv) => inv.balanceDue > 0 && new Date(inv.dueDate) < new Date()
+  );
+  const notifCount = overdueInvoices.length;
 
-  // Get page title based on pathname
-  const getPageTitle = () => {
-    const path = location.pathname;
-    const titles = {
-      '/': 'Clinical Dashboard',
-      '/patients': 'Patient Registry & Records',
-      '/appointments': 'Appointment Scheduler',
-      '/treatments': 'Treatment Management',
-      '/billing': 'Billing & Invoicing',
-      '/payments': 'Payments Ledger',
-      '/prescriptions': 'Prescriptions',
-      '/inventory': 'Inventory Management',
-      '/reports': 'Analytics & Reports',
-      '/settings': 'Settings & Configuration',
-    };
-    
-    for (const [key, value] of Object.entries(titles)) {
-      if (path.startsWith(key)) return value;
-    }
-    return 'Dental Clinic Management Suite';
-  };
-
-  const handleNotificationClick = (event) => {
-    setNotificationAnchor(event.currentTarget);
-  };
-
-  const handleProfileClick = (event) => {
-    setProfileAnchor(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setNotificationAnchor(null);
-    setProfileAnchor(null);
-  };
+  const initials = user?.initials ||
+    (user?.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'DR');
 
   return (
     <AppBar
@@ -73,205 +66,107 @@ const Header = () => {
       sx={{
         backgroundColor: colors.surface,
         borderBottom: `1px solid ${colors.border}`,
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
         px: { xs: 1.5, md: 3 },
       }}
     >
-      <Toolbar 
-        sx={{ 
-          justifyContent: 'space-between', 
-          minHeight: 64, 
-          px: '0 !important', 
-          gap: 2 
-        }}
-      >
-        {/* Page Title & Breadcrumb */}
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography 
-            variant="h5" 
-            noWrap 
-            sx={{ 
-              color: colors.textPrimary, 
-              fontWeight: 700,
-              letterSpacing: '-0.01em'
-            }}
+      <Toolbar sx={{ justifyContent: 'space-between', minHeight: 60, px: '0 !important', gap: 2 }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            variant="h6"
+            noWrap
+            sx={{ color: colors.textPrimary, fontWeight: 700, lineHeight: 1.3 }}
           >
-            {getPageTitle()}
+            {getPageTitle(location.pathname)}
           </Typography>
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              color: colors.textSecondary,
-              fontWeight: 500 
-            }}
-          >
-            Dental Clinic Management System
+          <Typography variant="caption" sx={{ color: colors.textSecondary }}>
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </Typography>
         </Box>
 
-        {/* Right Side Controls */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          {/* Status Badges */}
-          <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 1 }}>
-            <Chip
-              label="Server: Online"
-              size="small"
-              sx={{
-                bgcolor: colors.success + '15',
-                color: colors.success,
-                fontWeight: 600,
-                fontSize: '0.75rem',
-                height: 24,
-              }}
-            />
-            <Chip
-              label="Synced"
-              size="small"
-              sx={{
-                bgcolor: colors.info + '15',
-                color: colors.info,
-                fontWeight: 600,
-                fontSize: '0.75rem',
-                height: 24,
-              }}
-            />
-          </Box>
-
-          {/* Time */}
-          <Box
-            sx={{
-              px: 1.5,
-              py: 0.75,
-              borderRadius: '6px',
-              bgcolor: colors.surfaceAlt,
-              border: `1px solid ${colors.border}`,
-              fontFamily: 'monospace',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              color: colors.textSecondary,
-              display: { xs: 'none', md: 'block' },
-            }}
-          >
-            {time.toLocaleTimeString([], { 
-              hour: '2-digit', 
-              minute: '2-digit',
-              second: '2-digit'
-            })}
-          </Box>
-
-          {/* Notifications */}
-          <Tooltip title="Notifications">
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Tooltip title={notifCount > 0 ? `${notifCount} overdue invoice(s)` : 'Notifications'}>
             <IconButton
-              onClick={handleNotificationClick}
-              sx={{
-                color: colors.textSecondary,
-                '&:hover': { color: colors.primary, bgcolor: colors.surfaceAlt }
-              }}
+              onClick={(e) => setNotifAnchor(e.currentTarget)}
+              sx={{ color: colors.textSecondary, '&:hover': { color: colors.primary, bgcolor: colors.surfaceAlt } }}
             >
-              <Badge badgeContent={3} color="error">
-                <NotificationsIcon />
+              <Badge badgeContent={notifCount || null} color="error">
+                <NotificationsOutlinedIcon sx={{ fontSize: 22 }} />
               </Badge>
             </IconButton>
           </Tooltip>
 
-          {/* Notification Menu */}
           <Menu
-            anchorEl={notificationAnchor}
-            open={Boolean(notificationAnchor)}
-            onClose={handleClose}
+            anchorEl={notifAnchor}
+            open={Boolean(notifAnchor)}
+            onClose={() => setNotifAnchor(null)}
             anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
             transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            PaperProps={{ sx: { minWidth: 300, borderRadius: '8px', mt: 0.5 } }}
           >
-            <MenuItem onClick={handleClose} sx={{ minWidth: 280 }}>
-              <Box>
-                <Typography variant="body2" fontWeight={600}>
-                  New appointment scheduled
-                </Typography>
-                <Typography variant="caption" color="textSecondary">
-                  Patient: John Doe - 2:30 PM
-                </Typography>
-              </Box>
-            </MenuItem>
-            <MenuItem onClick={handleClose}>
-              <Box>
-                <Typography variant="body2" fontWeight={600}>
-                  Treatment completed
-                </Typography>
-                <Typography variant="caption" color="textSecondary">
-                  Root canal - Jane Smith
-                </Typography>
-              </Box>
-            </MenuItem>
-            <MenuItem onClick={handleClose}>
-              <Box>
-                <Typography variant="body2" fontWeight={600}>
-                  Inventory low alert
-                </Typography>
-                <Typography variant="caption" color="textSecondary">
-                  Amalgam fillings below threshold
-                </Typography>
-              </Box>
-            </MenuItem>
+            <Box sx={{ px: 2, py: 1.5, borderBottom: `1px solid ${colors.border}` }}>
+              <Typography variant="subtitle2" fontWeight={700}>Notifications</Typography>
+            </Box>
+            {overdueInvoices.length === 0 ? (
+              <MenuItem disabled sx={{ py: 2 }}>
+                <Typography variant="body2" color="text.secondary">No pending notifications</Typography>
+              </MenuItem>
+            ) : (
+              overdueInvoices.slice(0, 5).map((inv) => (
+                <MenuItem
+                  key={inv.id}
+                  onClick={() => { navigate('/billing'); setNotifAnchor(null); }}
+                  sx={{ py: 1.5, flexDirection: 'column', alignItems: 'flex-start' }}
+                >
+                  <Typography variant="body2" fontWeight={600}>Overdue: {inv.invoiceNumber}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {inv.patientName} — Balance: {inv.balanceDue?.toLocaleString('en-PK')} PKR
+                  </Typography>
+                </MenuItem>
+              ))
+            )}
           </Menu>
 
-          {/* Profile Menu */}
-          <Tooltip title="Profile & Settings">
+          <Tooltip title="Profile">
             <IconButton
-              onClick={handleProfileClick}
-              sx={{
-                p: 0.5,
-                '&:hover': { bgcolor: colors.surfaceAlt }
-              }}
+              onClick={(e) => setProfileAnchor(e.currentTarget)}
+              sx={{ p: 0.5, ml: 0.5, '&:hover': { bgcolor: colors.surfaceAlt } }}
             >
-              <Avatar 
-                sx={{ 
-                  width: 36, 
-                  height: 36,
-                  bgcolor: colors.primary,
-                  fontSize: '0.9rem',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                DR
+              <Avatar sx={{ width: 34, height: 34, bgcolor: colors.primary, fontSize: '0.8rem', fontWeight: 700 }}>
+                {initials}
               </Avatar>
             </IconButton>
           </Tooltip>
 
-          {/* Profile Menu */}
           <Menu
             anchorEl={profileAnchor}
             open={Boolean(profileAnchor)}
-            onClose={handleClose}
+            onClose={() => setProfileAnchor(null)}
             anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
             transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            PaperProps={{ sx: { minWidth: 220, borderRadius: '8px', mt: 0.5 } }}
           >
-            <MenuItem onClick={handleClose}>
-              <Box>
-                <Typography variant="body2" fontWeight={600}>
-                  Dr. Zaid Ahmed
-                </Typography>
-                <Typography variant="caption" color="textSecondary">
-                  Administrator
-                </Typography>
-              </Box>
+            <Box sx={{ px: 2, py: 1.5 }}>
+              <Typography variant="body2" fontWeight={700}>{user?.name || 'Administrator'}</Typography>
+              <Typography variant="caption" color="text.secondary">{user?.email || ''}</Typography>
+            </Box>
+            <Divider />
+            <MenuItem onClick={() => { navigate('/settings'); setProfileAnchor(null); }}>
+              <ListItemIcon><SettingsOutlinedIcon fontSize="small" /></ListItemIcon>
+              Settings
             </MenuItem>
-            <MenuItem onClick={handleClose}>Settings</MenuItem>
-            <MenuItem onClick={handleClose}>Help & Support</MenuItem>
-            <MenuItem onClick={handleClose} sx={{ color: colors.error }}>Sign Out</MenuItem>
-          </Menu>
-
-          {/* More Options */}
-          <Tooltip title="More options">
-            <IconButton
-              sx={{
-                color: colors.textSecondary,
-                '&:hover': { color: colors.primary, bgcolor: colors.surfaceAlt }
-              }}
+            <MenuItem onClick={() => { navigate('/settings'); setProfileAnchor(null); }}>
+              <ListItemIcon><PersonOutlineIcon fontSize="small" /></ListItemIcon>
+              My Profile
+            </MenuItem>
+            <Divider />
+            <MenuItem
+              onClick={() => { signOut(); setProfileAnchor(null); }}
+              sx={{ color: colors.error }}
             >
-              <MoreVertIcon />
-            </IconButton>
-          </Tooltip>
+              <ListItemIcon><LogoutIcon fontSize="small" sx={{ color: colors.error }} /></ListItemIcon>
+              Sign Out
+            </MenuItem>
+          </Menu>
         </Box>
       </Toolbar>
     </AppBar>

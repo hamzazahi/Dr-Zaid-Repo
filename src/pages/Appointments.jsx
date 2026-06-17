@@ -1,39 +1,77 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
+  Alert,
   Box,
-  Typography,
-  Card,
   Button,
+  ButtonGroup,
+  Card,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Grid,
+  IconButton,
+  Menu,
+  MenuItem,
+  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
-  MenuItem,
-  Menu,
-  IconButton,
-  ButtonGroup,
-  Chip
+  Tooltip,
+  Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ListIcon from '@mui/icons-material/List';
 import EditIcon from '@mui/icons-material/Edit';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 import { useClinicData } from '../hooks/useClinicData';
+import { useNotification } from '../context/NotificationContext';
 import { formatDate } from '../utils/helpers';
+import { APPOINTMENT_STATUSES, TREATMENT_TYPES } from '../utils/constants';
 import StatusBadge from '../components/common/StatusBadge';
+import { colors } from '../theme/theme';
+
+const EMPTY_FORM = {
+  patientId: '',
+  dentistId: 'dentist-1',
+  date: new Date().toISOString().split('T')[0],
+  time: '10:00 AM',
+  type: 'Consultation',
+  notes: '',
+};
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const MONTH_NAMES = [
+  'January','February','March','April','May','June',
+  'July','August','September','October','November','December',
+];
+
+const buildCalendarDays = (year, month) => {
+  const first = new Date(year, month, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const startPad = first.getDay();
+  const days = [];
+
+  for (let i = 0; i < startPad; i++) days.push(null);
+  for (let d = 1; d <= daysInMonth; d++) {
+    const mm = String(month + 1).padStart(2, '0');
+    const dd = String(d).padStart(2, '0');
+    days.push({ dayNum: d, dateString: `${year}-${mm}-${dd}` });
+  }
+  return days;
+};
 
 const Appointments = () => {
   const location = useLocation();
@@ -44,206 +82,160 @@ const Appointments = () => {
     dentists,
     addAppointment,
     updateAppointmentStatus,
-    assignDentist
+    assignDentist,
   } = useClinicData();
+  const { notify } = useNotification();
 
-  const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar'
+  const today = new Date();
+  const [viewMode, setViewMode] = useState('list');
+  const [calYear, setCalYear] = useState(today.getFullYear());
+  const [calMonth, setCalMonth] = useState(today.getMonth());
   const [openModal, setOpenModal] = useState(false);
+  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [formError, setFormError] = useState('');
 
-  // New Appointment Form state
-  const [newAppt, setNewAppt] = useState({
-    patientId: '',
-    dentistId: 'dentist-1',
-    date: new Date().toISOString().split('T')[0],
-    time: '10:00 AM',
-    type: 'Consultation',
-    notes: ''
-  });
-
-  // Inline status and dentist edit anchor states
   const [anchorElStatus, setAnchorElStatus] = useState(null);
   const [anchorElDentist, setAnchorElDentist] = useState(null);
   const [activeApptId, setActiveApptId] = useState(null);
 
   useEffect(() => {
     if (location.state?.openSchedule) {
-      const timerId = window.setTimeout(() => {
-        setOpenModal(true);
-        window.history.replaceState({}, document.title);
-      }, 0);
-
-      return () => window.clearTimeout(timerId);
+      setOpenModal(true);
+      window.history.replaceState({}, document.title);
     }
-  }, [location]);
+  }, [location.state]);
 
-  const handleOpenStatus = (e, id) => {
-    setAnchorElStatus(e.currentTarget);
-    setActiveApptId(id);
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (formError) setFormError('');
   };
 
-  const handleOpenDentist = (e, id) => {
-    setAnchorElDentist(e.currentTarget);
-    setActiveApptId(id);
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!formData.patientId) { setFormError('Please select a patient.'); return; }
+    if (!formData.date) { setFormError('Please pick a date.'); return; }
+    const added = addAppointment(formData);
+    setOpenModal(false);
+    setFormData(EMPTY_FORM);
+    setFormError('');
+    notify(`Appointment booked for ${added.patientName} on ${formatDate(added.date)}.`, 'success');
   };
 
   const handleStatusChange = (status) => {
     updateAppointmentStatus(activeApptId, status);
+    notify(`Status updated to "${status}".`, 'info');
     setAnchorElStatus(null);
     setActiveApptId(null);
   };
 
   const handleDentistChange = (dentistId) => {
     assignDentist(activeApptId, dentistId);
+    notify('Dentist assignment updated.', 'success');
     setAnchorElDentist(null);
     setActiveApptId(null);
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewAppt(prev => ({ ...prev, [name]: value }));
+  const todayStr = today.toISOString().split('T')[0];
+
+  const calendarDays = useMemo(
+    () => buildCalendarDays(calYear, calMonth),
+    [calYear, calMonth]
+  );
+
+  const prevMonth = () => {
+    if (calMonth === 0) { setCalYear((y) => y - 1); setCalMonth(11); }
+    else setCalMonth((m) => m - 1);
   };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!newAppt.patientId || !newAppt.date) {
-      alert('Please fill out all required fields.');
-      return;
-    }
-    addAppointment(newAppt);
-    setOpenModal(false);
-    // Reset Form
-    setNewAppt({
-      patientId: '',
-      dentistId: 'dentist-1',
-      date: new Date().toISOString().split('T')[0],
-      time: '10:00 AM',
-      type: 'Consultation',
-      notes: ''
-    });
+  const nextMonth = () => {
+    if (calMonth === 11) { setCalYear((y) => y + 1); setCalMonth(0); }
+    else setCalMonth((m) => m + 1);
   };
-
-  // Generate simple monthly calendar dates for June 2026
-  const getCalendarDays = () => {
-    const days = [];
-    const date = new Date(2026, 5, 1); // June is index 5
-    const startOffset = date.getDay(); // Day of week (0-6) of 1st June
-
-    // Add empty placeholders before June 1
-    for (let i = 0; i < startOffset; i++) {
-      days.push(null);
-    }
-
-    // June has 30 days
-    for (let i = 1; i <= 30; i++) {
-      const dateString = `2026-06-${String(i).padStart(2, '0')}`;
-      days.push({
-        dayNum: i,
-        dateString,
-        isToday: i === 16 // June 16, 2026 is current local time metadata
-      });
-    }
-
-    return days;
-  };
-
-  const calendarDays = getCalendarDays();
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Header Controls */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
         <Box>
-          <Typography variant="h5" fontWeight="bold" color="text.primary">
-            Appointment Scheduler
-          </Typography>
+          <Typography variant="h5" fontWeight={700}>Appointment Scheduler</Typography>
           <Typography variant="body2" color="text.secondary">
-            Coordinate shifts, assign clinical practitioners, and monitor patient status flows.
+            Coordinate shifts, assign practitioners, and track patient status.
           </Typography>
         </Box>
-
         <Box sx={{ display: 'flex', gap: 2 }}>
-          <ButtonGroup variant="outlined" size="small" sx={{ bgcolor: '#FFFFFF' }}>
+          <ButtonGroup variant="outlined" size="small">
             <Button
               variant={viewMode === 'list' ? 'contained' : 'outlined'}
               startIcon={<ListIcon />}
               onClick={() => setViewMode('list')}
-              sx={viewMode === 'list' ? { bgcolor: '#1E3A8A' } : { color: '#1E3A8A', borderColor: '#1E3A8A' }}
             >
-              List Grid
+              List
             </Button>
             <Button
               variant={viewMode === 'calendar' ? 'contained' : 'outlined'}
               startIcon={<CalendarMonthIcon />}
               onClick={() => setViewMode('calendar')}
-              sx={viewMode === 'calendar' ? { bgcolor: '#1E3A8A' } : { color: '#1E3A8A', borderColor: '#1E3A8A' }}
             >
-              Month Calendar
+              Calendar
             </Button>
           </ButtonGroup>
-
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setOpenModal(true)}
-            sx={{ bgcolor: '#1E3A8A', '&:hover': { bgcolor: '#172E6E' }, textTransform: 'none', px: 3, borderRadius: '8px' }}
-          >
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenModal(true)}>
             Schedule Slot
           </Button>
         </Box>
       </Box>
 
-      {/* RENDER LIST VIEW */}
       {viewMode === 'list' && (
-        <TableContainer component={Paper} sx={{ borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)', overflow: 'hidden' }}>
+        <TableContainer component={Paper}>
           <Table sx={{ minWidth: 900 }}>
-            <TableHead sx={{ bgcolor: '#F9FAFB' }}>
+            <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 'bold' }}>Scheduled Date</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Time Slot</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Patient Name</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Procedure</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Assigned Practitioner</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Status Badge</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Internal Notes</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+                <TableCell>Date</TableCell>
+                <TableCell>Time</TableCell>
+                <TableCell>Patient</TableCell>
+                <TableCell>Procedure</TableCell>
+                <TableCell>Practitioner</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Notes</TableCell>
+                <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {appointments.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
-                    No appointments recorded.
+                    <CalendarMonthIcon sx={{ fontSize: 36, color: 'text.disabled', display: 'block', mx: 'auto', mb: 1 }} />
+                    <Typography variant="body2" color="text.secondary">No appointments recorded yet.</Typography>
                   </TableCell>
                 </TableRow>
               ) : (
                 appointments.map((appt) => (
                   <TableRow key={appt.id} hover>
-                    <TableCell sx={{ fontWeight: 'bold' }}>{formatDate(appt.date)}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{formatDate(appt.date)}</TableCell>
                     <TableCell>{appt.time}</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', color: '#1E3A8A' }}>
-                      {appt.patientName}
-                    </TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: colors.primary }}>{appt.patientName}</TableCell>
+                    <TableCell><Chip label={appt.type} size="small" variant="outlined" /></TableCell>
                     <TableCell>
-                      <Chip label={appt.type} size="small" variant="outlined" sx={{ fontWeight: 'bold' }} />
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <Typography variant="body2">{appt.dentistName}</Typography>
-                        <IconButton size="small" onClick={(e) => handleOpenDentist(e, appt.id)}>
-                          <EditIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-                        </IconButton>
+                        <Tooltip title="Re-assign dentist">
+                          <IconButton size="small" onClick={(e) => { setAnchorElDentist(e.currentTarget); setActiveApptId(appt.id); }}>
+                            <EditIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
+                          </IconButton>
+                        </Tooltip>
                       </Box>
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <StatusBadge status={appt.status} />
-                        <IconButton size="small" onClick={(e) => handleOpenStatus(e, appt.id)}>
-                          <MoreVertIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
+                        <Tooltip title="Change status">
+                          <IconButton size="small" onClick={(e) => { setAnchorElStatus(e.currentTarget); setActiveApptId(appt.id); }}>
+                            <MoreVertIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </Tooltip>
                       </Box>
                     </TableCell>
                     <TableCell sx={{ color: 'text.secondary', maxWidth: 220, fontSize: '0.8rem' }}>
-                      {appt.notes || '-'}
+                      {appt.notes || '—'}
                     </TableCell>
                     <TableCell align="right">
                       <Button
@@ -251,9 +243,9 @@ const Appointments = () => {
                         size="small"
                         endIcon={<ArrowForwardIcon />}
                         onClick={() => navigate(`/patients/${appt.patientId}`)}
-                        sx={{ textTransform: 'none', color: '#1E3A8A', fontWeight: 'bold' }}
+                        sx={{ textTransform: 'none', color: colors.primary, fontWeight: 700 }}
                       >
-                        Clinical File
+                        Profile
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -264,90 +256,86 @@ const Appointments = () => {
         </TableContainer>
       )}
 
-      {/* RENDER CALENDAR VIEW */}
       {viewMode === 'calendar' && (
-        <Card sx={{ boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)', borderRadius: '12px', overflow: 'hidden' }}>
-          <Box sx={{ bgcolor: '#1E3A8A', color: '#FFFFFF', p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="subtitle1" fontWeight="bold">
-              June 2026
+        <Card sx={{ overflow: 'hidden' }}>
+          <Box sx={{ bgcolor: colors.primary, color: '#fff', p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <IconButton size="small" onClick={prevMonth} sx={{ color: '#fff', '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' } }}>
+              <ChevronLeftIcon />
+            </IconButton>
+            <Typography variant="subtitle1" fontWeight={700}>
+              {MONTH_NAMES[calMonth]} {calYear}
             </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.8 }}>
-              Clinic Calendar Grid View
-            </Typography>
+            <IconButton size="small" onClick={nextMonth} sx={{ color: '#fff', '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' } }}>
+              <ChevronRightIcon />
+            </IconButton>
           </Box>
-          <Box sx={{ p: 2, bgcolor: '#FFFFFF' }}>
-            {/* Week Headers */}
-            <Grid container spacing={1} sx={{ textAlign: 'center', mb: 1 }}>
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(w => (
-                <Grid item xs={1.71} key={w} sx={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'text.secondary', py: 1 }}>
+          <Box sx={{ p: 2, bgcolor: '#fff' }}>
+            <Grid container spacing={0.5} sx={{ textAlign: 'center', mb: 1 }}>
+              {WEEKDAYS.map((w) => (
+                <Grid item xs={12 / 7} key={w} sx={{ fontWeight: 700, fontSize: '0.8rem', color: 'text.secondary', py: 0.75 }}>
                   {w}
                 </Grid>
               ))}
             </Grid>
-            {/* Calendar Cells */}
-            <Grid container spacing={1}>
+            <Grid container spacing={0.5}>
               {calendarDays.map((day, idx) => {
-                if (!day) {
-                  return <Grid item xs={1.71} key={`empty-${idx}`} sx={{ height: 100, border: '1px solid #F3F4F6' }} />;
-                }
-
-                // Get appointments for this day
-                const dayAppts = appointments.filter(a => a.date === day.dateString);
-
+                if (!day) return <Grid item xs={12 / 7} key={`e-${idx}`} sx={{ height: 110 }} />;
+                const dayAppts = appointments.filter((a) => a.date === day.dateString);
+                const isToday = day.dateString === todayStr;
                 return (
                   <Grid
                     item
-                    xs={1.71}
+                    xs={12 / 7}
                     key={day.dayNum}
                     sx={{
-                      height: 120,
-                      border: '1px solid #E5E7EB',
+                      height: 110,
+                      border: `1px solid ${isToday ? colors.primary : colors.border}`,
+                      borderRadius: '4px',
                       p: 0.5,
-                      bgcolor: day.isToday ? '#EFF6FF' : '#FFFFFF',
+                      bgcolor: isToday ? '#EFF6FF' : '#fff',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: 0.5,
-                      position: 'relative'
+                      gap: 0.4,
+                      overflow: 'hidden',
                     }}
                   >
                     <Typography
                       variant="caption"
-                      fontWeight="bold"
+                      fontWeight={700}
                       sx={{
-                        color: day.isToday ? '#1E3A8A' : 'text.primary',
-                        bgcolor: day.isToday ? '#DBEAFE' : 'transparent',
+                        color: isToday ? colors.primary : 'text.primary',
+                        bgcolor: isToday ? '#DBEAFE' : 'transparent',
                         px: 0.8,
-                        py: 0.2,
+                        py: 0.15,
                         borderRadius: '4px',
                         display: 'inline-block',
                         alignSelf: 'flex-start',
-                        fontSize: '0.75rem'
+                        fontSize: '0.75rem',
                       }}
                     >
                       {day.dayNum}
                     </Typography>
-
-                    {/* Day Appts Chips */}
                     <Box sx={{ flexGrow: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 0.3 }}>
-                      {dayAppts.map(appt => (
+                      {dayAppts.map((appt) => (
                         <Box
                           key={appt.id}
+                          title={`${appt.time} — ${appt.patientName} (${appt.type})`}
+                          onClick={() => navigate(`/patients/${appt.patientId}`)}
                           sx={{
-                            fontSize: '0.65rem',
+                            fontSize: '0.62rem',
                             bgcolor: appt.status === 'Completed' ? '#D1FAE5' : '#FEF3C7',
                             color: appt.status === 'Completed' ? '#065F46' : '#92400E',
-                            p: 0.5,
-                            borderRadius: '4px',
-                            fontWeight: 'bold',
+                            p: '2px 4px',
+                            borderRadius: '3px',
+                            fontWeight: 700,
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             borderLeft: `3px solid ${appt.status === 'Completed' ? '#10B981' : '#F59E0B'}`,
-                            cursor: 'pointer'
+                            cursor: 'pointer',
                           }}
-                          title={`${appt.time} - ${appt.patientName} (${appt.type})`}
                         >
-                          {appt.time} : {appt.patientName}
+                          {appt.time}: {appt.patientName}
                         </Box>
                       ))}
                     </Box>
@@ -359,139 +347,104 @@ const Appointments = () => {
         </Card>
       )}
 
-      {/* Book Appointment Dialog Modal */}
-      <Dialog
-        open={openModal}
-        onClose={() => setOpenModal(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: '12px' } }}
-      >
-        <DialogTitle sx={{ fontWeight: 'bold', borderBottom: '1px solid #E5E7EB', py: 2 }}>
+      {/* Book Appointment Dialog */}
+      <Dialog open={openModal} onClose={() => { setOpenModal(false); setFormError(''); }} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, borderBottom: `1px solid ${colors.border}` }}>
           Book Appointment Slot
         </DialogTitle>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            {formError && <Alert severity="error" sx={{ borderRadius: '8px', py: 0.5 }}>{formError}</Alert>}
             <TextField
               select
-              label="Select Patient"
+              label="Patient *"
               name="patientId"
-              value={newAppt.patientId}
+              value={formData.patientId}
               onChange={handleInputChange}
               fullWidth
               required
-              size="small"
             >
-              {patients.map(p => (
-                <MenuItem key={p.id} value={p.id}>{p.name} ({p.id})</MenuItem>
-              ))}
+              {patients.map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
             </TextField>
-
             <TextField
               select
               label="Assign Dentist"
               name="dentistId"
-              value={newAppt.dentistId}
+              value={formData.dentistId}
               onChange={handleInputChange}
               fullWidth
-              required
-              size="small"
             >
-              {dentists.map(d => (
-                <MenuItem key={d.id} value={d.id}>{d.name} ({d.specialty})</MenuItem>
-              ))}
+              {dentists.map((d) => <MenuItem key={d.id} value={d.id}>{d.name} — {d.specialty}</MenuItem>)}
             </TextField>
-
             <TextField
-              label="Appointment Date"
+              label="Date *"
               name="date"
               type="date"
-              value={newAppt.date}
+              value={formData.date}
               onChange={handleInputChange}
               fullWidth
               required
-              size="small"
               InputLabelProps={{ shrink: true }}
             />
-
             <TextField
-              label="Time Slot (e.g. 10:00 AM)"
+              label="Time Slot"
               name="time"
-              value={newAppt.time}
+              value={formData.time}
               onChange={handleInputChange}
               fullWidth
-              required
-              size="small"
+              placeholder="e.g. 10:00 AM"
             />
-
             <TextField
               select
               label="Procedure Type"
               name="type"
-              value={newAppt.type}
+              value={formData.type}
               onChange={handleInputChange}
               fullWidth
-              required
-              size="small"
             >
-              <MenuItem value="Consultation">Consultation</MenuItem>
-              <MenuItem value="Filling">Filling</MenuItem>
-              <MenuItem value="Scaling">Scaling</MenuItem>
-              <MenuItem value="Root Canal">Root Canal</MenuItem>
-              <MenuItem value="Extraction">Extraction</MenuItem>
-              <MenuItem value="Crown">Crown</MenuItem>
+              {TREATMENT_TYPES.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
             </TextField>
-
             <TextField
-              label="Internal Scheduler Notes"
+              label="Internal Notes"
               name="notes"
-              value={newAppt.notes}
+              value={formData.notes}
               onChange={handleInputChange}
               fullWidth
               multiline
               rows={2}
-              size="small"
-              placeholder="Clinical symptoms or prep instructions..."
+              placeholder="Clinical symptoms or prep instructions…"
             />
           </DialogContent>
-          <DialogActions sx={{ p: 2, borderTop: '1px solid #E5E7EB' }}>
-            <Button onClick={() => setOpenModal(false)} color="inherit" sx={{ textTransform: 'none' }}>
+          <DialogActions sx={{ p: 2, borderTop: `1px solid ${colors.border}` }}>
+            <Button onClick={() => { setOpenModal(false); setFormError(''); }} color="inherit" sx={{ fontWeight: 600 }}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              sx={{ bgcolor: '#1E3A8A', '&:hover': { bgcolor: '#172E6E' }, textTransform: 'none', fontWeight: 'bold' }}
-            >
-              Save Schedule
+            <Button type="submit" variant="contained" sx={{ fontWeight: 700 }}>
+              Save Appointment
             </Button>
           </DialogActions>
         </form>
       </Dialog>
 
-      {/* Dropdown Menu for Status Advancement */}
       <Menu
         anchorEl={anchorElStatus}
         open={Boolean(anchorElStatus)}
         onClose={() => setAnchorElStatus(null)}
-        PaperProps={{ sx: { minWidth: 140, borderRadius: '8px' } }}
+        PaperProps={{ sx: { minWidth: 150, borderRadius: '8px' } }}
       >
-        <MenuItem onClick={() => handleStatusChange('Scheduled')}>Scheduled</MenuItem>
-        <MenuItem onClick={() => handleStatusChange('Arrived')}>Arrived</MenuItem>
-        <MenuItem onClick={() => handleStatusChange('In Progress')}>In Progress</MenuItem>
-        <MenuItem onClick={() => handleStatusChange('Completed')}>Completed</MenuItem>
-        <MenuItem onClick={() => handleStatusChange('No Show')}>No Show</MenuItem>
+        {APPOINTMENT_STATUSES.map((s) => (
+          <MenuItem key={s} onClick={() => handleStatusChange(s)} sx={{ fontSize: '0.875rem' }}>{s}</MenuItem>
+        ))}
       </Menu>
 
-      {/* Dropdown Menu for Dentist Assignment */}
       <Menu
         anchorEl={anchorElDentist}
         open={Boolean(anchorElDentist)}
         onClose={() => setAnchorElDentist(null)}
-        PaperProps={{ sx: { minWidth: 180, borderRadius: '8px' } }}
+        PaperProps={{ sx: { minWidth: 200, borderRadius: '8px' } }}
       >
-        {dentists.map(d => (
-          <MenuItem key={d.id} onClick={() => handleDentistChange(d.id)}>{d.name}</MenuItem>
+        {dentists.map((d) => (
+          <MenuItem key={d.id} onClick={() => handleDentistChange(d.id)} sx={{ fontSize: '0.875rem' }}>{d.name}</MenuItem>
         ))}
       </Menu>
     </Box>

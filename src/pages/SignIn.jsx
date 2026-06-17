@@ -13,38 +13,41 @@ import {
   Typography,
   CircularProgress
 } from '@mui/material';
+import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
+import LockOutlinedIcon from '@mui/icons-material/HttpsOutlined';
 import { useAuth } from '../hooks/useAuth';
 import { colors } from '../theme/theme';
 
 export default function SignIn() {
   const { signIn } = useAuth();
-  const [email, setEmail] = useState('admin@drzaiddental.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [keepSignedIn, setKeepSignedIn] = useState(false);
+
+  const validate = () => {
+    if (!email.trim()) return 'Email address is required.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return 'Please enter a valid email address.';
+    if (!password) return 'Password is required.';
+    if (password.length < 6) return 'Password must be at least 6 characters.';
+    return null;
+  };
 
   const handleSubmit = (event) => {
     event.preventDefault();
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     setError('');
     setLoading(true);
 
-    // Simulate API call
     setTimeout(() => {
-      if (!email.trim() || !password.trim()) {
-        setError('Please enter email and password.');
-        setLoading(false);
-        return;
-      }
-
-      if (password.length < 6) {
-        setError('Password must be at least 6 characters.');
-        setLoading(false);
-        return;
-      }
-
-      signIn({ email: email.trim() });
+      signIn({ email: email.trim(), keepSignedIn });
       setLoading(false);
-    }, 800);
+    }, 600);
   };
 
   return (
@@ -55,110 +58,77 @@ export default function SignIn() {
         alignItems: 'center',
         justifyContent: 'center',
         bgcolor: colors.background,
-        backgroundImage: 'radial-gradient(circle at top right, rgba(15, 76, 129, 0.1), transparent 50%)',
+        backgroundImage: 'radial-gradient(ellipse at top right, rgba(15, 76, 129, 0.08) 0%, transparent 55%)',
         p: { xs: 2, md: 0 }
       }}
     >
       <Paper
         component="form"
         onSubmit={handleSubmit}
-        elevation={3}
+        elevation={0}
         sx={{
           width: '100%',
-          maxWidth: 480,
-          p: { xs: 3, md: 5 },
+          maxWidth: 440,
+          p: { xs: 3, md: 4.5 },
           borderRadius: '12px',
           border: `1px solid ${colors.border}`,
-          boxShadow: '0 20px 60px -20px rgba(15, 76, 129, 0.15)'
+          boxShadow: '0 8px 40px -12px rgba(15, 76, 129, 0.12)'
         }}
       >
-        <Stack spacing={4}>
-          {/* Header Section */}
+        <Stack spacing={3.5}>
           <Box sx={{ textAlign: 'center' }}>
             <Avatar
               sx={{
-                width: 60,
-                height: 60,
+                width: 52,
+                height: 52,
                 bgcolor: colors.primary,
-                color: colors.surface,
                 mx: 'auto',
                 mb: 2,
-                fontSize: '1.5rem'
+                fontSize: '1.1rem',
+                fontWeight: 700,
               }}
             >
-              D
+              DC
             </Avatar>
-            <Typography
-              variant="h4"
-              sx={{
-                fontWeight: 900,
-                color: colors.textPrimary,
-                mb: 1
-              }}
-            >
+            <Typography variant="h5" sx={{ fontWeight: 700, color: colors.textPrimary, mb: 0.5 }}>
               Dr. Zaid Dental
             </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                color: colors.textSecondary,
-                fontWeight: 500
-              }}
-            >
+            <Typography variant="body2" sx={{ color: colors.textSecondary }}>
               Clinic Management System
             </Typography>
           </Box>
 
-          {/* Sign In Heading */}
           <Box>
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 700,
-                color: colors.textPrimary,
-                mb: 1
-              }}
-            >
-              Welcome Back
+            <Typography variant="h6" sx={{ fontWeight: 700, color: colors.textPrimary, mb: 0.5 }}>
+              Sign in to your account
             </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                color: colors.textSecondary
-              }}
-            >
-              Sign in to access your clinic management dashboard
+            <Typography variant="body2" sx={{ color: colors.textSecondary }}>
+              Enter your credentials to access the dashboard
             </Typography>
           </Box>
 
-          {/* Error Alert */}
           {error && (
-            <Alert severity="error" sx={{ borderRadius: '8px' }}>
+            <Alert severity="error" sx={{ borderRadius: '8px', py: 0.5 }}>
               {error}
             </Alert>
           )}
 
-          {/* Form Fields */}
-          <Stack spacing={2.5}>
+          <Stack spacing={2}>
             <TextField
               fullWidth
               type="email"
               label="Email Address"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); setError(''); }}
               disabled={loading}
               placeholder="admin@drzaiddental.com"
+              autoComplete="email"
               InputProps={{
                 startAdornment: (
-                  <InputAdornment position="start" sx={{ mr: 1 }}>
-                    <Typography sx={{ color: colors.primary, fontWeight: 700 }}>@</Typography>
+                  <InputAdornment position="start">
+                    <EmailOutlinedIcon sx={{ color: colors.textLight, fontSize: 20 }} />
                   </InputAdornment>
                 )
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '8px'
-                }
               }}
             />
 
@@ -167,25 +137,27 @@ export default function SignIn() {
               type="password"
               label="Password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); setError(''); }}
               disabled={loading}
-              placeholder="Enter your password"
+              autoComplete="current-password"
               InputProps={{
                 startAdornment: (
-                  <InputAdornment position="start" sx={{ mr: 1 }}>
-                    <Typography sx={{ color: colors.primary, fontWeight: 700 }}>🔒</Typography>
+                  <InputAdornment position="start">
+                    <LockOutlinedIcon sx={{ color: colors.textLight, fontSize: 20 }} />
                   </InputAdornment>
                 )
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '8px'
-                }
               }}
             />
 
             <FormControlLabel
-              control={<Checkbox defaultChecked disabled={loading} />}
+              control={
+                <Checkbox
+                  checked={keepSignedIn}
+                  onChange={(e) => setKeepSignedIn(e.target.checked)}
+                  disabled={loading}
+                  size="small"
+                />
+              }
               label={
                 <Typography variant="body2" sx={{ color: colors.textSecondary }}>
                   Keep me signed in
@@ -194,7 +166,6 @@ export default function SignIn() {
             />
           </Stack>
 
-          {/* Sign In Button */}
           <Button
             type="submit"
             variant="contained"
@@ -202,86 +173,43 @@ export default function SignIn() {
             size="large"
             disabled={loading}
             sx={{
-              bgcolor: colors.primary,
-              color: colors.surface,
-              fontWeight: 700,
-              py: 1.5,
+              py: 1.4,
               borderRadius: '8px',
-              textTransform: 'none',
-              fontSize: '1rem',
-              '&:hover': {
-                bgcolor: colors.primaryDark
-              },
-              '&:disabled': {
-                bgcolor: colors.textLight,
-                color: colors.textSecondary
-              }
+              fontSize: '0.9375rem',
+              fontWeight: 700,
             }}
           >
             {loading ? (
               <Stack direction="row" spacing={1} alignItems="center">
-                <CircularProgress size={20} sx={{ color: 'inherit' }} />
-                <span>Signing in...</span>
+                <CircularProgress size={18} sx={{ color: 'inherit' }} />
+                <span>Signing in…</span>
               </Stack>
             ) : (
               'Sign In'
             )}
           </Button>
 
-          {/* Demo Credentials */}
-          <Paper
+          <Box
             sx={{
-              p: 2.5,
+              p: 2,
               bgcolor: colors.surfaceAlt,
-              border: `1px solid ${colors.border}`,
-              borderRadius: '8px'
+              border: `1px dashed ${colors.border}`,
+              borderRadius: '8px',
             }}
           >
-            <Typography
-              variant="caption"
-              sx={{
-                display: 'block',
-                fontWeight: 700,
-                color: colors.textSecondary,
-                mb: 1
-              }}
-            >
-              Demo Credentials
+            <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, color: colors.textSecondary, mb: 0.75, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+              Demo Access
             </Typography>
-            <Stack spacing={0.5}>
-              <Typography
-                variant="body2"
-                sx={{
-                  fontFamily: 'monospace',
-                  color: colors.textPrimary,
-                  fontWeight: 600
-                }}
-              >
-                Email: admin@drzaiddental.com
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  fontFamily: 'monospace',
-                  color: colors.textPrimary,
-                  fontWeight: 600
-                }}
-              >
-                Password: admin123
-              </Typography>
-            </Stack>
-          </Paper>
+            <Typography variant="body2" sx={{ fontFamily: 'monospace', color: colors.textPrimary, fontSize: '0.8rem' }}>
+              Email: admin@drzaiddental.com
+            </Typography>
+            <Typography variant="body2" sx={{ fontFamily: 'monospace', color: colors.textPrimary, fontSize: '0.8rem' }}>
+              Password: admin123
+            </Typography>
+          </Box>
 
-          {/* Footer Text */}
-          <Typography
-            variant="caption"
-            sx={{
-              textAlign: 'center',
-              color: colors.textSecondary,
-              display: 'block'
-            }}
-          >
-            © 2026 Dr. Zaid Dental Clinic. All rights reserved.
+          <Typography variant="caption" sx={{ textAlign: 'center', color: colors.textLight, display: 'block' }}>
+            © {new Date().getFullYear()} Dr. Zaid Dental Clinic. All rights reserved.
           </Typography>
         </Stack>
       </Paper>
