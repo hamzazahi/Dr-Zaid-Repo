@@ -26,14 +26,6 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import ListIcon from '@mui/icons-material/List';
-import EditIcon from '@mui/icons-material/Edit';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 import { useClinicData } from '../hooks/useClinicData';
 import { useNotification } from '../context/NotificationContext';
@@ -41,6 +33,7 @@ import { formatDate } from '../utils/helpers';
 import { APPOINTMENT_STATUSES, TREATMENT_TYPES } from '../utils/constants';
 import StatusBadge from '../components/common/StatusBadge';
 import { colors } from '../theme/theme';
+import { Add as AddIcon, CalendarMonth as CalendarMonthIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, List as ListIcon, Edit as EditIcon, ArrowForward as ArrowForwardIcon, MoreVert as MoreVertIcon } from '@mui/icons-material';
 
 const EMPTY_FORM = {
   patientId: '',

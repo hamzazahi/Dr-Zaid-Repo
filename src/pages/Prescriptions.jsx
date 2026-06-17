@@ -22,14 +22,11 @@ import {
   Typography,
   Paper,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import LocalPharmacyIcon from '@mui/icons-material/LocalPharmacy';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useClinicData } from '../hooks/useClinicData';
 import { useNotification } from '../context/NotificationContext';
 import { formatDate } from '../utils/helpers';
 import { colors } from '../theme/theme';
+import { Add as AddIcon, LocalPharmacy as LocalPharmacyIcon, AccessTime as AccessTimeIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 
 const EMPTY_FORM = {
   patientId: '',

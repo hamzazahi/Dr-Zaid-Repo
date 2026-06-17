@@ -24,10 +24,6 @@ import {
   Chip,
   FormHelperText,
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import AddIcon from '@mui/icons-material/Add';
-import FilterListIcon from '@mui/icons-material/FilterList';
-import PersonIcon from '@mui/icons-material/Person';
 
 import { useClinicData } from '../hooks/useClinicData';
 import { useNotification } from '../context/NotificationContext';
@@ -35,6 +31,7 @@ import { calculateAge, formatDate } from '../utils/helpers';
 import { BLOOD_GROUPS, PATIENT_STATUSES } from '../utils/constants';
 import StatusBadge from '../components/common/StatusBadge';
 import { colors } from '../theme/theme';
+import { Search as SearchIcon, Add as AddIcon, FilterList as FilterListIcon, Person as PersonIcon } from '@mui/icons-material';
 
 const EMPTY_FORM = {
   name: '',

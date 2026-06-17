@@ -14,13 +14,10 @@ import {
   Divider,
   ListItemIcon,
 } from '@mui/material';
-import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
-import LogoutIcon from '@mui/icons-material/Logout';
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import { colors } from '../../theme/theme';
 import { useAuth } from '../../hooks/useAuth';
 import { useClinicData } from '../../hooks/useClinicData';
+import { NotificationsOutlined as NotificationsOutlinedIcon, SettingsOutlined as SettingsOutlinedIcon, Logout as LogoutIcon, PersonOutline as PersonOutlineIcon } from '@mui/icons-material';
 
 const PAGE_TITLES = {
   '/': 'Clinical Dashboard',

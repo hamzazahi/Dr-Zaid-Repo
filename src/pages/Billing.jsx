@@ -16,15 +16,12 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
-import PaymentIcon from '@mui/icons-material/Payment';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import { useNavigate } from 'react-router-dom';
 import { useClinicData } from '../hooks/useClinicData';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import StatusBadge from '../components/common/StatusBadge';
 import { colors } from '../theme/theme';
+import { Payment as PaymentIcon, ReceiptLong as ReceiptLongIcon, TrendingUp as TrendingUpIcon, HourglassEmpty as HourglassEmptyIcon } from '@mui/icons-material';
 
 export default function Billing() {
   const { invoices } = useClinicData();

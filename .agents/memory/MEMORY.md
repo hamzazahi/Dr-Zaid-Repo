@@ -1,0 +1,1 @@
+- [MUI icons barrel import fix](mui-icons-vite-react19.md) — individual path imports (@mui/icons-material/X) cause separate CJS React instances in Vite; use barrel imports instead.

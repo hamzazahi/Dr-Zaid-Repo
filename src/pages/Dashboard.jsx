@@ -21,16 +21,6 @@ import {
   Tooltip,
   LinearProgress
 } from '@mui/material';
-import PeopleIcon from '@mui/icons-material/People';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
-import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
-import PaymentsIcon from '@mui/icons-material/Payments';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import EditCalendarIcon from '@mui/icons-material/EditCalendar';
-import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
-import PaymentIcon from '@mui/icons-material/Payment';
 
 import { useClinicData } from '../hooks/useClinicData';
 import { useNotification } from '../context/NotificationContext';
@@ -38,6 +28,7 @@ import { formatCurrency } from '../utils/helpers';
 import { APPOINTMENT_STATUSES } from '../utils/constants';
 import StatusBadge from '../components/common/StatusBadge';
 import { colors } from '../theme/theme';
+import { People as PeopleIcon, CalendarMonth as CalendarMonthIcon, CheckCircleOutlined as CheckCircleOutlineIcon, HourglassEmpty as HourglassEmptyIcon, Payments as PaymentsIcon, ArrowForward as ArrowForwardIcon, MoreVert as MoreVertIcon, EditCalendar as EditCalendarIcon, LocalHospital as LocalHospitalIcon, Payment as PaymentIcon } from '@mui/icons-material';
 
 const PROCEDURE_TYPES = ['Root Canal', 'Crown', 'Scaling', 'Filling', 'Extraction', 'Consultation'];
 

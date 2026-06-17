@@ -27,12 +27,6 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
-import PaymentIcon from '@mui/icons-material/Payment';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 
 import { useClinicData } from '../hooks/useClinicData';
 import { useNotification } from '../context/NotificationContext';
@@ -40,6 +34,7 @@ import { formatCurrency, formatDate, calculateAge } from '../utils/helpers';
 import { PAYMENT_METHODS, TREATMENT_COSTS, TREATMENT_TYPES, TOOTH_NUMBERS } from '../utils/constants';
 import StatusBadge from '../components/common/StatusBadge';
 import { colors } from '../theme/theme';
+import { ArrowBack as ArrowBackIcon, WarningAmber as WarningAmberIcon, LocalHospital as LocalHospitalIcon, Payment as PaymentIcon, CalendarMonth as CalendarMonthIcon, AccountBalanceWallet as AccountBalanceWalletIcon } from '@mui/icons-material';
 
 const TabPanel = ({ children, value, index }) => (
   <Box role="tabpanel" hidden={value !== index} sx={{ py: 3 }}>

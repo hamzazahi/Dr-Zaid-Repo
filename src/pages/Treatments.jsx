@@ -18,12 +18,12 @@ import {
   Typography,
   Alert,
 } from '@mui/material';
-import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 import { useClinicData } from '../hooks/useClinicData';
 import { useNotification } from '../context/NotificationContext';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { TREATMENT_COSTS, TREATMENT_TYPES, TOOTH_NUMBERS } from '../utils/constants';
 import { colors } from '../theme/theme';
+import { LocalHospital as LocalHospitalIcon } from '@mui/icons-material';
 
 const EMPTY_FORM = {
   patientId: '',

@@ -23,15 +23,11 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import InventoryIcon from '@mui/icons-material/Inventory';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import DoNotDisturbIcon from '@mui/icons-material/DoNotDisturb';
 import { useNotification } from '../context/NotificationContext';
 import { formatCurrency } from '../utils/helpers';
 import { colors } from '../theme/theme';
 import { mockInventory } from '../utils/mockData';
+import { Add as AddIcon, Inventory as InventoryIcon, WarningAmber as WarningAmberIcon, CheckCircle as CheckCircleIcon, DoNotDisturb as DoNotDisturbIcon } from '@mui/icons-material';
 
 const CATEGORIES = ['Restorative', 'Endodontic', 'Supplies', 'Medications', 'Equipment', 'PPE'];
 

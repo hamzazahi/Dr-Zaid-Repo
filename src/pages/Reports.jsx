@@ -17,15 +17,10 @@ import {
   TableRow,
   Typography
 } from '@mui/material';
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import AssessmentIcon from '@mui/icons-material/Assessment';
-import PeopleIcon from '@mui/icons-material/People';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import { useMemo } from 'react';
 import { useClinicData } from '../hooks/useClinicData';
 import { formatCurrency, formatDate } from '../utils/helpers';
+import { PictureAsPdf as PictureAsPdfIcon, Assessment as AssessmentIcon, People as PeopleIcon, CalendarMonth as CalendarMonthIcon, LocalHospital as LocalHospitalIcon, AccountBalanceWallet as AccountBalanceWalletIcon } from '@mui/icons-material';
 
 const escapeHtml = (value) => String(value ?? '')
   .replaceAll('&', '&amp;')

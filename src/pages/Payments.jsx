@@ -14,10 +14,10 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
-import PaymentsIcon from '@mui/icons-material/Payments';
 import { useClinicData } from '../hooks/useClinicData';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { colors } from '../theme/theme';
+import { Payments as PaymentsIcon } from '@mui/icons-material';
 
 export default function Payments() {
   const { payments } = useClinicData();

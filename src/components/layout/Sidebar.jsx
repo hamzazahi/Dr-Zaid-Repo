@@ -12,54 +12,23 @@ import {
   Avatar,
   Button,
 } from '@mui/material';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import PeopleIcon from '@mui/icons-material/People';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
-import ReceiptIcon from '@mui/icons-material/Receipt';
-import PaymentsIcon from '@mui/icons-material/Payments';
-import AssessmentIcon from '@mui/icons-material/Assessment';
-import LocalPharmacyIcon from '@mui/icons-material/LocalPharmacy';
-import InventoryIcon from '@mui/icons-material/Inventory';
-import SettingsIcon from '@mui/icons-material/Settings';
-import LogoutIcon from '@mui/icons-material/Logout';
+import {
+  Dashboard as DashboardIcon,
+  People as PeopleIcon,
+  CalendarMonth as CalendarMonthIcon,
+  MedicalServices as MedicalServicesIcon,
+  Receipt as ReceiptIcon,
+  Payments as PaymentsIcon,
+  Assessment as AssessmentIcon,
+  LocalPharmacy as LocalPharmacyIcon,
+  Inventory as InventoryIcon,
+  Settings as SettingsIcon,
+  Logout as LogoutIcon,
+} from '@mui/icons-material';
 import { colors } from '../../theme/theme';
 import { useAuth } from '../../hooks/useAuth';
 
 const DRAWER_WIDTH = 252;
-
-const NAV_SECTIONS = [
-  {
-    title: 'Main',
-    items: [
-      { text: 'Dashboard', path: '/', icon: <DashboardIcon sx={{ fontSize: 20 }} /> },
-      { text: 'Patients', path: '/patients', icon: <PeopleIcon sx={{ fontSize: 20 }} /> },
-      { text: 'Appointments', path: '/appointments', icon: <CalendarMonthIcon sx={{ fontSize: 20 }} /> },
-      { text: 'Treatments', path: '/treatments', icon: <MedicalServicesIcon sx={{ fontSize: 20 }} /> },
-    ],
-  },
-  {
-    title: 'Clinical',
-    items: [
-      { text: 'Prescriptions', path: '/prescriptions', icon: <LocalPharmacyIcon sx={{ fontSize: 20 }} /> },
-      { text: 'Inventory', path: '/inventory', icon: <InventoryIcon sx={{ fontSize: 20 }} /> },
-    ],
-  },
-  {
-    title: 'Finance',
-    items: [
-      { text: 'Billing', path: '/billing', icon: <ReceiptIcon sx={{ fontSize: 20 }} /> },
-      { text: 'Payments', path: '/payments', icon: <PaymentsIcon sx={{ fontSize: 20 }} /> },
-    ],
-  },
-  {
-    title: 'System',
-    items: [
-      { text: 'Reports', path: '/reports', icon: <AssessmentIcon sx={{ fontSize: 20 }} /> },
-      { text: 'Settings', path: '/settings', icon: <SettingsIcon sx={{ fontSize: 20 }} /> },
-    ],
-  },
-];
 
 const NavSection = ({ title, items }) => (
   <Box sx={{ mb: 1 }}>
@@ -119,6 +88,39 @@ const Sidebar = () => {
 
   const initials = user?.initials ||
     (user?.name ? user.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() : 'DR');
+
+  const NAV_SECTIONS = [
+    {
+      title: 'Main',
+      items: [
+        { text: 'Dashboard', path: '/', icon: <DashboardIcon sx={{ fontSize: 20 }} /> },
+        { text: 'Patients', path: '/patients', icon: <PeopleIcon sx={{ fontSize: 20 }} /> },
+        { text: 'Appointments', path: '/appointments', icon: <CalendarMonthIcon sx={{ fontSize: 20 }} /> },
+        { text: 'Treatments', path: '/treatments', icon: <MedicalServicesIcon sx={{ fontSize: 20 }} /> },
+      ],
+    },
+    {
+      title: 'Clinical',
+      items: [
+        { text: 'Prescriptions', path: '/prescriptions', icon: <LocalPharmacyIcon sx={{ fontSize: 20 }} /> },
+        { text: 'Inventory', path: '/inventory', icon: <InventoryIcon sx={{ fontSize: 20 }} /> },
+      ],
+    },
+    {
+      title: 'Finance',
+      items: [
+        { text: 'Billing', path: '/billing', icon: <ReceiptIcon sx={{ fontSize: 20 }} /> },
+        { text: 'Payments', path: '/payments', icon: <PaymentsIcon sx={{ fontSize: 20 }} /> },
+      ],
+    },
+    {
+      title: 'System',
+      items: [
+        { text: 'Reports', path: '/reports', icon: <AssessmentIcon sx={{ fontSize: 20 }} /> },
+        { text: 'Settings', path: '/settings', icon: <SettingsIcon sx={{ fontSize: 20 }} /> },
+      ],
+    },
+  ];
 
   return (
     <Drawer

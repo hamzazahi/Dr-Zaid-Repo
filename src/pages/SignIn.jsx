@@ -13,10 +13,9 @@ import {
   Typography,
   CircularProgress
 } from '@mui/material';
-import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
-import LockOutlinedIcon from '@mui/icons-material/HttpsOutlined';
 import { useAuth } from '../hooks/useAuth';
 import { colors } from '../theme/theme';
+import { EmailOutlined as EmailOutlinedIcon, HttpsOutlined as LockOutlinedIcon } from '@mui/icons-material';
 
 export default function SignIn() {
   const { signIn } = useAuth();

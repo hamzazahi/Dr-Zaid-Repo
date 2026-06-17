@@ -1,11 +1,7 @@
 import { Box, Card, CardContent, Typography, Stack, TextField, Button, Switch, FormControlLabel, Grid, Divider, Alert } from '@mui/material';
 import { useState } from 'react';
-import SaveIcon from '@mui/icons-material/Save';
 import { colors } from '../theme/theme';
-import BuildIcon from '@mui/icons-material/Build';
-import SecurityIcon from '@mui/icons-material/Security';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import PeopleIcon from '@mui/icons-material/People';
+import { Save as SaveIcon, Build as BuildIcon, Security as SecurityIcon, Notifications as NotificationsIcon, People as PeopleIcon } from '@mui/icons-material';
 
 export default function Settings() {
   const [clinicSettings, setClinicSettings] = useState({
