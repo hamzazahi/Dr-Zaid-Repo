@@ -1,36 +1,61 @@
+import { useState } from 'react';
 import { Box } from '@mui/material';
 import Sidebar from './Sidebar';
 import Header from './Header';
 
-const Layout = ({ children }) => {
-  return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F6F8FB' }}>
-      {/* Fixed Sidebar */}
-      <Sidebar />
+export const SIDEBAR_W           = 256;
+export const SIDEBAR_W_COLLAPSED = 64;
 
-      {/* Main Container */}
+const TRANSITION = 'width 0.22s cubic-bezier(0.4,0,0.2,1)';
+
+const Layout = ({ children }) => {
+  const [collapsed, setCollapsed] = useState(false);
+
+  return (
+    /*
+     * Root: strict 100vh, no overflow.
+     * The MUI permanent Drawer root <div> is already a flex placeholder
+     * that matches its paper width — no manual spacer needed here.
+     */
+    <Box
+      sx={{
+        display: 'flex',
+        height: '100vh',
+        width: '100vw',
+        overflow: 'hidden',
+        bgcolor: '#F4F6FA',
+      }}
+    >
+      <Sidebar
+        collapsed={collapsed}
+        onToggle={() => setCollapsed((c) => !c)}
+        transition={TRANSITION}
+      />
+
+      {/*
+       * Main column: flex: 1 + minWidth: 0 prevents content from blowing
+       * past the sidebar boundary on narrow viewports.
+       */}
       <Box
-        component="div"
+        component="main"
         sx={{
-          flexGrow: 1,
+          flex: 1,
+          minWidth: 0,
           display: 'flex',
           flexDirection: 'column',
-          height: '100vh',
           overflow: 'hidden',
+          transition: TRANSITION,
         }}
       >
-        {/* Top Header */}
         <Header />
 
-        {/* Dynamic Main Page Content */}
+        {/* Scrollable page body */}
         <Box
-          component="section"
           sx={{
-            flexGrow: 1,
-            p: { xs: 2, md: 3 },
+            flex: 1,
             overflowY: 'auto',
-            bgcolor: '#F6F8FB',
-            backgroundImage: 'radial-gradient(circle at top right, rgba(29, 78, 216, 0.06), transparent 28rem)',
+            overflowX: 'hidden',
+            p: { xs: 2, md: 3 },
           }}
         >
           {children}

@@ -6,54 +6,69 @@ import {
   Box,
   Button,
   Card,
-  CardContent,
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Grid,
   MenuItem,
-  Paper,
   Stack,
   Tab,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
   Tabs,
   TextField,
   Typography,
 } from '@mui/material';
-
+import {
+  ArrowBack as ArrowBackIcon,
+  WarningAmber as WarningAmberIcon,
+  LocalHospital as LocalHospitalIcon,
+  Payment as PaymentIcon,
+  CalendarMonth as CalendarMonthIcon,
+  AccountBalanceWallet as AccountBalanceWalletIcon,
+  Phone as PhoneIcon,
+  Email as EmailIcon,
+  Home as HomeIcon,
+} from '@mui/icons-material';
 import { useClinicData } from '../hooks/useClinicData';
 import { useNotification } from '../context/NotificationContext';
 import { formatCurrency, formatDate, calculateAge } from '../utils/helpers';
 import { PAYMENT_METHODS, TREATMENT_COSTS, TREATMENT_TYPES, TOOTH_NUMBERS } from '../utils/constants';
 import StatusBadge from '../components/common/StatusBadge';
 import { colors } from '../theme/theme';
-import { ArrowBack as ArrowBackIcon, WarningAmber as WarningAmberIcon, LocalHospital as LocalHospitalIcon, Payment as PaymentIcon, CalendarMonth as CalendarMonthIcon, AccountBalanceWallet as AccountBalanceWalletIcon } from '@mui/icons-material';
 
-const TabPanel = ({ children, value, index }) => (
-  <Box role="tabpanel" hidden={value !== index} sx={{ py: 3 }}>
-    {value === index && children}
-  </Box>
-);
+const AVATAR_COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626', '#0D9488', '#DB2777'];
+const avatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
+
+function TabPanel({ children, value, index }) {
+  return (
+    <Box role="tabpanel" hidden={value !== index} sx={{ pt: 3 }}>
+      {value === index && children}
+    </Box>
+  );
+}
+
+function InfoRow({ icon, label, value }) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, py: 1.25, borderBottom: `1px solid ${colors.borderLight}` }}>
+      <Box sx={{ color: colors.textLight, display: 'flex', mt: '2px', flexShrink: 0 }}>{icon}</Box>
+      <Box>
+        <Typography variant="caption" sx={{ color: colors.textSecondary, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>{label}</Typography>
+        <Typography variant="body2" sx={{ fontWeight: 500, mt: 0.25 }}>{value || '—'}</Typography>
+      </Box>
+    </Box>
+  );
+}
 
 const PatientProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const {
-    patients,
-    appointments,
-    treatments,
-    invoices,
-    addPayment,
-    addTreatment,
-  } = useClinicData();
+  const { patients, appointments, treatments, invoices, addPayment, addTreatment } = useClinicData();
   const { notify } = useNotification();
 
   const [activeTab, setActiveTab] = useState(0);
@@ -63,12 +78,7 @@ const PatientProfile = () => {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [paymentError, setPaymentError] = useState('');
-  const [treatmentForm, setTreatmentForm] = useState({
-    type: 'Filling',
-    toothNumber: '11',
-    cost: TREATMENT_COSTS.Filling,
-    notes: '',
-  });
+  const [treatmentForm, setTreatmentForm] = useState({ type: 'Filling', toothNumber: '11', cost: TREATMENT_COSTS.Filling, notes: '' });
   const [treatmentError, setTreatmentError] = useState('');
 
   useEffect(() => {
@@ -79,243 +89,138 @@ const PatientProfile = () => {
   }, [location.state]);
 
   const patient = patients.find((p) => p.id === id);
-
-  const patientAppts = useMemo(
-    () => appointments.filter((a) => a.patientId === id),
-    [appointments, id]
-  );
-  const patientTreatments = useMemo(
-    () => treatments.filter((t) => t.patientId === id),
-    [treatments, id]
-  );
-  const patientInvoices = useMemo(
-    () => invoices.filter((i) => i.patientId === id),
-    [invoices, id]
-  );
-  const patientOutstanding = useMemo(
-    () => patientInvoices.reduce((sum, inv) => sum + inv.balanceDue, 0),
-    [patientInvoices]
-  );
+  const patientAppts = useMemo(() => appointments.filter((a) => a.patientId === id), [appointments, id]);
+  const patientTreatments = useMemo(() => treatments.filter((t) => t.patientId === id), [treatments, id]);
+  const patientInvoices = useMemo(() => invoices.filter((i) => i.patientId === id), [invoices, id]);
+  const patientOutstanding = useMemo(() => patientInvoices.reduce((sum, inv) => sum + inv.balanceDue, 0), [patientInvoices]);
 
   if (!patient) {
     return (
       <Box sx={{ p: 4, textAlign: 'center' }}>
-        <Typography variant="h6" color="error" sx={{ mb: 2 }}>
-          Patient record not found.
-        </Typography>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/patients')}>
-          Back to Directory
-        </Button>
+        <Typography variant="h6" color="error" sx={{ mb: 2 }}>Patient record not found.</Typography>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/patients')}>Back to Directory</Button>
       </Box>
     );
   }
 
-  const handleOpenPayment = (invoice) => {
-    setSelectedInvoice(invoice);
-    setPaymentAmount(String(invoice.balanceDue));
-    setPaymentError('');
-    setOpenPaymentModal(true);
-  };
+  const handleOpenPayment = (invoice) => { setSelectedInvoice(invoice); setPaymentAmount(String(invoice.balanceDue)); setPaymentError(''); setOpenPaymentModal(true); };
 
   const handlePaymentSubmit = (e) => {
     e.preventDefault();
     const amount = Number(paymentAmount);
-    if (!amount || amount <= 0) {
-      setPaymentError('Please enter a valid payment amount.');
-      return;
-    }
-    if (amount > selectedInvoice.balanceDue) {
-      setPaymentError(`Amount cannot exceed the balance due (${formatCurrency(selectedInvoice.balanceDue)}).`);
-      return;
-    }
-    addPayment({
-      invoiceId: selectedInvoice.id,
-      patientName: patient.name,
-      amount,
-      method: paymentMethod,
-    });
-    setOpenPaymentModal(false);
-    setSelectedInvoice(null);
-    setPaymentAmount('');
-    setPaymentError('');
+    if (!amount || amount <= 0) { setPaymentError('Please enter a valid payment amount.'); return; }
+    if (amount > selectedInvoice.balanceDue) { setPaymentError(`Amount cannot exceed the balance due (${formatCurrency(selectedInvoice.balanceDue)}).`); return; }
+    addPayment({ invoiceId: selectedInvoice.id, patientName: patient.name, amount, method: paymentMethod });
+    setOpenPaymentModal(false); setSelectedInvoice(null); setPaymentAmount(''); setPaymentError('');
     notify(`Payment of ${formatCurrency(amount)} recorded for ${patient.name}.`, 'success');
-  };
-
-  const handleTreatmentTypeChange = (type) => {
-    setTreatmentForm((prev) => ({ ...prev, type, cost: TREATMENT_COSTS[type] || '' }));
   };
 
   const handleTreatmentSubmit = (e) => {
     e.preventDefault();
-    if (!treatmentForm.cost || Number(treatmentForm.cost) <= 0) {
-      setTreatmentError('Please enter a valid fee amount.');
-      return;
-    }
-    addTreatment({
-      patientId: patient.id,
-      patientName: patient.name,
-      ...treatmentForm,
-      cost: Number(treatmentForm.cost),
-    });
+    if (!treatmentForm.cost || Number(treatmentForm.cost) <= 0) { setTreatmentError('Please enter a valid fee amount.'); return; }
+    addTreatment({ patientId: patient.id, patientName: patient.name, ...treatmentForm, cost: Number(treatmentForm.cost) });
     setOpenTreatmentModal(false);
     setTreatmentForm({ type: 'Filling', toothNumber: '11', cost: TREATMENT_COSTS.Filling, notes: '' });
     setTreatmentError('');
     notify(`Treatment logged. Invoice generated for ${patient.name}.`, 'success');
   };
 
-  const emergencyName = patient.emergencyContactName || '—';
-  const emergencyPhone = patient.emergencyContactPhone || '—';
+  const bgColor = avatarColor(patient.name);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       <Box>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/patients')}
-          sx={{ textTransform: 'none', color: colors.primary, fontWeight: 700 }}
-        >
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/patients')} sx={{ color: colors.primary, fontWeight: 700, textTransform: 'none' }}>
           Back to Patient Directory
         </Button>
       </Box>
 
-      <Card sx={{ overflow: 'hidden' }}>
-        <Box sx={{ bgcolor: colors.primary, py: 1.5, px: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#fff' }}>
-          <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            Clinical Record File
-          </Typography>
-          <StatusBadge status={patient.status} />
-        </Box>
-        <CardContent sx={{ p: 3 }}>
+      <Card sx={{ borderRadius: '12px', overflow: 'hidden' }}>
+        <Box sx={{ height: 6, background: `linear-gradient(90deg, ${bgColor}, ${colors.primary})` }} />
+        <Box sx={{ p: 3 }}>
           <Grid container spacing={3} alignItems="center">
-            <Grid item xs={12} md={1.5} sx={{ display: 'flex', justifyContent: 'center' }}>
-              <Avatar
-                sx={{ width: 80, height: 80, bgcolor: '#EFF6FF', color: colors.primary, fontSize: '2rem', fontWeight: 700, border: `2px solid ${colors.border}` }}
-              >
+            <Grid item xs="auto">
+              <Avatar sx={{ width: 72, height: 72, bgcolor: bgColor, fontSize: '1.6rem', fontWeight: 700, border: `3px solid ${colors.surface}`, boxShadow: `0 0 0 2px ${bgColor}40` }}>
                 {patient.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
               </Avatar>
             </Grid>
-
-            <Grid item xs={12} md={6.5}>
-              <Typography variant="h5" fontWeight={700}>{patient.name}</Typography>
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1, color: 'text.secondary' }}>
-                <Typography variant="body2"><strong>ID:</strong> <span style={{ fontFamily: 'monospace' }}>{patient.id}</span></Typography>
-                <Typography variant="body2"><strong>Age / Gender:</strong> {calculateAge(patient.dob)} yrs / {patient.gender}</Typography>
-                <Typography variant="body2"><strong>Blood Group:</strong> {patient.bloodGroup || 'O+'}</Typography>
-                <Typography variant="body2"><strong>Registered:</strong> {formatDate(patient.registrationDate)}</Typography>
+            <Grid item xs>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', mb: 0.5 }}>
+                <Typography sx={{ fontWeight: 800, fontSize: '1.2rem', color: colors.textPrimary }}>{patient.name}</Typography>
+                <StatusBadge status={patient.status} />
               </Box>
-            </Grid>
-
-            <Grid item xs={12} md={4} sx={{ borderLeft: { md: `1px solid ${colors.border}` }, pl: { md: 4 } }}>
-              <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Outstanding Patient Ledger
-              </Typography>
-              <Typography variant="h4" fontWeight={700} sx={{ color: patientOutstanding > 0 ? colors.error : colors.success, mt: 0.5 }}>
-                {formatCurrency(patientOutstanding)}
-              </Typography>
-              <Stack direction="row" gap={1.5} sx={{ mt: 1.5 }}>
-                <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<LocalHospitalIcon />}
-                  onClick={() => setOpenTreatmentModal(true)}
-                  sx={{ bgcolor: '#0D9488', '&:hover': { bgcolor: '#0B7A6F' }, textTransform: 'none', borderRadius: '6px' }}
-                >
-                  Log Treatment
-                </Button>
+              <Stack direction="row" gap={2} flexWrap="wrap">
+                <Typography variant="caption" sx={{ color: colors.textSecondary }}><strong>ID:</strong> <span style={{ fontFamily: 'monospace' }}>{patient.id}</span></Typography>
+                <Typography variant="caption" sx={{ color: colors.textSecondary }}><strong>Age:</strong> {calculateAge(patient.dob)} yrs / {patient.gender}</Typography>
+                <Typography variant="caption" sx={{ color: colors.textSecondary }}><strong>Blood:</strong> {patient.bloodGroup || 'O+'}</Typography>
+                <Typography variant="caption" sx={{ color: colors.textSecondary }}><strong>Registered:</strong> {formatDate(patient.registrationDate)}</Typography>
               </Stack>
             </Grid>
+            <Grid item xs={12} md="auto">
+              <Card sx={{ borderRadius: '10px', bgcolor: patientOutstanding > 0 ? colors.errorBg : colors.successBg, border: `1px solid ${patientOutstanding > 0 ? colors.errorBorder : colors.successBorder}`, px: 2.5, py: 1.5, minWidth: 180 }}>
+                <Typography variant="caption" sx={{ color: colors.textSecondary, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.65rem' }}>Outstanding Balance</Typography>
+                <Typography sx={{ fontWeight: 800, fontSize: '1.5rem', color: patientOutstanding > 0 ? colors.error : colors.success, letterSpacing: '-0.02em' }}>{formatCurrency(patientOutstanding)}</Typography>
+                <Button size="small" variant="contained" startIcon={<LocalHospitalIcon sx={{ fontSize: 14 }} />} onClick={() => setOpenTreatmentModal(true)} sx={{ mt: 1, bgcolor: '#0D9488', '&:hover': { bgcolor: '#0B7A6F' }, fontWeight: 700, fontSize: '0.75rem', py: 0.5 }}>
+                  Log Treatment
+                </Button>
+              </Card>
+            </Grid>
           </Grid>
-        </CardContent>
+        </Box>
       </Card>
 
       {patient.allergies && patient.allergies.toLowerCase() !== 'none' && (
-        <Card sx={{ bgcolor: '#FEF2F2', border: `1px solid #FCA5A5` }}>
-          <CardContent sx={{ p: '12px 20px !important', display: 'flex', alignItems: 'center', gap: 2 }}>
-            <WarningAmberIcon color="error" sx={{ fontSize: 28, flexShrink: 0 }} />
-            <Box>
-              <Typography variant="subtitle2" fontWeight={700} color="error.dark">
-                CRITICAL ALLERGY ALERT
-              </Typography>
-              <Typography variant="body2">
-                Patient is allergic to: <strong>{patient.allergies}</strong>. Verify prescriptions and materials before procedure.
-              </Typography>
-            </Box>
-          </CardContent>
-        </Card>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 2.5, py: 1.5, borderRadius: '10px', bgcolor: colors.errorBg, border: `1px solid ${colors.errorBorder}` }}>
+          <WarningAmberIcon color="error" sx={{ flexShrink: 0 }} />
+          <Box>
+            <Typography variant="subtitle2" fontWeight={700} color="error.dark" sx={{ letterSpacing: '0.04em' }}>CRITICAL ALLERGY ALERT</Typography>
+            <Typography variant="body2">Patient is allergic to: <strong>{patient.allergies}</strong>. Verify all materials and prescriptions.</Typography>
+          </Box>
+        </Box>
       )}
 
-      <Box sx={{ width: '100%' }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: colors.surface, borderRadius: '8px 8px 0 0' }}>
-          <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ px: 2 }}>
-            <Tab label="Demographics" sx={{ fontWeight: 700, textTransform: 'none' }} />
-            <Tab label={`Visits (${patientAppts.length})`} sx={{ fontWeight: 700, textTransform: 'none' }} />
-            <Tab label={`Treatments (${patientTreatments.length})`} sx={{ fontWeight: 700, textTransform: 'none' }} />
-            <Tab label={`Billing (${patientInvoices.length})`} sx={{ fontWeight: 700, textTransform: 'none' }} />
+      <Card sx={{ borderRadius: '12px', overflow: 'hidden' }}>
+        <Box sx={{ borderBottom: `1px solid ${colors.border}`, px: 2 }}>
+          <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ minHeight: 48 }}>
+            {['Demographics', `Visits (${patientAppts.length})`, `Treatments (${patientTreatments.length})`, `Billing (${patientInvoices.length})`].map((label) => (
+              <Tab key={label} label={label} sx={{ fontWeight: 700, textTransform: 'none', fontSize: '0.85rem', minHeight: 48 }} />
+            ))}
           </Tabs>
         </Box>
-
-        <Paper sx={{ p: 1, borderRadius: '0 0 8px 8px' }}>
+        <Box sx={{ p: 3 }}>
           <TabPanel value={activeTab} index={0}>
-            <Grid container spacing={3}>
+            <Grid container spacing={4}>
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2, color: colors.primary }}>
-                  Contact Information
-                </Typography>
-                <Grid container spacing={1.5}>
-                  {[
-                    ['Phone', patient.phone],
-                    ['Email', patient.email || 'Not registered'],
-                    ['Address', patient.address || 'Not registered'],
-                  ].map(([label, value]) => (
-                    <>
-                      <Grid item xs={4} key={label + '-l'}>
-                        <Typography variant="body2" color="text.secondary">{label}</Typography>
-                      </Grid>
-                      <Grid item xs={8} key={label + '-v'}>
-                        <Typography variant="body2" fontWeight={label === 'Phone' ? 700 : 400}>{value}</Typography>
-                      </Grid>
-                    </>
-                  ))}
-                </Grid>
+                <Typography variant="subtitle2" fontWeight={700} sx={{ color: colors.primary, mb: 1.5 }}>Contact Information</Typography>
+                <InfoRow icon={<PhoneIcon fontSize="small" />} label="Phone" value={patient.phone} />
+                <InfoRow icon={<EmailIcon fontSize="small" />} label="Email" value={patient.email} />
+                <InfoRow icon={<HomeIcon fontSize="small" />} label="Address" value={patient.address} />
               </Grid>
-
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2, color: colors.primary }}>
-                  Emergency Contact
-                </Typography>
-                <Grid container spacing={1.5}>
-                  {[
-                    ['Contact Name', emergencyName],
-                    ['Phone', emergencyPhone],
-                    ['Consent', null],
-                  ].map(([label, value]) => (
-                    <>
-                      <Grid item xs={4} key={label + '-l'}>
-                        <Typography variant="body2" color="text.secondary">{label}</Typography>
-                      </Grid>
-                      <Grid item xs={8} key={label + '-v'}>
-                        {label === 'Consent' ? (
-                          <Chip label="Approved" color="success" size="small" sx={{ fontWeight: 700 }} />
-                        ) : (
-                          <Typography variant="body2" fontWeight={label === 'Contact Name' ? 700 : 400}>{value}</Typography>
-                        )}
-                      </Grid>
-                    </>
-                  ))}
-                </Grid>
+                <Typography variant="subtitle2" fontWeight={700} sx={{ color: colors.primary, mb: 1.5 }}>Emergency Contact</Typography>
+                <InfoRow icon={<PhoneIcon fontSize="small" />} label="Contact Name" value={patient.emergencyContactName} />
+                <InfoRow icon={<PhoneIcon fontSize="small" />} label="Phone" value={patient.emergencyContactPhone} />
+                <Box sx={{ py: 1.25 }}>
+                  <Typography variant="caption" sx={{ color: colors.textSecondary, fontWeight: 600, textTransform: 'uppercase', fontSize: '0.65rem' }}>Consent Status</Typography>
+                  <Box sx={{ mt: 0.5, display: 'inline-flex', alignItems: 'center', gap: '5px', px: '8px', py: '3px', borderRadius: '6px', bgcolor: '#F0FDF4' }}>
+                    <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#10B981' }} />
+                    <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#065F46' }}>Approved</Typography>
+                  </Box>
+                </Box>
               </Grid>
             </Grid>
           </TabPanel>
 
           <TabPanel value={activeTab} index={1}>
             {patientAppts.length === 0 ? (
-              <Box sx={{ p: 4, textAlign: 'center' }}>
-                <CalendarMonthIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
-                <Typography variant="body2" color="text.secondary">No appointment history found.</Typography>
+              <Box sx={{ py: 6, textAlign: 'center' }}>
+                <CalendarMonthIcon sx={{ fontSize: 40, color: colors.textLight, mb: 1 }} />
+                <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>No appointments found</Typography>
+                <Typography variant="caption" sx={{ color: colors.textSecondary }}>This patient has no appointment history.</Typography>
               </Box>
             ) : (
-              <TableContainer component={Box}>
-                <Table>
+              <Box sx={{ overflowX: 'auto' }}>
+                <Table sx={{ minWidth: 600 }}>
                   <TableHead>
                     <TableRow>
                       <TableCell>Date</TableCell>
@@ -328,61 +233,49 @@ const PatientProfile = () => {
                   </TableHead>
                   <TableBody>
                     {patientAppts.map((appt) => (
-                      <TableRow key={appt.id} hover>
-                        <TableCell fontWeight={700}>{formatDate(appt.date)}</TableCell>
-                        <TableCell>{appt.time}</TableCell>
-                        <TableCell>{appt.dentistName}</TableCell>
-                        <TableCell><Chip label={appt.type} size="small" variant="outlined" /></TableCell>
-                        <TableCell sx={{ color: 'text.secondary', maxWidth: 280 }}>{appt.notes || '—'}</TableCell>
+                      <TableRow key={appt.id}>
+                        <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', fontWeight: 600 }}>{formatDate(appt.date)}</Typography></TableCell>
+                        <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{appt.time}</Typography></TableCell>
+                        <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem' }}>{appt.dentistName}</Typography></TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'inline-flex', px: '7px', py: '2px', borderRadius: '5px', bgcolor: colors.primaryAlpha8 }}>
+                            <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: colors.primary }}>{appt.type}</Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell sx={{ maxWidth: 260 }}><Typography variant="body2" sx={{ fontSize: '0.8rem', color: colors.textSecondary }} noWrap>{appt.notes || '—'}</Typography></TableCell>
                         <TableCell><StatusBadge status={appt.status} /></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              </TableContainer>
+              </Box>
             )}
           </TabPanel>
 
           <TabPanel value={activeTab} index={2}>
             {patientTreatments.length === 0 ? (
-              <Box sx={{ p: 4, textAlign: 'center' }}>
-                <LocalHospitalIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
-                <Typography variant="body2" color="text.secondary">No clinical treatments logged yet.</Typography>
+              <Box sx={{ py: 6, textAlign: 'center' }}>
+                <LocalHospitalIcon sx={{ fontSize: 40, color: colors.textLight, mb: 1 }} />
+                <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>No treatments logged</Typography>
+                <Typography variant="caption" sx={{ color: colors.textSecondary }}>Use "Log Treatment" to add the first procedure.</Typography>
               </Box>
             ) : (
               <Box>
-                <Card sx={{ bgcolor: colors.surfaceAlt, mb: 3, border: `1px dashed ${colors.border}` }}>
-                  <CardContent sx={{ p: 2 }}>
-                    <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 1, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      Treated Teeth Map
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', justifyContent: 'center', py: 1 }}>
-                      {Array.from({ length: 32 }, (_, i) => i + 1).map((num) => {
-                        const hasTreatment = patientTreatments.some((t) => t.toothNumber === String(num));
-                        return (
-                          <Avatar
-                            key={num}
-                            sx={{
-                              width: 30,
-                              height: 30,
-                              fontSize: '0.7rem',
-                              fontWeight: 700,
-                              bgcolor: hasTreatment ? '#0D9488' : '#fff',
-                              color: hasTreatment ? '#fff' : colors.textLight,
-                              border: hasTreatment ? 'none' : `1px solid ${colors.border}`,
-                              boxShadow: hasTreatment ? '0 2px 4px rgba(13,148,136,0.3)' : 'none',
-                            }}
-                          >
-                            {num}
-                          </Avatar>
-                        );
-                      })}
-                    </Box>
-                  </CardContent>
-                </Card>
-
-                <TableContainer>
-                  <Table>
+                <Box sx={{ mb: 3, p: 2, borderRadius: '10px', bgcolor: colors.surfaceAlt, border: `1px solid ${colors.border}` }}>
+                  <Typography variant="caption" fontWeight={700} sx={{ color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', mb: 1.5 }}>Treated Teeth Map</Typography>
+                  <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', justifyContent: 'center' }}>
+                    {Array.from({ length: 32 }, (_, i) => i + 1).map((num) => {
+                      const treated = patientTreatments.some((t) => t.toothNumber === String(num));
+                      return (
+                        <Avatar key={num} sx={{ width: 30, height: 30, fontSize: '0.65rem', fontWeight: 700, bgcolor: treated ? '#0D9488' : colors.surface, color: treated ? '#fff' : colors.textLight, border: treated ? 'none' : `1px solid ${colors.border}`, boxShadow: treated ? '0 2px 4px rgba(13,148,136,0.25)' : 'none' }}>
+                          {num}
+                        </Avatar>
+                      );
+                    })}
+                  </Box>
+                </Box>
+                <Box sx={{ overflowX: 'auto' }}>
+                  <Table sx={{ minWidth: 560 }}>
                     <TableHead>
                       <TableRow>
                         <TableCell>Date</TableCell>
@@ -394,34 +287,35 @@ const PatientProfile = () => {
                     </TableHead>
                     <TableBody>
                       {patientTreatments.map((t) => (
-                        <TableRow key={t.id} hover>
-                          <TableCell>{formatDate(t.date)}</TableCell>
+                        <TableRow key={t.id}>
+                          <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{formatDate(t.date)}</Typography></TableCell>
                           <TableCell>
-                            <Chip label={t.type} size="small" sx={{ bgcolor: '#E0F2FE', color: '#0369A1', fontWeight: 700 }} />
+                            <Box sx={{ display: 'inline-flex', px: '8px', py: '3px', borderRadius: '6px', bgcolor: '#E0F2FE' }}>
+                              <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#0369A1' }}>{t.type}</Typography>
+                            </Box>
                           </TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>
-                            {t.toothNumber === 'All' ? 'All Teeth' : `#${t.toothNumber}`}
-                          </TableCell>
-                          <TableCell sx={{ color: 'text.secondary', maxWidth: 350 }}>{t.notes || '—'}</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700, color: '#0D9488' }}>{formatCurrency(t.cost)}</TableCell>
+                          <TableCell><Typography variant="body2" fontWeight={700}>{t.toothNumber === 'All' ? 'All Teeth' : `#${t.toothNumber}`}</Typography></TableCell>
+                          <TableCell sx={{ maxWidth: 300 }}><Typography variant="body2" sx={{ fontSize: '0.8rem', color: colors.textSecondary }} noWrap>{t.notes || '—'}</Typography></TableCell>
+                          <TableCell align="right"><Typography sx={{ fontWeight: 700, color: '#0D9488' }}>{formatCurrency(t.cost)}</Typography></TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
-                </TableContainer>
+                </Box>
               </Box>
             )}
           </TabPanel>
 
           <TabPanel value={activeTab} index={3}>
             {patientInvoices.length === 0 ? (
-              <Box sx={{ p: 4, textAlign: 'center' }}>
-                <AccountBalanceWalletIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
-                <Typography variant="body2" color="text.secondary">No invoices issued to this patient.</Typography>
+              <Box sx={{ py: 6, textAlign: 'center' }}>
+                <AccountBalanceWalletIcon sx={{ fontSize: 40, color: colors.textLight, mb: 1 }} />
+                <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>No invoices issued</Typography>
+                <Typography variant="caption" sx={{ color: colors.textSecondary }}>Invoices are created automatically when treatments are logged.</Typography>
               </Box>
             ) : (
-              <TableContainer>
-                <Table>
+              <Box sx={{ overflowX: 'auto' }}>
+                <Table sx={{ minWidth: 700 }}>
                   <TableHead>
                     <TableRow>
                       <TableCell>Invoice #</TableCell>
@@ -436,48 +330,35 @@ const PatientProfile = () => {
                   </TableHead>
                   <TableBody>
                     {patientInvoices.map((inv) => (
-                      <TableRow key={inv.id} hover>
-                        <TableCell sx={{ fontFamily: 'monospace', fontWeight: 700 }}>{inv.invoiceNumber}</TableCell>
-                        <TableCell>{formatDate(inv.date)}</TableCell>
-                        <TableCell>{formatDate(inv.dueDate)}</TableCell>
-                        <TableCell align="right" fontWeight={700}>{formatCurrency(inv.totalAmount)}</TableCell>
-                        <TableCell align="right" sx={{ color: colors.success }}>{formatCurrency(inv.paidAmount)}</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 700, color: inv.balanceDue > 0 ? colors.error : colors.success }}>
-                          {formatCurrency(inv.balanceDue)}
-                        </TableCell>
+                      <TableRow key={inv.id}>
+                        <TableCell sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem' }}>{inv.invoiceNumber}</TableCell>
+                        <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{formatDate(inv.date)}</Typography></TableCell>
+                        <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{formatDate(inv.dueDate)}</Typography></TableCell>
+                        <TableCell align="right"><Typography variant="body2" fontWeight={700}>{formatCurrency(inv.totalAmount)}</Typography></TableCell>
+                        <TableCell align="right"><Typography variant="body2" sx={{ color: colors.success, fontWeight: 600 }}>{formatCurrency(inv.paidAmount)}</Typography></TableCell>
+                        <TableCell align="right"><Typography sx={{ fontWeight: 700, color: inv.balanceDue > 0 ? colors.error : colors.success }}>{formatCurrency(inv.balanceDue)}</Typography></TableCell>
                         <TableCell><StatusBadge status={inv.status} /></TableCell>
                         <TableCell align="right">
                           {inv.balanceDue > 0 && (
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              startIcon={<PaymentIcon />}
-                              onClick={() => handleOpenPayment(inv)}
-                              sx={{ textTransform: 'none' }}
-                            >
-                              Collect
-                            </Button>
+                            <Button size="small" startIcon={<PaymentIcon sx={{ fontSize: 13 }} />} onClick={() => handleOpenPayment(inv)} sx={{ color: colors.primary, fontWeight: 600, fontSize: '0.78rem', p: '4px 10px' }}>Collect</Button>
                           )}
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              </TableContainer>
+              </Box>
             )}
           </TabPanel>
-        </Paper>
-      </Box>
+        </Box>
+      </Card>
 
-      {/* Payment Modal */}
       <Dialog open={openPaymentModal} onClose={() => setOpenPaymentModal(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, borderBottom: `1px solid ${colors.border}` }}>
-          Collect Outstanding Payment
-        </DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, borderBottom: `1px solid ${colors.border}` }}>Collect Outstanding Payment</DialogTitle>
         <form onSubmit={handlePaymentSubmit} noValidate>
           <DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
             <Box>
-              <Typography variant="caption" color="text.secondary">Invoice Number</Typography>
+              <Typography variant="caption" sx={{ color: colors.textSecondary }}>Invoice Number</Typography>
               <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 700 }}>{selectedInvoice?.invoiceNumber}</Typography>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', bgcolor: colors.surfaceAlt, p: 1.5, borderRadius: '8px', border: `1px solid ${colors.border}` }}>
@@ -485,22 +366,8 @@ const PatientProfile = () => {
               <Typography variant="body2" color="error">Balance: <strong>{formatCurrency(selectedInvoice?.balanceDue || 0)}</strong></Typography>
             </Box>
             {paymentError && <Alert severity="error" sx={{ borderRadius: '8px', py: 0.5 }}>{paymentError}</Alert>}
-            <TextField
-              label="Collect Amount (PKR)"
-              type="number"
-              value={paymentAmount}
-              onChange={(e) => { setPaymentAmount(e.target.value); setPaymentError(''); }}
-              fullWidth
-              required
-              inputProps={{ min: 1, max: selectedInvoice?.balanceDue }}
-            />
-            <TextField
-              select
-              label="Payment Method"
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value)}
-              fullWidth
-            >
+            <TextField label="Collect Amount (PKR)" type="number" value={paymentAmount} onChange={(e) => { setPaymentAmount(e.target.value); setPaymentError(''); }} fullWidth required inputProps={{ min: 1, max: selectedInvoice?.balanceDue }} />
+            <TextField select label="Payment Method" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} fullWidth>
               {PAYMENT_METHODS.map((m) => <MenuItem key={m} value={m}>{m}</MenuItem>)}
             </TextField>
           </DialogContent>
@@ -511,53 +378,20 @@ const PatientProfile = () => {
         </form>
       </Dialog>
 
-      {/* Treatment Modal */}
       <Dialog open={openTreatmentModal} onClose={() => setOpenTreatmentModal(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, borderBottom: `1px solid ${colors.border}` }}>
-          Log New Treatment
-        </DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, borderBottom: `1px solid ${colors.border}` }}>Log New Treatment</DialogTitle>
         <form onSubmit={handleTreatmentSubmit} noValidate>
           <DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
             {treatmentError && <Alert severity="error" sx={{ borderRadius: '8px', py: 0.5 }}>{treatmentError}</Alert>}
-            <TextField
-              select
-              label="Procedure Type"
-              value={treatmentForm.type}
-              onChange={(e) => handleTreatmentTypeChange(e.target.value)}
-              fullWidth
-            >
-              {TREATMENT_TYPES.filter((t) => t !== 'Consultation').map((t) => (
-                <MenuItem key={t} value={t}>{t}</MenuItem>
-              ))}
+            <TextField select label="Procedure Type" value={treatmentForm.type} onChange={(e) => setTreatmentForm((p) => ({ ...p, type: e.target.value, cost: TREATMENT_COSTS[e.target.value] || '' }))} fullWidth>
+              {TREATMENT_TYPES.filter((t) => t !== 'Consultation').map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
             </TextField>
-            <TextField
-              select
-              label="Tooth Number"
-              value={treatmentForm.toothNumber}
-              onChange={(e) => setTreatmentForm((prev) => ({ ...prev, toothNumber: e.target.value }))}
-              fullWidth
-            >
+            <TextField select label="Tooth Number" value={treatmentForm.toothNumber} onChange={(e) => setTreatmentForm((p) => ({ ...p, toothNumber: e.target.value }))} fullWidth>
               <MenuItem value="All">All Teeth</MenuItem>
               {TOOTH_NUMBERS.map((n) => <MenuItem key={n} value={n}>Tooth #{n}</MenuItem>)}
             </TextField>
-            <TextField
-              label="Fee (PKR)"
-              type="number"
-              value={treatmentForm.cost}
-              onChange={(e) => { setTreatmentForm((prev) => ({ ...prev, cost: e.target.value })); setTreatmentError(''); }}
-              fullWidth
-              required
-              inputProps={{ min: 0 }}
-            />
-            <TextField
-              label="Clinical Notes"
-              value={treatmentForm.notes}
-              onChange={(e) => setTreatmentForm((prev) => ({ ...prev, notes: e.target.value }))}
-              fullWidth
-              multiline
-              rows={2}
-              placeholder="Procedure details, findings, follow-up…"
-            />
+            <TextField label="Fee (PKR)" type="number" value={treatmentForm.cost} onChange={(e) => { setTreatmentForm((p) => ({ ...p, cost: e.target.value })); setTreatmentError(''); }} fullWidth required inputProps={{ min: 0 }} />
+            <TextField label="Clinical Notes" value={treatmentForm.notes} onChange={(e) => setTreatmentForm((p) => ({ ...p, notes: e.target.value }))} fullWidth multiline rows={2} placeholder="Procedure details, findings, follow-up…" />
           </DialogContent>
           <DialogActions sx={{ p: 2, borderTop: `1px solid ${colors.border}` }}>
             <Button onClick={() => setOpenTreatmentModal(false)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>

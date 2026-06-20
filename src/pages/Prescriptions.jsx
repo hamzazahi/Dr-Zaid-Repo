@@ -1,43 +1,48 @@
 import { useState } from 'react';
 import {
+  Alert,
+  Avatar,
   Box,
   Button,
   Card,
-  CardContent,
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Grid,
   MenuItem,
-  Stack,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
   TextField,
   Typography,
-  Paper,
 } from '@mui/material';
+import {
+  Add as AddIcon,
+  LocalPharmacy as LocalPharmacyIcon,
+  AccessTime as AccessTimeIcon,
+  CheckCircle as CheckCircleIcon,
+} from '@mui/icons-material';
 import { useClinicData } from '../hooks/useClinicData';
 import { useNotification } from '../context/NotificationContext';
 import { formatDate } from '../utils/helpers';
 import { colors } from '../theme/theme';
-import { Add as AddIcon, LocalPharmacy as LocalPharmacyIcon, AccessTime as AccessTimeIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 
-const EMPTY_FORM = {
-  patientId: '',
-  medication: '',
-  dosage: '',
-  frequency: '',
-  duration: '',
-  reason: '',
-  dentistId: 'dentist-1',
-  status: 'active',
-};
+const EMPTY_FORM = { patientId: '', medication: '', dosage: '', frequency: '', duration: '', reason: '', dentistId: 'dentist-1', status: 'active' };
+const AVATAR_COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626', '#0D9488', '#DB2777'];
+const avatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
+
+function StatusPill({ status }) {
+  const isActive = status === 'active';
+  return (
+    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: '5px', px: '8px', py: '3px', borderRadius: '6px', bgcolor: isActive ? '#EFF6FF' : '#F0FDF4' }}>
+      <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: isActive ? '#3B82F6' : '#10B981' }} />
+      <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: isActive ? '#1D4ED8' : '#065F46' }}>{isActive ? 'Active' : 'Completed'}</Typography>
+    </Box>
+  );
+}
 
 export default function Prescriptions() {
   const { patients, dentists } = useClinicData();
@@ -60,13 +65,7 @@ export default function Prescriptions() {
     if (!form.dosage.trim()) { setFormError('Dosage is required.'); return; }
     const patient = patients.find((p) => p.id === form.patientId);
     const dentist = dentists.find((d) => d.id === form.dentistId);
-    const newPx = {
-      ...form,
-      id: `px-${Date.now()}`,
-      patientName: patient?.name || 'Unknown',
-      doctorName: dentist?.name || 'Unknown',
-      date: new Date().toISOString().split('T')[0],
-    };
+    const newPx = { ...form, id: `px-${Date.now()}`, patientName: patient?.name || 'Unknown', doctorName: dentist?.name || 'Unknown', date: new Date().toISOString().split('T')[0] };
     setPrescriptions((prev) => [newPx, ...prev]);
     setOpenDialog(false);
     setForm(EMPTY_FORM);
@@ -79,102 +78,100 @@ export default function Prescriptions() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
         <Box>
-          <Typography variant="h5" fontWeight={700}>Prescription Management</Typography>
-          <Typography variant="body2" color="text.secondary">Track and manage all patient prescriptions.</Typography>
+          <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', color: colors.textPrimary, letterSpacing: '-0.02em' }}>Prescription Management</Typography>
+          <Typography variant="body2" sx={{ color: colors.textSecondary, mt: 0.25 }}>Track and manage all patient prescriptions.</Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenDialog(true)}>
+        <Button variant="contained" startIcon={<AddIcon sx={{ fontSize: 18 }} />} onClick={() => setOpenDialog(true)} sx={{ borderRadius: '8px', fontWeight: 700 }}>
           New Prescription
         </Button>
       </Box>
 
-      <Grid container spacing={2.5}>
+      <Grid container spacing={2}>
         {[
           { label: 'Total Prescriptions', value: prescriptions.length, icon: <LocalPharmacyIcon />, bg: '#EEF2FF', color: colors.primary },
           { label: 'Active', value: activeCount, icon: <AccessTimeIcon />, bg: '#E0F2FE', color: '#0369A1' },
           { label: 'Completed', value: completedCount, icon: <CheckCircleIcon />, bg: '#ECFDF5', color: colors.success },
         ].map((card) => (
           <Grid item xs={12} sm={4} key={card.label}>
-            <Card>
-              <CardContent sx={{ p: '20px !important' }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                  <Box>
-                    <Typography variant="body2" sx={{ color: colors.textSecondary, fontWeight: 600, mb: 1 }}>{card.label}</Typography>
-                    <Typography variant="h4" fontWeight={700}>{card.value}</Typography>
-                  </Box>
-                  <Box sx={{ p: 1, borderRadius: '8px', bgcolor: card.bg, color: card.color, display: 'flex' }}>
-                    {card.icon}
-                  </Box>
-                </Stack>
-              </CardContent>
+            <Card sx={{ borderRadius: '12px' }}>
+              <Box sx={{ p: '18px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box>
+                  <Typography variant="caption" sx={{ color: colors.textSecondary, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.68rem' }}>{card.label}</Typography>
+                  <Typography sx={{ fontWeight: 800, fontSize: '1.5rem', color: colors.textPrimary, letterSpacing: '-0.02em', mt: 0.25 }}>{card.value}</Typography>
+                </Box>
+                <Box sx={{ p: 1.25, borderRadius: '10px', bgcolor: card.bg, color: card.color, display: 'flex', fontSize: 22 }}>{card.icon}</Box>
+              </Box>
             </Card>
           </Grid>
         ))}
       </Grid>
 
-      <TableContainer component={Paper}>
+      <Card sx={{ borderRadius: '12px', overflow: 'hidden' }}>
         <Box sx={{ px: 2.5, py: 2, borderBottom: `1px solid ${colors.border}` }}>
           <Typography variant="subtitle2" fontWeight={700}>Prescription Records</Typography>
+          <Typography variant="caption" sx={{ color: colors.textSecondary }}>{prescriptions.length} records</Typography>
         </Box>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Date</TableCell>
-              <TableCell>Patient</TableCell>
-              <TableCell>Medication</TableCell>
-              <TableCell>Dosage</TableCell>
-              <TableCell>Frequency</TableCell>
-              <TableCell>Duration</TableCell>
-              <TableCell>Prescribed By</TableCell>
-              <TableCell>Status</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {prescriptions.length === 0 ? (
+        <Box sx={{ overflowX: 'auto' }}>
+          <Table sx={{ minWidth: 700 }}>
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
-                  <LocalPharmacyIcon sx={{ fontSize: 36, color: 'text.disabled', display: 'block', mx: 'auto', mb: 1 }} />
-                  <Typography variant="body2" color="text.secondary">No prescriptions issued yet.</Typography>
-                </TableCell>
+                <TableCell>Patient</TableCell>
+                <TableCell>Date</TableCell>
+                <TableCell>Medication</TableCell>
+                <TableCell>Dosage</TableCell>
+                <TableCell>Frequency</TableCell>
+                <TableCell>Duration</TableCell>
+                <TableCell>Prescribed By</TableCell>
+                <TableCell>Status</TableCell>
               </TableRow>
-            ) : (
-              prescriptions.map((px) => (
-                <TableRow key={px.id} hover>
-                  <TableCell>{formatDate(px.date)}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>{px.patientName}</TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: colors.primary }}>{px.medication}</TableCell>
-                  <TableCell>{px.dosage}</TableCell>
-                  <TableCell>{px.frequency}</TableCell>
-                  <TableCell>{px.duration}</TableCell>
-                  <TableCell>{px.doctorName}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={px.status === 'active' ? 'Active' : 'Completed'}
-                      size="small"
-                      color={px.status === 'active' ? 'info' : 'success'}
-                      variant="outlined"
-                      sx={{ fontWeight: 700, textTransform: 'capitalize' }}
-                    />
+            </TableHead>
+            <TableBody>
+              {prescriptions.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} sx={{ py: 8, textAlign: 'center', borderBottom: 0 }}>
+                    <Box sx={{ width: 52, height: 52, borderRadius: '50%', bgcolor: colors.surfaceAlt, display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1.5 }}>
+                      <LocalPharmacyIcon sx={{ fontSize: 24, color: colors.textLight }} />
+                    </Box>
+                    <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>No prescriptions issued yet</Typography>
+                    <Typography variant="caption" sx={{ color: colors.textSecondary }}>Click "New Prescription" to create the first record.</Typography>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+              ) : (
+                prescriptions.map((px) => (
+                  <TableRow key={px.id}>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                        <Avatar sx={{ width: 30, height: 30, fontSize: '0.72rem', fontWeight: 700, bgcolor: avatarColor(px.patientName) }}>
+                          {px.patientName?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
+                        </Avatar>
+                        <Typography variant="body2" fontWeight={700} sx={{ fontSize: '0.85rem' }}>{px.patientName}</Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{formatDate(px.date)}</Typography></TableCell>
+                    <TableCell><Typography variant="body2" fontWeight={700} sx={{ color: colors.primary }}>{px.medication}</Typography></TableCell>
+                    <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem' }}>{px.dosage}</Typography></TableCell>
+                    <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{px.frequency || '—'}</Typography></TableCell>
+                    <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{px.duration || '—'}</Typography></TableCell>
+                    <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem' }}>{px.doctorName}</Typography></TableCell>
+                    <TableCell><StatusPill status={px.status} /></TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </Box>
+      </Card>
 
       <Dialog open={openDialog} onClose={() => { setOpenDialog(false); setFormError(''); }} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700, borderBottom: `1px solid ${colors.border}` }}>
           Create New Prescription
+          <Typography variant="caption" sx={{ display: 'block', color: colors.textSecondary, fontWeight: 400, mt: 0.25 }}>Fields marked * are required.</Typography>
         </DialogTitle>
         <form onSubmit={handleSubmit} noValidate>
           <DialogContent sx={{ p: 3 }}>
-            {formError && (
-              <Box sx={{ mb: 2 }}>
-                <Typography color="error" variant="body2">{formError}</Typography>
-              </Box>
-            )}
+            {formError && <Alert severity="error" sx={{ mb: 2, borderRadius: '8px' }}>{formError}</Alert>}
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <TextField select label="Patient *" name="patientId" value={form.patientId} onChange={handleChange} fullWidth required>
