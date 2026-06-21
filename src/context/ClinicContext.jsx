@@ -8,6 +8,7 @@ import {
   mockPayments,
   mockDentists
 } from '../utils/mockData';
+import { recalcInvoice } from '../utils/billing';
 
 const STORAGE_KEY = 'dental-clinic-app-data';
 
@@ -26,7 +27,12 @@ export const ClinicProvider = ({ children }) => {
   const [patients, setPatients] = useState(() => stored.patients || mockPatients);
   const [appointments, setAppointments] = useState(() => stored.appointments || mockAppointments);
   const [treatments, setTreatments] = useState(() => stored.treatments || mockTreatments);
-  const [invoices, setInvoices] = useState(() => stored.invoices || mockInvoices);
+  // Normalise every invoice through the billing state machine on load so
+  // balanceDue / status / paymentPercentage are always derived from the
+  // amounts — this self-heals any inconsistent persisted or seed data.
+  const [invoices, setInvoices] = useState(() =>
+    (stored.invoices || mockInvoices).map((inv) => recalcInvoice(inv))
+  );
   const [payments, setPayments] = useState(() => stored.payments || mockPayments);
   const [dentists] = useState(mockDentists);
 
@@ -100,7 +106,9 @@ export const ClinicProvider = ({ children }) => {
     dueDate.setDate(today.getDate() + 10);
     const invoiceNum = `INV-${today.getFullYear()}-${String(Math.floor(100 + Math.random() * 900))}`;
 
-    const newInvoice = {
+    // Run through the billing state machine so balanceDue / status /
+    // paymentPercentage are always consistent — never hand-set.
+    const newInvoice = recalcInvoice({
       id: `inv-${Date.now()}`,
       patientId: treatmentData.patientId,
       patientName: patientObj?.name || 'Unknown Patient',
@@ -109,9 +117,7 @@ export const ClinicProvider = ({ children }) => {
       dueDate: dueDate.toISOString().split('T')[0],
       totalAmount: Number(treatmentData.cost),
       paidAmount: 0,
-      balanceDue: Number(treatmentData.cost),
-      status: 'Unpaid',
-    };
+    });
     setInvoices((prev) => [newInvoice, ...prev]);
 
     setPatients((prev) =>
@@ -126,36 +132,49 @@ export const ClinicProvider = ({ children }) => {
   };
 
   const addPayment = (paymentData) => {
+    // Resolve the target invoice up front so payment metadata and the
+    // patient-status decision are based on real values — not on flags mutated
+    // inside a setState updater (those run during commit, after this function
+    // returns, so reading them synchronously was unreliable).
+    const targetInvoice = invoices.find((inv) => inv.id === paymentData.invoiceId);
+    const amount = Number(paymentData.amount) || 0;
+
     const newPayment = {
       ...paymentData,
       id: `pay-${Date.now()}`,
+      // Data-integrity links: a payment is tied to its invoice AND patient.
+      patientId: paymentData.patientId || targetInvoice?.patientId || '',
+      patientName: paymentData.patientName || targetInvoice?.patientName || '',
       date: new Date().toISOString().split('T')[0],
-      amount: Number(paymentData.amount),
+      amount,
     };
     setPayments((prev) => [newPayment, ...prev]);
 
-    let targetPatientId = '';
-    let invoiceFullyPaid = false;
-
+    // Recalculate the invoice through the billing state machine. Using a
+    // functional update keeps us correct even if multiple payments land in the
+    // same render, and recalcInvoice clamps overpayment and derives status.
     setInvoices((prev) =>
-      prev.map((inv) => {
-        if (inv.id !== paymentData.invoiceId) return inv;
-        targetPatientId = inv.patientId;
-        const updatedPaid = inv.paidAmount + Number(paymentData.amount);
-        const updatedBalance = Math.max(0, inv.totalAmount - updatedPaid);
-        const updatedStatus = updatedBalance <= 0 ? 'Paid' : 'Partially Paid';
-        if (updatedBalance <= 0) invoiceFullyPaid = true;
-        return { ...inv, paidAmount: updatedPaid, balanceDue: updatedBalance, status: updatedStatus };
-      })
+      prev.map((inv) =>
+        inv.id === paymentData.invoiceId
+          ? recalcInvoice(inv, (Number(inv.paidAmount) || 0) + amount)
+          : inv
+      )
     );
 
-    if (invoiceFullyPaid && targetPatientId) {
-      setPatients((prevPatients) =>
-        prevPatients.map((p) => {
-          if (p.id !== targetPatientId || p.status !== 'Pending Payment') return p;
-          return { ...p, status: 'Active' };
-        })
-      );
+    // If this payment clears the balance, reactivate a "Pending Payment"
+    // patient. Decided from the resolved invoice, not a side-effect flag.
+    if (targetInvoice) {
+      const projectedPaid = (Number(targetInvoice.paidAmount) || 0) + amount;
+      const nowFullyPaid = projectedPaid >= (Number(targetInvoice.totalAmount) || 0);
+      if (nowFullyPaid) {
+        setPatients((prevPatients) =>
+          prevPatients.map((p) =>
+            p.id === targetInvoice.patientId && p.status === 'Pending Payment'
+              ? { ...p, status: 'Active' }
+              : p
+          )
+        );
+      }
     }
 
     return newPayment;

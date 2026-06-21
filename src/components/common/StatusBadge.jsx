@@ -1,10 +1,13 @@
 import { Chip } from '@mui/material';
 import { getStatusColor } from '../../utils/helpers';
+import { invoiceStatusLabel } from '../../utils/billing';
 
 const StatusBadge = ({ status, size = 'small' }) => {
   const getLabel = () => {
     if (!status) return 'Unknown';
-    return status;
+    // Show the friendly billing label (e.g. "Paid" → "Fully Paid"); other
+    // statuses pass through unchanged.
+    return invoiceStatusLabel(status);
   };
 
   const getMuiColor = (statusVal) => {

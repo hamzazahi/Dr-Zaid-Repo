@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Card,
+  Chip,
   Divider,
   Grid,
   LinearProgress,
@@ -14,6 +15,8 @@ import {
   TableCell,
   TableHead,
   TableRow,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from '@mui/material';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
@@ -45,6 +48,7 @@ import {
 } from '@mui/icons-material';
 import { useClinicData } from '../hooks/useClinicData';
 import { formatCurrency, formatDate } from '../utils/helpers';
+import { buildPeriodSummary, totalsFromBuckets, GRANULARITIES } from '../utils/reporting';
 import { colors } from '../theme/theme';
 import StatusBadge from '../components/common/StatusBadge';
 
@@ -115,6 +119,7 @@ export default function Reports() {
   const [preset, setPreset]       = useState(initPreset);
   const [startDate, setStartDate] = useState(initDates.start); // YYYY-MM-DD string
   const [endDate, setEndDate]     = useState(initDates.end);   // YYYY-MM-DD string
+  const [granularity, setGranularity] = useState('Monthly');   // Daily | Weekly | Monthly | Quarterly
 
   const handlePresetChange = (e) => {
     const val = e.target.value;
@@ -181,6 +186,19 @@ export default function Reports() {
     return buckets;
   }, [payments]);
 
+  // Grouped period summary (Daily / Weekly / Monthly / Quarterly), honouring
+  // the active date range. Each row carries appointments, revenue, billed,
+  // outstanding and a full-vs-partial-vs-unpaid invoice breakdown.
+  const periodSummary = useMemo(
+    () => buildPeriodSummary(
+      { appointments, invoices, payments },
+      granularity,
+      { start: startDate, end: endDate },
+    ),
+    [appointments, invoices, payments, granularity, startDate, endDate],
+  );
+  const periodTotals = useMemo(() => totalsFromBuckets(periodSummary), [periodSummary]);
+
   const apptStatus = useMemo(() => {
     const map = {};
     filteredAppointments.forEach((a) => { map[a.status] = (map[a.status] || 0) + 1; });
@@ -211,6 +229,17 @@ export default function Reports() {
         <td class="num">${escapeHtml(formatCurrency(invoice.totalAmount))}</td>
         <td class="num">${escapeHtml(formatCurrency(invoice.balanceDue))}</td>
         <td>${escapeHtml(invoice.status)}</td>
+      </tr>
+    `).join('');
+
+    const periodRows = periodSummary.map((row) => `
+      <tr>
+        <td>${escapeHtml(row.label)}</td>
+        <td class="num">${row.appointments}</td>
+        <td class="num">${escapeHtml(formatCurrency(row.revenue))}</td>
+        <td class="num">${escapeHtml(formatCurrency(row.billed))}</td>
+        <td class="num">${escapeHtml(formatCurrency(row.outstanding))}</td>
+        <td class="num">${row.paidInvoices} / ${row.partialInvoices} / ${row.unpaidInvoices}</td>
       </tr>
     `).join('');
 
@@ -260,6 +289,9 @@ export default function Reports() {
           <tr><th>Total Invoices</th><td class="num">${filteredInvoices.length}</td></tr>
         </tbody></table></div>
       </section>
+      <h2>${escapeHtml(granularity)} Summary</h2>
+      <table><thead><tr><th>Period</th><th class="num">Appointments</th><th class="num">Revenue</th><th class="num">Billed</th><th class="num">Outstanding</th><th class="num">Paid / Partial / Unpaid</th></tr></thead>
+      <tbody>${periodRows || '<tr><td colspan="6">No activity in the selected period.</td></tr>'}</tbody></table>
       <h2>Recent Invoices</h2>
       <table><thead><tr><th>Invoice</th><th>Patient</th><th>Date</th><th class="num">Total</th><th class="num">Balance</th><th>Status</th></tr></thead>
       <tbody>${invoiceRows || '<tr><td colspan="6">No invoices available.</td></tr>'}</tbody></table>
@@ -587,6 +619,87 @@ export default function Reports() {
           </Card>
         </Grid>
       </Grid>
+
+      {/* ── Period Summary (Daily / Weekly / Monthly / Quarterly) ── */}
+      <Card sx={{ borderRadius: '12px', overflow: 'hidden' }}>
+        <Box sx={{ px: 2.5, py: 2, borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+          <Box>
+            <Typography variant="subtitle2" fontWeight={700}>Period Summary</Typography>
+            <Typography variant="caption" sx={{ color: colors.textSecondary }}>
+              Appointments, revenue & dues grouped by {granularity.toLowerCase()} period
+            </Typography>
+          </Box>
+          <ToggleButtonGroup
+            value={granularity}
+            exclusive
+            size="small"
+            onChange={(_, val) => { if (val) setGranularity(val); }}
+            sx={{
+              '& .MuiToggleButton-root': {
+                textTransform: 'none', fontWeight: 700, fontSize: '0.78rem', px: 1.5, py: 0.5,
+                color: colors.textSecondary, border: `1px solid ${colors.border}`,
+                '&.Mui-selected': { bgcolor: colors.primary, color: '#fff', '&:hover': { bgcolor: colors.primary } },
+              },
+            }}
+          >
+            {GRANULARITIES.map((g) => (
+              <ToggleButton key={g} value={g}>{g}</ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </Box>
+        <Box sx={{ overflowX: 'auto' }}>
+          <Table sx={{ minWidth: 720 }}>
+            <TableHead>
+              <TableRow>
+                <TableCell>Period</TableCell>
+                <TableCell align="right">Appointments</TableCell>
+                <TableCell align="right">Revenue</TableCell>
+                <TableCell align="right">Billed</TableCell>
+                <TableCell align="right">Outstanding</TableCell>
+                <TableCell align="center">Paid / Partial / Unpaid</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {periodSummary.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} sx={{ py: 6, textAlign: 'center', borderBottom: 0 }}>
+                    <Typography variant="caption" sx={{ color: colors.textSecondary }}>No activity in the selected date range.</Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                <>
+                  {periodSummary.map((row) => (
+                    <TableRow key={row.key} hover>
+                      <TableCell sx={{ fontWeight: 700, fontSize: '0.82rem' }}>{row.label}</TableCell>
+                      <TableCell align="right">{row.appointments}</TableCell>
+                      <TableCell align="right"><Typography variant="body2" fontWeight={700} sx={{ color: colors.success }}>{formatCurrency(row.revenue)}</Typography></TableCell>
+                      <TableCell align="right"><Typography variant="body2">{formatCurrency(row.billed)}</Typography></TableCell>
+                      <TableCell align="right"><Typography variant="body2" fontWeight={600} sx={{ color: row.outstanding > 0 ? colors.error : colors.textSecondary }}>{formatCurrency(row.outstanding)}</Typography></TableCell>
+                      <TableCell align="center">
+                        <Stack direction="row" spacing={0.75} justifyContent="center">
+                          <Chip label={row.paidInvoices} size="small" sx={{ height: 20, minWidth: 28, fontWeight: 700, fontSize: '0.7rem', bgcolor: '#ECFDF5', color: colors.success }} />
+                          <Chip label={row.partialInvoices} size="small" sx={{ height: 20, minWidth: 28, fontWeight: 700, fontSize: '0.7rem', bgcolor: '#FFFBEB', color: '#D97706' }} />
+                          <Chip label={row.unpaidInvoices} size="small" sx={{ height: 20, minWidth: 28, fontWeight: 700, fontSize: '0.7rem', bgcolor: '#FEF2F2', color: colors.error }} />
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow sx={{ bgcolor: colors.surfaceAlt }}>
+                    <TableCell sx={{ fontWeight: 800 }}>Total</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 800 }}>{periodTotals.appointments}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 800, color: colors.success }}>{formatCurrency(periodTotals.revenue)}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 800 }}>{formatCurrency(periodTotals.billed)}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 800, color: periodTotals.outstanding > 0 ? colors.error : colors.textSecondary }}>{formatCurrency(periodTotals.outstanding)}</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 800 }}>
+                      {periodTotals.paidInvoices} / {periodTotals.partialInvoices} / {periodTotals.unpaidInvoices}
+                    </TableCell>
+                  </TableRow>
+                </>
+              )}
+            </TableBody>
+          </Table>
+        </Box>
+      </Card>
 
       {/* ── Recent Invoices ── */}
       <Card sx={{ borderRadius: '12px', overflow: 'hidden' }}>

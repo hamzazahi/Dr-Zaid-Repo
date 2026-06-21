@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogTitle,
   Grid,
+  LinearProgress,
   MenuItem,
   Stack,
   Tab,
@@ -337,7 +338,17 @@ const PatientProfile = () => {
                         <TableCell align="right"><Typography variant="body2" fontWeight={700}>{formatCurrency(inv.totalAmount)}</Typography></TableCell>
                         <TableCell align="right"><Typography variant="body2" sx={{ color: colors.success, fontWeight: 600 }}>{formatCurrency(inv.paidAmount)}</Typography></TableCell>
                         <TableCell align="right"><Typography sx={{ fontWeight: 700, color: inv.balanceDue > 0 ? colors.error : colors.success }}>{formatCurrency(inv.balanceDue)}</Typography></TableCell>
-                        <TableCell><StatusBadge status={inv.status} /></TableCell>
+                        <TableCell sx={{ minWidth: 150 }}>
+                          <StatusBadge status={inv.status} />
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.75 }}>
+                            <LinearProgress
+                              variant="determinate"
+                              value={Math.min(inv.paymentPercentage ?? 0, 100)}
+                              sx={{ flex: 1, height: 5, borderRadius: 999, bgcolor: colors.borderLight, '& .MuiLinearProgress-bar': { bgcolor: inv.balanceDue <= 0 ? colors.success : inv.paidAmount > 0 ? '#D97706' : colors.error } }}
+                            />
+                            <Typography variant="caption" sx={{ color: colors.textSecondary, fontWeight: 600, minWidth: 30, textAlign: 'right' }}>{inv.paymentPercentage ?? 0}%</Typography>
+                          </Box>
+                        </TableCell>
                         <TableCell align="right">
                           {inv.balanceDue > 0 && (
                             <Button size="small" startIcon={<PaymentIcon sx={{ fontSize: 13 }} />} onClick={() => handleOpenPayment(inv)} sx={{ color: colors.primary, fontWeight: 600, fontSize: '0.78rem', p: '4px 10px' }}>Collect</Button>
