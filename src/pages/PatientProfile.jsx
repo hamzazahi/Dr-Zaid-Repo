@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Alert,
@@ -36,10 +36,11 @@ import {
   Home as HomeIcon,
 } from '@mui/icons-material';
 import { useClinicData } from '../hooks/useClinicData';
-import { useNotification } from '../context/NotificationContext';
+import { useNotification } from '../hooks/useNotification';
 import { formatCurrency, formatDate, calculateAge } from '../utils/helpers';
 import { PAYMENT_METHODS, TREATMENT_COSTS, TREATMENT_TYPES, TOOTH_NUMBERS } from '../utils/constants';
 import StatusBadge from '../components/common/StatusBadge';
+import Odontogram from '../components/clinical/Odontogram';
 import { colors } from '../theme/theme';
 
 const AVATAR_COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626', '#0D9488', '#DB2777'];
@@ -72,7 +73,7 @@ const PatientProfile = () => {
   const { patients, appointments, treatments, invoices, addPayment, addTreatment } = useClinicData();
   const { notify } = useNotification();
 
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState(location.state?.tab ?? 0);
   const [openPaymentModal, setOpenPaymentModal] = useState(false);
   const [openTreatmentModal, setOpenTreatmentModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
@@ -82,12 +83,14 @@ const PatientProfile = () => {
   const [treatmentForm, setTreatmentForm] = useState({ type: 'Filling', toothNumber: '11', cost: TREATMENT_COSTS.Filling, notes: '' });
   const [treatmentError, setTreatmentError] = useState('');
 
-  useEffect(() => {
-    if (location.state?.tab !== undefined) {
-      setActiveTab(location.state.tab);
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state]);
+  // Apply the tab requested via navigation state once per navigation. Done in
+  // render (React's supported "adjust state on prop change" pattern) keyed off
+  // location.key, which avoids the cascading-render cost of doing it in an effect.
+  const [appliedNavKey, setAppliedNavKey] = useState(location.key);
+  if (location.key !== appliedNavKey) {
+    setAppliedNavKey(location.key);
+    if (location.state?.tab !== undefined) setActiveTab(location.state.tab);
+  }
 
   const patient = patients.find((p) => p.id === id);
   const patientAppts = useMemo(() => appointments.filter((a) => a.patientId === id), [appointments, id]);
@@ -183,7 +186,7 @@ const PatientProfile = () => {
       <Card sx={{ borderRadius: '12px', overflow: 'hidden' }}>
         <Box sx={{ borderBottom: `1px solid ${colors.border}`, px: 2 }}>
           <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ minHeight: 48 }}>
-            {['Demographics', `Visits (${patientAppts.length})`, `Treatments (${patientTreatments.length})`, `Billing (${patientInvoices.length})`].map((label) => (
+            {['Demographics', `Visits (${patientAppts.length})`, `Treatments (${patientTreatments.length})`, 'Dental Chart', `Billing (${patientInvoices.length})`].map((label) => (
               <Tab key={label} label={label} sx={{ fontWeight: 700, textTransform: 'none', fontSize: '0.85rem', minHeight: 48 }} />
             ))}
           </Tabs>
@@ -308,6 +311,10 @@ const PatientProfile = () => {
           </TabPanel>
 
           <TabPanel value={activeTab} index={3}>
+            <Odontogram patientId={patient.id} />
+          </TabPanel>
+
+          <TabPanel value={activeTab} index={4}>
             {patientInvoices.length === 0 ? (
               <Box sx={{ py: 6, textAlign: 'center' }}>
                 <AccountBalanceWalletIcon sx={{ fontSize: 40, color: colors.textLight, mb: 1 }} />

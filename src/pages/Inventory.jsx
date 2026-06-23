@@ -29,7 +29,7 @@ import {
   DoNotDisturb as DoNotDisturbIcon,
   Search as SearchIcon,
 } from '@mui/icons-material';
-import { useNotification } from '../context/NotificationContext';
+import { useNotification } from '../hooks/useNotification';
 import { formatCurrency } from '../utils/helpers';
 import { colors } from '../theme/theme';
 import { mockInventory } from '../utils/mockData';

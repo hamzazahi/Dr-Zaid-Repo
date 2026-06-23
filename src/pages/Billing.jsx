@@ -26,7 +26,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useClinicData } from '../hooks/useClinicData';
-import { useNotification } from '../context/NotificationContext';
+import { useNotification } from '../hooks/useNotification';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { summariseInvoices } from '../utils/billing';
 import { PAYMENT_METHODS } from '../utils/constants';
@@ -249,7 +249,7 @@ export default function Billing() {
                         )}
                         <Button
                           size="small"
-                          onClick={() => navigate(`/patients/${inv.patientId}`, { state: { tab: 3 } })}
+                          onClick={() => navigate(`/patients/${inv.patientId}`, { state: { tab: 4 } })}
                           sx={{ textTransform: 'none', fontWeight: 600 }}
                         >
                           Ledger

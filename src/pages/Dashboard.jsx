@@ -27,7 +27,7 @@ import {
   PieChart, Pie, Cell,
 } from 'recharts';
 import { useClinicData } from '../hooks/useClinicData';
-import { useNotification } from '../context/NotificationContext';
+import { useNotification } from '../hooks/useNotification';
 import { formatCurrency } from '../utils/helpers';
 import { APPOINTMENT_STATUSES } from '../utils/constants';
 import StatusBadge from '../components/common/StatusBadge';

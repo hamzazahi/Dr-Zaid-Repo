@@ -1,13 +1,6 @@
-import { createContext, useCallback, useContext, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert, Snackbar } from '@mui/material';
-
-const NotificationContext = createContext();
-
-export const useNotification = () => {
-  const ctx = useContext(NotificationContext);
-  if (!ctx) throw new Error('useNotification must be used inside NotificationProvider');
-  return ctx;
-};
+import { NotificationContext } from './NotificationContextCore';
 
 export const NotificationProvider = ({ children }) => {
   const [notification, setNotification] = useState(null);

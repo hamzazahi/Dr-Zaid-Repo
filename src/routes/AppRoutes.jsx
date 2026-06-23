@@ -1,31 +1,46 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import Dashboard from '../pages/Dashboard';
-import Patients from '../pages/Patients';
-import PatientProfile from '../pages/PatientProfile';
-import Appointments from '../pages/Appointments';
-import Treatments from '../pages/Treatments';
-import Billing from '../pages/Billing';
-import Payments from '../pages/Payments';
-import Reports from '../pages/Reports';
-import Prescriptions from '../pages/Prescriptions';
-import Inventory from '../pages/Inventory';
-import Settings from '../pages/Settings';
+import { Box, CircularProgress } from '@mui/material';
+
+// Route-level code splitting: each page becomes its own chunk and is only
+// fetched when its route is visited, keeping the initial bundle small.
+const Dashboard = lazy(() => import('../pages/Dashboard'));
+const Patients = lazy(() => import('../pages/Patients'));
+const PatientProfile = lazy(() => import('../pages/PatientProfile'));
+const Appointments = lazy(() => import('../pages/Appointments'));
+const Treatments = lazy(() => import('../pages/Treatments'));
+const Billing = lazy(() => import('../pages/Billing'));
+const Payments = lazy(() => import('../pages/Payments'));
+const Reports = lazy(() => import('../pages/Reports'));
+const Prescriptions = lazy(() => import('../pages/Prescriptions'));
+const Inventory = lazy(() => import('../pages/Inventory'));
+const Settings = lazy(() => import('../pages/Settings'));
+
+function RouteFallback() {
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 10 }}>
+      <CircularProgress size={32} />
+    </Box>
+  );
+}
 
 export default function AppRoutes() {
   return (
-    <Routes>
-      <Route path="/" element={<Dashboard />} />
-      <Route path="/patients" element={<Patients />} />
-      <Route path="/patients/:id" element={<PatientProfile />} />
-      <Route path="/appointments" element={<Appointments />} />
-      <Route path="/treatments" element={<Treatments />} />
-      <Route path="/billing" element={<Billing />} />
-      <Route path="/payments" element={<Payments />} />
-      <Route path="/prescriptions" element={<Prescriptions />} />
-      <Route path="/inventory" element={<Inventory />} />
-      <Route path="/reports" element={<Reports />} />
-      <Route path="/settings" element={<Settings />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <Suspense fallback={<RouteFallback />}>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/patients" element={<Patients />} />
+        <Route path="/patients/:id" element={<PatientProfile />} />
+        <Route path="/appointments" element={<Appointments />} />
+        <Route path="/treatments" element={<Treatments />} />
+        <Route path="/billing" element={<Billing />} />
+        <Route path="/payments" element={<Payments />} />
+        <Route path="/prescriptions" element={<Prescriptions />} />
+        <Route path="/inventory" element={<Inventory />} />
+        <Route path="/reports" element={<Reports />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   );
 }

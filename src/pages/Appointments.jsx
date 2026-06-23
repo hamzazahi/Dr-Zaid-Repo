@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Alert,
@@ -28,7 +28,7 @@ import {
 } from '@mui/material';
 
 import { useClinicData } from '../hooks/useClinicData';
-import { useNotification } from '../context/NotificationContext';
+import { useNotification } from '../hooks/useNotification';
 import { formatDate } from '../utils/helpers';
 import { APPOINTMENT_STATUSES, TREATMENT_TYPES } from '../utils/constants';
 import StatusBadge from '../components/common/StatusBadge';
@@ -91,12 +91,14 @@ const Appointments = () => {
   const [anchorElDentist, setAnchorElDentist] = useState(null);
   const [activeApptId, setActiveApptId] = useState(null);
 
-  useEffect(() => {
-    if (location.state?.openSchedule) {
-      setOpenModal(true);
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state]);
+  // Open the schedule dialog once when navigated here with that intent.
+  // Done in render (keyed off location.key) rather than an effect to avoid
+  // the cascading-render anti-pattern.
+  const [appliedNavKey, setAppliedNavKey] = useState(location.key);
+  if (location.key !== appliedNavKey) {
+    setAppliedNavKey(location.key);
+    if (location.state?.openSchedule) setOpenModal(true);
+  }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

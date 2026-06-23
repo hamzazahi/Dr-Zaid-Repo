@@ -48,6 +48,20 @@ const colors = {
   border: '#E5E7EB',
   borderLight: '#F3F4F6',
   divider: '#E5E7EB',
+
+  // Soft semantic surfaces (tinted background + matching border) used by alert
+  // cards, status pills and stat tiles across the pages.
+  errorBg: '#FEF2F2',
+  errorBorder: '#FECACA',
+  successBg: '#ECFDF5',
+  successBorder: '#A7F3D0',
+  warningBg: '#FFFBEB',
+  warningBorder: '#FDE68A',
+  infoBg: '#EFF6FF',
+  infoBorder: '#BFDBFE',
+
+  // Primary at 8% alpha — used for subtle "active"/tag backgrounds.
+  primaryAlpha8: 'rgba(15, 76, 129, 0.08)',
 };
 
 const theme = createTheme({

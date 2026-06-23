@@ -22,7 +22,7 @@ import {
   ListAlt as ListIcon,
 } from '@mui/icons-material';
 import { useClinicData } from '../hooks/useClinicData';
-import { useNotification } from '../context/NotificationContext';
+import { useNotification } from '../hooks/useNotification';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { TREATMENT_COSTS, TREATMENT_TYPES, TOOTH_NUMBERS } from '../utils/constants';
 import { colors } from '../theme/theme';

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
@@ -26,7 +26,7 @@ import {
 } from '@mui/material';
 
 import { useClinicData } from '../hooks/useClinicData';
-import { useNotification } from '../context/NotificationContext';
+import { useNotification } from '../hooks/useNotification';
 import { calculateAge, formatDate } from '../utils/helpers';
 import { BLOOD_GROUPS, PATIENT_STATUSES } from '../utils/constants';
 import StatusBadge from '../components/common/StatusBadge';
@@ -57,12 +57,14 @@ const Patients = () => {
   const [form, setForm] = useState(EMPTY_FORM);
   const [formErrors, setFormErrors] = useState({});
 
-  useEffect(() => {
-    if (location.state?.openRegister) {
-      setOpenModal(true);
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state]);
+  // Open the register dialog once when navigated here with that intent.
+  // Done in render (keyed off location.key) rather than an effect to avoid
+  // the cascading-render anti-pattern.
+  const [appliedNavKey, setAppliedNavKey] = useState(location.key);
+  if (location.key !== appliedNavKey) {
+    setAppliedNavKey(location.key);
+    if (location.state?.openRegister) setOpenModal(true);
+  }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

@@ -6,7 +6,6 @@ import {
   TableHead,
   TableRow,
   TablePagination,
-  Box,
   Paper,
   Checkbox,
   TableSortLabel,
@@ -25,7 +24,6 @@ export const DataTable = ({
   selectable = false,
   sortBy = null,
   onSort = null,
-  isLoading = false,
   emptyState = 'No data available',
 }) => {
   const [page, setPage] = useState(0);

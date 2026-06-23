@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ClinicContext } from './ClinicContextCore';
 import {
   mockPatients,
@@ -11,6 +11,18 @@ import {
 import { recalcInvoice } from '../utils/billing';
 
 const STORAGE_KEY = 'dental-clinic-app-data';
+
+// Cap the charting audit log so the persisted blob can't grow without bound
+// (localStorage is ~5MB and the whole app state is serialised on every change).
+const MAX_HISTORY = 1000;
+
+// Collision-safe id generator. Date.now() alone duplicates when two records are
+// created in the same millisecond; the monotonic counter guarantees uniqueness
+// within a session, which is what React keys and entity links rely on.
+let idSeq = 0;
+const uid = (prefix) => `${prefix}-${Date.now().toString(36)}-${(idSeq++).toString(36)}`;
+
+const today = () => new Date().toISOString().split('T')[0];
 
 const readStored = () => {
   try {
@@ -36,51 +48,70 @@ export const ClinicProvider = ({ children }) => {
   const [payments, setPayments] = useState(() => stored.payments || mockPayments);
   const [dentists] = useState(mockDentists);
 
-  useEffect(() => {
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ patients, appointments, treatments, invoices, payments })
-    );
-  }, [patients, appointments, treatments, invoices, payments]);
+  // Dental charting (odontogram) state.
+  // toothRecords: { [patientId]: { [toothNumber]: { status, surfaces, notes, updatedAt } } }
+  // toothHistory: append-only audit log of every charting change (capped).
+  const [toothRecords, setToothRecords] = useState(() => stored.toothRecords || {});
+  const [toothHistory, setToothHistory] = useState(() => stored.toothHistory || []);
 
-  const addPatient = (patientData) => {
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          patients,
+          appointments,
+          treatments,
+          invoices,
+          payments,
+          toothRecords,
+          toothHistory,
+        })
+      );
+    } catch {
+      // Storage full or unavailable (e.g. private mode). The app keeps working
+      // from in-memory state; we just can't persist this change.
+    }
+  }, [patients, appointments, treatments, invoices, payments, toothRecords, toothHistory]);
+
+  const addPatient = useCallback((patientData) => {
     const newPatient = {
       ...patientData,
-      id: `pat-${Date.now()}`,
-      registrationDate: new Date().toISOString().split('T')[0],
+      id: uid('pat'),
+      registrationDate: today(),
       status: patientData.status || 'Active',
     };
     setPatients((prev) => [newPatient, ...prev]);
     return newPatient;
-  };
+  }, []);
 
-  const updatePatient = (patientId, updates) => {
+  const updatePatient = useCallback((patientId, updates) => {
     setPatients((prev) =>
       prev.map((p) => (p.id === patientId ? { ...p, ...updates } : p))
     );
-  };
+  }, []);
 
-  const addAppointment = (apptData) => {
+  const addAppointment = useCallback((apptData) => {
     const patientObj = patients.find((p) => p.id === apptData.patientId);
     const dentistObj = dentists.find((d) => d.id === apptData.dentistId);
     const newAppt = {
       ...apptData,
-      id: `appt-${Date.now()}`,
+      id: uid('appt'),
       patientName: patientObj?.name || 'Unknown Patient',
       dentistName: dentistObj?.name || 'Unknown Dentist',
       status: apptData.status || 'Scheduled',
     };
     setAppointments((prev) => [newAppt, ...prev]);
     return newAppt;
-  };
+  }, [patients, dentists]);
 
-  const updateAppointmentStatus = (apptId, status) => {
+  const updateAppointmentStatus = useCallback((apptId, status) => {
     setAppointments((prev) =>
       prev.map((a) => (a.id === apptId ? { ...a, status } : a))
     );
-  };
+  }, []);
 
-  const assignDentist = (apptId, dentistId) => {
+  const assignDentist = useCallback((apptId, dentistId) => {
     const dentistObj = dentists.find((d) => d.id === dentistId);
     if (!dentistObj) return;
     setAppointments((prev) =>
@@ -88,32 +119,31 @@ export const ClinicProvider = ({ children }) => {
         a.id === apptId ? { ...a, dentistId, dentistName: dentistObj.name } : a
       )
     );
-  };
+  }, [dentists]);
 
-  const addTreatment = (treatmentData) => {
+  const addTreatment = useCallback((treatmentData) => {
     const patientObj = patients.find((p) => p.id === treatmentData.patientId);
+    const now = new Date();
     const newTreatment = {
       ...treatmentData,
-      id: `treat-${Date.now()}`,
+      id: uid('treat'),
       patientName: patientObj?.name || 'Unknown Patient',
-      date: new Date().toISOString().split('T')[0],
+      date: today(),
       cost: Number(treatmentData.cost),
     };
     setTreatments((prev) => [newTreatment, ...prev]);
 
-    const today = new Date();
-    const dueDate = new Date();
-    dueDate.setDate(today.getDate() + 10);
-    const invoiceNum = `INV-${today.getFullYear()}-${String(Math.floor(100 + Math.random() * 900))}`;
+    const dueDate = new Date(now);
+    dueDate.setDate(now.getDate() + 10);
 
     // Run through the billing state machine so balanceDue / status /
     // paymentPercentage are always consistent — never hand-set.
     const newInvoice = recalcInvoice({
-      id: `inv-${Date.now()}`,
+      id: uid('inv'),
       patientId: treatmentData.patientId,
       patientName: patientObj?.name || 'Unknown Patient',
-      invoiceNumber: invoiceNum,
-      date: today.toISOString().split('T')[0],
+      invoiceNumber: `INV-${now.getFullYear()}-${String(now.getTime()).slice(-6)}`,
+      date: today(),
       dueDate: dueDate.toISOString().split('T')[0],
       totalAmount: Number(treatmentData.cost),
       paidAmount: 0,
@@ -129,9 +159,9 @@ export const ClinicProvider = ({ children }) => {
     );
 
     return newTreatment;
-  };
+  }, [patients]);
 
-  const addPayment = (paymentData) => {
+  const addPayment = useCallback((paymentData) => {
     // Resolve the target invoice up front so payment metadata and the
     // patient-status decision are based on real values — not on flags mutated
     // inside a setState updater (those run during commit, after this function
@@ -141,11 +171,11 @@ export const ClinicProvider = ({ children }) => {
 
     const newPayment = {
       ...paymentData,
-      id: `pay-${Date.now()}`,
+      id: uid('pay'),
       // Data-integrity links: a payment is tied to its invoice AND patient.
       patientId: paymentData.patientId || targetInvoice?.patientId || '',
       patientName: paymentData.patientName || targetInvoice?.patientName || '',
-      date: new Date().toISOString().split('T')[0],
+      date: today(),
       amount,
     };
     setPayments((prev) => [newPayment, ...prev]);
@@ -178,15 +208,54 @@ export const ClinicProvider = ({ children }) => {
     }
 
     return newPayment;
-  };
+  }, [invoices]);
 
-  const getTodayAppointments = () => {
-    const todayStr = new Date().toISOString().split('T')[0];
+  // Chart a single tooth. Records the change and appends an audit entry.
+  // surfaces is a compact string of surface letters (e.g. "MOD"); the caller
+  // is responsible for only passing surfaces for surface-based statuses.
+  const updateTooth = useCallback((patientId, toothNumber, { status, surfaces = '', notes = '' }) => {
+    const num = Number(toothNumber);
+    const record = {
+      status,
+      surfaces: surfaces || '',
+      notes: notes || '',
+      updatedAt: new Date().toISOString(),
+    };
+
+    setToothRecords((prev) => ({
+      ...prev,
+      [patientId]: { ...(prev[patientId] || {}), [num]: record },
+    }));
+
+    setToothHistory((prev) => {
+      // prevStatus is read from the updater's `prev` so it's always the latest
+      // committed value, even across rapid successive edits.
+      const prevStatus = prev.find(
+        (h) => h.patientId === patientId && h.toothNumber === num
+      )?.newStatus;
+      const entry = {
+        id: uid('th'),
+        patientId,
+        toothNumber: num,
+        prevStatus: prevStatus || 'Healthy',
+        newStatus: status,
+        surfaces: surfaces || '',
+        notes: notes || '',
+        at: record.updatedAt,
+      };
+      return [entry, ...prev].slice(0, MAX_HISTORY);
+    });
+
+    return record;
+  }, []);
+
+  const getTodayAppointments = useCallback(() => {
+    const todayStr = today();
     return appointments.filter((a) => a.date === todayStr);
-  };
+  }, [appointments]);
 
-  const getTodayMetrics = () => {
-    const todayStr = new Date().toISOString().split('T')[0];
+  const getTodayMetrics = useCallback(() => {
+    const todayStr = today();
     const todayAppts = appointments.filter((a) => a.date === todayStr);
     const completedTreatments = treatments.filter((t) => t.date === todayStr);
     const revenueToday = payments
@@ -205,29 +274,38 @@ export const ClinicProvider = ({ children }) => {
       revenueToday,
       totalPendingPayments,
     };
-  };
+  }, [appointments, treatments, payments, invoices]);
 
-  return (
-    <ClinicContext.Provider
-      value={{
-        patients,
-        appointments,
-        treatments,
-        invoices,
-        payments,
-        dentists,
-        addPatient,
-        updatePatient,
-        addAppointment,
-        updateAppointmentStatus,
-        assignDentist,
-        addTreatment,
-        addPayment,
-        getTodayAppointments,
-        getTodayMetrics,
-      }}
-    >
-      {children}
-    </ClinicContext.Provider>
+  // Memoise the context value so consumers only re-render when state or a
+  // handler identity actually changes — not on every provider render.
+  const value = useMemo(
+    () => ({
+      patients,
+      appointments,
+      treatments,
+      invoices,
+      payments,
+      dentists,
+      toothRecords,
+      toothHistory,
+      updateTooth,
+      addPatient,
+      updatePatient,
+      addAppointment,
+      updateAppointmentStatus,
+      assignDentist,
+      addTreatment,
+      addPayment,
+      getTodayAppointments,
+      getTodayMetrics,
+    }),
+    [
+      patients, appointments, treatments, invoices, payments, dentists,
+      toothRecords, toothHistory, updateTooth, addPatient, updatePatient,
+      addAppointment, updateAppointmentStatus, assignDentist, addTreatment,
+      addPayment, getTodayAppointments, getTodayMetrics,
+    ]
   );
+
+  return <ClinicContext.Provider value={value}>{children}</ClinicContext.Provider>;
 };

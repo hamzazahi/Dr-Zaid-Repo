@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Box,
   Button,
@@ -145,18 +145,18 @@ export default function Reports() {
     }
   };
 
-  const inRange = (dateStr) => {
+  const inRange = useCallback((dateStr) => {
     if (!dateStr) return true;
     const d = dateStr.split('T')[0];
     if (startDate && d < startDate) return false;
     if (endDate   && d > endDate)   return false;
     return true;
-  };
+  }, [startDate, endDate]);
 
-  const filteredPayments     = useMemo(() => payments.filter((p) => inRange(p.date)),     [payments, startDate, endDate]);
-  const filteredInvoices     = useMemo(() => invoices.filter((i) => inRange(i.date)),     [invoices, startDate, endDate]);
-  const filteredAppointments = useMemo(() => appointments.filter((a) => inRange(a.date)), [appointments, startDate, endDate]);
-  const filteredTreatments   = useMemo(() => treatments.filter((t) => inRange(t.date)),   [treatments, startDate, endDate]);
+  const filteredPayments     = useMemo(() => payments.filter((p) => inRange(p.date)),     [payments, inRange]);
+  const filteredInvoices     = useMemo(() => invoices.filter((i) => inRange(i.date)),     [invoices, inRange]);
+  const filteredAppointments = useMemo(() => appointments.filter((a) => inRange(a.date)), [appointments, inRange]);
+  const filteredTreatments   = useMemo(() => treatments.filter((t) => inRange(t.date)),   [treatments, inRange]);
 
   const report = useMemo(() => {
     const revenue     = filteredPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
