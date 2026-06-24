@@ -318,7 +318,7 @@ export default function SignIn() {
             {/* mobile logo */}
             <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center', gap: 1.25, mb: 3 }}>
               <Logo size={32} />
-              <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: theme.text }}>Dr. Zaid Dental</Typography>
+              <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: theme.text }}>DentSuite</Typography>
             </Box>
 
             <Typography sx={{ fontWeight: 800, fontSize: '1.5rem', letterSpacing: '-0.03em', color: theme.text, mb: 0.5 }}>Welcome back</Typography>

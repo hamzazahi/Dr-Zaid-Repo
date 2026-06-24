@@ -344,7 +344,7 @@ export default function Dashboard() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography sx={{ fontWeight: 800, fontSize: '1.35rem', color: colors.textPrimary, letterSpacing: '-0.025em' }}>
-            {greeting()}, Dr. Zaid 👋
+            {greeting()}, DentSuite 👋
           </Typography>
           <Typography sx={{ color: colors.textSecondary, fontSize: '0.85rem', mt: 0.25 }}>
             Here's what needs your attention today.
