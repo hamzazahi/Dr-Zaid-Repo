@@ -19,9 +19,6 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material';
-import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import dayjs from 'dayjs';
 import {
   AreaChart,
   Area,
@@ -55,6 +52,24 @@ import StatusBadge from '../components/common/StatusBadge';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const PIE_COLORS = ['#1A5DC8', '#0D9488', '#D97706', '#7C3AED', '#DC2626', '#DB2777', '#0369A1'];
+
+// Native date-input styling (matches the filter pill, has a built-in calendar).
+const DATE_INPUT_SX = {
+  border: '1px solid #E5E7EB',
+  borderRadius: '7px',
+  bgcolor: '#F3F4F6',
+  px: '8px',
+  py: '5px',
+  fontSize: '0.8rem',
+  fontFamily: 'inherit',
+  fontWeight: 600,
+  color: '#1F2937',
+  cursor: 'pointer',
+  colorScheme: 'light',
+  '&:hover': { borderColor: '#0F4C81' },
+  '&:focus': { outline: 'none', borderColor: '#0F4C81' },
+  '&::-webkit-calendar-picker-indicator': { cursor: 'pointer', opacity: 0.6 },
+};
 
 // Format as local YYYY-MM-DD. (toISOString() would convert to UTC and shift the
 // date back a day for timezones ahead of UTC, e.g. PKT — breaking preset ranges.)
@@ -133,19 +148,12 @@ export default function Reports() {
     }
   };
 
-  // DatePicker passes a dayjs object (or null)
-  const handleStartChange = (dayjsVal) => {
-    if (dayjsVal && dayjsVal.isValid()) {
-      setStartDate(dayjsVal.format('YYYY-MM-DD'));
-      setPreset('custom');
-    }
+  // Native <input type="date"> emits YYYY-MM-DD directly — same format as state.
+  const handleStartChange = (e) => {
+    if (e.target.value) { setStartDate(e.target.value); setPreset('custom'); }
   };
-
-  const handleEndChange = (dayjsVal) => {
-    if (dayjsVal && dayjsVal.isValid()) {
-      setEndDate(dayjsVal.format('YYYY-MM-DD'));
-      setPreset('custom');
-    }
+  const handleEndChange = (e) => {
+    if (e.target.value) { setEndDate(e.target.value); setPreset('custom'); }
   };
 
   const inRange = useCallback((dateStr) => {
@@ -378,8 +386,7 @@ export default function Reports() {
         </Box>
 
         {/* Right — filter controls + Export PDF */}
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
 
             {/* Filter pill */}
             <Box sx={{
@@ -420,68 +427,28 @@ export default function Reports() {
 
               <Box sx={{ width: 1, height: 20, bgcolor: colors.border, flexShrink: 0 }} />
 
-              {/* From DatePicker */}
+              {/* From date input */}
               <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: colors.textSecondary, whiteSpace: 'nowrap' }}>From</Typography>
-              <DatePicker
-                enableAccessibleFieldDOMStructure={false}
-                value={dayjs(startDate)}
+              <Box
+                component="input"
+                type="date"
+                value={startDate}
+                max={endDate || undefined}
                 onChange={handleStartChange}
-                maxDate={endDate ? dayjs(endDate) : undefined}
-                format="DD/MM/YYYY"
-                slotProps={{
-                  textField: {
-                    size: 'small',
-                    sx: {
-                      width: 148,
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: '7px',
-                        bgcolor: '#F3F4F6',
-                        '& fieldset': { borderColor: '#E5E7EB' },
-                        '&:hover fieldset': { borderColor: '#0F4C81' },
-                        '&.Mui-focused fieldset': { borderColor: '#0F4C81 !important' },
-                      },
-                      '& input': {
-                        fontSize: '0.8rem',
-                        color: '#1F2937',
-                        WebkitTextFillColor: '#1F2937',
-                        py: '6.5px',
-                      },
-                    },
-                  },
-                }}
+                sx={DATE_INPUT_SX}
               />
 
               <Box sx={{ width: 1, height: 20, bgcolor: colors.border, flexShrink: 0 }} />
 
-              {/* To DatePicker */}
+              {/* To date input */}
               <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: colors.textSecondary, whiteSpace: 'nowrap' }}>To</Typography>
-              <DatePicker
-                enableAccessibleFieldDOMStructure={false}
-                value={dayjs(endDate)}
+              <Box
+                component="input"
+                type="date"
+                value={endDate}
+                min={startDate || undefined}
                 onChange={handleEndChange}
-                minDate={startDate ? dayjs(startDate) : undefined}
-                format="DD/MM/YYYY"
-                slotProps={{
-                  textField: {
-                    size: 'small',
-                    sx: {
-                      width: 148,
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: '7px',
-                        bgcolor: '#F3F4F6',
-                        '& fieldset': { borderColor: '#E5E7EB' },
-                        '&:hover fieldset': { borderColor: '#0F4C81' },
-                        '&.Mui-focused fieldset': { borderColor: '#0F4C81 !important' },
-                      },
-                      '& input': {
-                        fontSize: '0.8rem',
-                        color: '#1F2937',
-                        WebkitTextFillColor: '#1F2937',
-                        py: '6.5px',
-                      },
-                    },
-                  },
-                }}
+                sx={DATE_INPUT_SX}
               />
             </Box>
 
@@ -504,8 +471,7 @@ export default function Reports() {
             >
               Export PDF
             </Button>
-          </Box>
-        </LocalizationProvider>
+        </Box>
       </Box>
 
       {/* ── KPI cards ── */}
