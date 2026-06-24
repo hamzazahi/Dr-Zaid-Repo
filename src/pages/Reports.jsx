@@ -71,6 +71,8 @@ const DATE_INPUT_SX = {
   '&::-webkit-calendar-picker-indicator': { cursor: 'pointer', opacity: 0.6 },
 };
 
+const FILTER_LABEL_SX = { fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#6B7280' };
+
 // Format as local YYYY-MM-DD. (toISOString() would convert to UTC and shift the
 // date back a day for timezones ahead of UTC, e.g. PKT — breaking preset ranges.)
 const toDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -78,6 +80,14 @@ const toDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart
 const calcPreset = (preset) => {
   const now = new Date();
   switch (preset) {
+    case 'today': {
+      return { start: toDateStr(now), end: toDateStr(now) };
+    }
+    case 'last_7': {
+      const start = new Date(now);
+      start.setDate(start.getDate() - 6);
+      return { start: toDateStr(start), end: toDateStr(now) };
+    }
     case 'this_month': {
       const start = new Date(now.getFullYear(), now.getMonth(), 1);
       return { start: toDateStr(start), end: toDateStr(now) };
@@ -124,6 +134,8 @@ function ChartTip({ active, payload, label, currency = false }) {
 }
 
 const PRESETS = [
+  { value: 'today',      label: 'Today' },
+  { value: 'last_7',     label: 'Last 7 Days' },
   { value: 'this_month', label: 'This Month' },
   { value: 'last_30',    label: 'Last 30 Days' },
   { value: 'quarter',    label: 'Quarter-to-Date' },
@@ -385,94 +397,81 @@ export default function Reports() {
           </Typography>
         </Box>
 
-        {/* Right — filter controls + Export PDF */}
+        {/* Right — exports */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon sx={{ fontSize: 17 }} />}
+            onClick={downloadCsvReport}
+            sx={{ height: 38, borderRadius: '8px', fontWeight: 700, fontSize: '0.82rem', flexShrink: 0, whiteSpace: 'nowrap', px: 2 }}
+          >
+            Download CSV
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<PictureAsPdfIcon sx={{ fontSize: 17 }} />}
+            onClick={generatePdfReport}
+            sx={{ height: 38, borderRadius: '8px', fontWeight: 700, fontSize: '0.82rem', flexShrink: 0, whiteSpace: 'nowrap', px: 2 }}
+          >
+            Export PDF
+          </Button>
+        </Box>
+      </Box>
 
-            {/* Filter pill */}
-            <Box sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              px: '12px',
-              py: '6px',
-              borderRadius: '10px',
-              border: `1px solid ${colors.border}`,
-              bgcolor: '#fff',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-            }}>
-              <DateRangeIcon sx={{ fontSize: 15, color: colors.textSecondary, flexShrink: 0 }} />
+      {/* ── Date range filter bar (prominent, labelled) ── */}
+      <Card sx={{ borderRadius: '12px' }}>
+        <Box sx={{ p: '14px 18px', display: 'flex', alignItems: 'flex-end', gap: 2.5, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, alignSelf: 'center' }}>
+            <DateRangeIcon sx={{ fontSize: 20, color: colors.primary }} />
+            <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: colors.textPrimary }}>Date Range</Typography>
+          </Box>
 
-              {/* Preset Select */}
+          {/* Quick range preset */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <Typography sx={FILTER_LABEL_SX}>Quick range</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', border: '1px solid #E5E7EB', borderRadius: '7px', bgcolor: '#F3F4F6', px: '10px', height: 38 }}>
               <Select
                 value={preset}
                 onChange={handlePresetChange}
-                size="small"
                 variant="standard"
                 disableUnderline
-                sx={{
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  color: preset !== 'custom' ? colors.primary : colors.textPrimary,
-                  minWidth: 140,
-                  '& .MuiSelect-select': { py: '2px', pr: '24px !important', pl: 0 },
-                  '& .MuiSelect-icon': { color: preset !== 'custom' ? colors.primary : colors.textSecondary, right: 0 },
-                }}
+                sx={{ fontSize: '0.85rem', fontWeight: 700, color: colors.primary, minWidth: 150, '& .MuiSelect-select': { py: 0 }, '& .MuiSelect-icon': { color: colors.primary } }}
               >
                 {PRESETS.map((p) => (
-                  <MenuItem key={p.value} value={p.value} sx={{ fontSize: '0.82rem', fontWeight: p.value === preset ? 700 : 400 }}>
-                    {p.label}
-                  </MenuItem>
+                  <MenuItem key={p.value} value={p.value} sx={{ fontSize: '0.85rem', fontWeight: p.value === preset ? 700 : 400 }}>{p.label}</MenuItem>
                 ))}
               </Select>
-
-              <Box sx={{ width: 1, height: 20, bgcolor: colors.border, flexShrink: 0 }} />
-
-              {/* From date input */}
-              <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: colors.textSecondary, whiteSpace: 'nowrap' }}>From</Typography>
-              <Box
-                component="input"
-                type="date"
-                value={startDate}
-                max={endDate || undefined}
-                onChange={handleStartChange}
-                sx={DATE_INPUT_SX}
-              />
-
-              <Box sx={{ width: 1, height: 20, bgcolor: colors.border, flexShrink: 0 }} />
-
-              {/* To date input */}
-              <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: colors.textSecondary, whiteSpace: 'nowrap' }}>To</Typography>
-              <Box
-                component="input"
-                type="date"
-                value={endDate}
-                min={startDate || undefined}
-                onChange={handleEndChange}
-                sx={DATE_INPUT_SX}
-              />
             </Box>
+          </Box>
 
-            {/* Download CSV — reliable file download for the selected range */}
-            <Button
-              variant="outlined"
-              startIcon={<DownloadIcon sx={{ fontSize: 17 }} />}
-              onClick={downloadCsvReport}
-              sx={{ height: 38, borderRadius: '8px', fontWeight: 700, fontSize: '0.82rem', flexShrink: 0, whiteSpace: 'nowrap', px: 2 }}
-            >
-              Download CSV
-            </Button>
+          {/* Start date */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <Typography sx={FILTER_LABEL_SX}>Start date (From)</Typography>
+            <Box component="input" type="date" value={startDate} max={endDate || undefined} onChange={handleStartChange}
+              sx={{ ...DATE_INPUT_SX, height: 38, px: '12px', fontSize: '0.85rem', minWidth: 160 }} />
+          </Box>
 
-            {/* Export PDF */}
-            <Button
-              variant="contained"
-              startIcon={<PictureAsPdfIcon sx={{ fontSize: 17 }} />}
-              onClick={generatePdfReport}
-              sx={{ height: 38, borderRadius: '8px', fontWeight: 700, fontSize: '0.82rem', flexShrink: 0, whiteSpace: 'nowrap', px: 2 }}
-            >
-              Export PDF
-            </Button>
+          {/* End date */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <Typography sx={FILTER_LABEL_SX}>End date (To)</Typography>
+            <Box component="input" type="date" value={endDate} min={startDate || undefined} onChange={handleEndChange}
+              sx={{ ...DATE_INPUT_SX, height: 38, px: '12px', fontSize: '0.85rem', minWidth: 160 }} />
+          </Box>
+
+          {/* Today shortcut — for daily activity */}
+          <Button
+            variant="text"
+            onClick={() => { const d = calcPreset('today'); setStartDate(d.start); setEndDate(d.end); setPreset('today'); }}
+            sx={{ height: 38, textTransform: 'none', fontWeight: 700, fontSize: '0.82rem' }}
+          >
+            Today
+          </Button>
+
+          <Typography sx={{ ml: 'auto', alignSelf: 'center', fontSize: '0.75rem', color: colors.textSecondary }}>
+            Showing <Box component="span" sx={{ fontWeight: 700, color: colors.textPrimary }}>{subtitleText}</Box>
+          </Typography>
         </Box>
-      </Box>
+      </Card>
 
       {/* ── KPI cards ── */}
       <Grid container spacing={2}>
