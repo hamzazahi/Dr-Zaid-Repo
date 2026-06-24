@@ -45,9 +45,8 @@ function StatusPill({ status }) {
 }
 
 export default function Prescriptions() {
-  const { patients, dentists } = useClinicData();
+  const { patients, dentists, prescriptions, addPrescription, updatePrescriptionStatus } = useClinicData();
   const { notify } = useNotification();
-  const [prescriptions, setPrescriptions] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState('');
@@ -64,14 +63,22 @@ export default function Prescriptions() {
     if (!form.medication.trim()) { setFormError('Medication name is required.'); return; }
     if (!form.dosage.trim()) { setFormError('Dosage is required.'); return; }
     const patient = patients.find((p) => p.id === form.patientId);
-    const dentist = dentists.find((d) => d.id === form.dentistId);
-    const newPx = { ...form, id: `px-${Date.now()}`, patientName: patient?.name || 'Unknown', doctorName: dentist?.name || 'Unknown', date: new Date().toISOString().split('T')[0] };
-    setPrescriptions((prev) => [newPx, ...prev]);
+    addPrescription(form);
     setOpenDialog(false);
     setForm(EMPTY_FORM);
     setFormError('');
     notify(`Prescription created for ${patient?.name}.`, 'success');
   };
+
+  const toggleStatus = (px) => {
+    const next = px.status === 'active' ? 'completed' : 'active';
+    updatePrescriptionStatus(px.id, next);
+    notify(`Prescription for ${px.patientName} marked ${next}.`, 'success');
+  };
+
+  const selectedPatient = patients.find((p) => p.id === form.patientId);
+  const selectedAllergies = selectedPatient?.allergies && selectedPatient.allergies.toLowerCase() !== 'none'
+    ? selectedPatient.allergies : null;
 
   const activeCount = prescriptions.filter((p) => p.status === 'active').length;
   const completedCount = prescriptions.filter((p) => p.status === 'completed').length;
@@ -125,12 +132,13 @@ export default function Prescriptions() {
                 <TableCell>Duration</TableCell>
                 <TableCell>Prescribed By</TableCell>
                 <TableCell>Status</TableCell>
+                <TableCell align="right">Action</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {prescriptions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} sx={{ py: 8, textAlign: 'center', borderBottom: 0 }}>
+                  <TableCell colSpan={9} sx={{ py: 8, textAlign: 'center', borderBottom: 0 }}>
                     <Box sx={{ width: 52, height: 52, borderRadius: '50%', bgcolor: colors.surfaceAlt, display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1.5 }}>
                       <LocalPharmacyIcon sx={{ fontSize: 24, color: colors.textLight }} />
                     </Box>
@@ -156,6 +164,11 @@ export default function Prescriptions() {
                     <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{px.duration || '—'}</Typography></TableCell>
                     <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem' }}>{px.doctorName}</Typography></TableCell>
                     <TableCell><StatusPill status={px.status} /></TableCell>
+                    <TableCell align="right">
+                      <Button size="small" onClick={() => toggleStatus(px)} sx={{ fontWeight: 600, fontSize: '0.75rem', textTransform: 'none', whiteSpace: 'nowrap' }}>
+                        {px.status === 'active' ? 'Mark Completed' : 'Reactivate'}
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -172,6 +185,11 @@ export default function Prescriptions() {
         <form onSubmit={handleSubmit} noValidate>
           <DialogContent sx={{ p: 3 }}>
             {formError && <Alert severity="error" sx={{ mb: 2, borderRadius: '8px' }}>{formError}</Alert>}
+            {selectedAllergies && (
+              <Alert severity="warning" sx={{ mb: 2, borderRadius: '8px' }}>
+                Allergy alert: {selectedPatient.name} is allergic to <strong>{selectedAllergies}</strong>. Verify medication safety before prescribing.
+              </Alert>
+            )}
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <TextField select label="Patient *" name="patientId" value={form.patientId} onChange={handleChange} fullWidth required>

@@ -70,7 +70,7 @@ const PatientProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { patients, appointments, treatments, invoices, addPayment, addTreatment } = useClinicData();
+  const { patients, appointments, treatments, invoices, prescriptions, addPayment, addTreatment } = useClinicData();
   const { notify } = useNotification();
 
   const [activeTab, setActiveTab] = useState(location.state?.tab ?? 0);
@@ -96,6 +96,7 @@ const PatientProfile = () => {
   const patientAppts = useMemo(() => appointments.filter((a) => a.patientId === id), [appointments, id]);
   const patientTreatments = useMemo(() => treatments.filter((t) => t.patientId === id), [treatments, id]);
   const patientInvoices = useMemo(() => invoices.filter((i) => i.patientId === id), [invoices, id]);
+  const patientPrescriptions = useMemo(() => prescriptions.filter((px) => px.patientId === id), [prescriptions, id]);
   const patientOutstanding = useMemo(() => patientInvoices.reduce((sum, inv) => sum + inv.balanceDue, 0), [patientInvoices]);
 
   if (!patient) {
@@ -186,7 +187,7 @@ const PatientProfile = () => {
       <Card sx={{ borderRadius: '12px', overflow: 'hidden' }}>
         <Box sx={{ borderBottom: `1px solid ${colors.border}`, px: 2 }}>
           <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ minHeight: 48 }}>
-            {['Demographics', `Visits (${patientAppts.length})`, `Treatments (${patientTreatments.length})`, 'Dental Chart', `Billing (${patientInvoices.length})`].map((label) => (
+            {['Demographics', `Visits (${patientAppts.length})`, `Treatments (${patientTreatments.length})`, 'Dental Chart', `Billing (${patientInvoices.length})`, `Prescriptions (${patientPrescriptions.length})`].map((label) => (
               <Tab key={label} label={label} sx={{ fontWeight: 700, textTransform: 'none', fontSize: '0.85rem', minHeight: 48 }} />
             ))}
           </Tabs>
@@ -360,6 +361,48 @@ const PatientProfile = () => {
                           {inv.balanceDue > 0 && (
                             <Button size="small" startIcon={<PaymentIcon sx={{ fontSize: 13 }} />} onClick={() => handleOpenPayment(inv)} sx={{ color: colors.primary, fontWeight: 600, fontSize: '0.78rem', p: '4px 10px' }}>Collect</Button>
                           )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Box>
+            )}
+          </TabPanel>
+
+          <TabPanel value={activeTab} index={5}>
+            {patientPrescriptions.length === 0 ? (
+              <Box sx={{ py: 6, textAlign: 'center' }}>
+                <LocalHospitalIcon sx={{ fontSize: 40, color: colors.textLight, mb: 1 }} />
+                <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>No prescriptions</Typography>
+                <Typography variant="caption" sx={{ color: colors.textSecondary }}>Prescriptions issued from the Prescriptions page appear here.</Typography>
+              </Box>
+            ) : (
+              <Box sx={{ overflowX: 'auto' }}>
+                <Table sx={{ minWidth: 620 }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Date</TableCell>
+                      <TableCell>Medication</TableCell>
+                      <TableCell>Dosage</TableCell>
+                      <TableCell>Frequency</TableCell>
+                      <TableCell>Prescribed By</TableCell>
+                      <TableCell>Status</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {patientPrescriptions.map((px) => (
+                      <TableRow key={px.id}>
+                        <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{formatDate(px.date)}</Typography></TableCell>
+                        <TableCell><Typography variant="body2" fontWeight={700} sx={{ color: colors.primary }}>{px.medication}</Typography></TableCell>
+                        <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem' }}>{px.dosage}</Typography></TableCell>
+                        <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{px.frequency || '—'}</Typography></TableCell>
+                        <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem' }}>{px.doctorName}</Typography></TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: '5px', px: '8px', py: '3px', borderRadius: '6px', bgcolor: px.status === 'active' ? '#EFF6FF' : '#F0FDF4' }}>
+                            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: px.status === 'active' ? '#3B82F6' : '#10B981' }} />
+                            <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: px.status === 'active' ? '#1D4ED8' : '#065F46' }}>{px.status === 'active' ? 'Active' : 'Completed'}</Typography>
+                          </Box>
                         </TableCell>
                       </TableRow>
                     ))}

@@ -54,6 +54,9 @@ export const ClinicProvider = ({ children }) => {
   const [toothRecords, setToothRecords] = useState(() => stored.toothRecords || {});
   const [toothHistory, setToothHistory] = useState(() => stored.toothHistory || []);
 
+  // Prescriptions (persisted, with an active ↔ completed lifecycle).
+  const [prescriptions, setPrescriptions] = useState(() => stored.prescriptions || []);
+
   useEffect(() => {
     try {
       window.localStorage.setItem(
@@ -66,13 +69,14 @@ export const ClinicProvider = ({ children }) => {
           payments,
           toothRecords,
           toothHistory,
+          prescriptions,
         })
       );
     } catch {
       // Storage full or unavailable (e.g. private mode). The app keeps working
       // from in-memory state; we just can't persist this change.
     }
-  }, [patients, appointments, treatments, invoices, payments, toothRecords, toothHistory]);
+  }, [patients, appointments, treatments, invoices, payments, toothRecords, toothHistory, prescriptions]);
 
   const addPatient = useCallback((patientData) => {
     const newPatient = {
@@ -249,6 +253,27 @@ export const ClinicProvider = ({ children }) => {
     return record;
   }, []);
 
+  // Prescriptions: create + lifecycle. Patient/dentist names are resolved and
+  // stored on the record so the row renders without re-joining on every render.
+  const addPrescription = useCallback((data) => {
+    const patientObj = patients.find((p) => p.id === data.patientId);
+    const dentistObj = dentists.find((d) => d.id === data.dentistId);
+    const newPx = {
+      ...data,
+      id: uid('px'),
+      patientName: patientObj?.name || 'Unknown',
+      doctorName: dentistObj?.name || 'Unknown',
+      date: today(),
+      status: data.status || 'active',
+    };
+    setPrescriptions((prev) => [newPx, ...prev]);
+    return newPx;
+  }, [patients, dentists]);
+
+  const updatePrescriptionStatus = useCallback((id, status) => {
+    setPrescriptions((prev) => prev.map((px) => (px.id === id ? { ...px, status } : px)));
+  }, []);
+
   const getTodayAppointments = useCallback(() => {
     const todayStr = today();
     return appointments.filter((a) => a.date === todayStr);
@@ -289,6 +314,9 @@ export const ClinicProvider = ({ children }) => {
       toothRecords,
       toothHistory,
       updateTooth,
+      prescriptions,
+      addPrescription,
+      updatePrescriptionStatus,
       addPatient,
       updatePatient,
       addAppointment,
@@ -301,7 +329,8 @@ export const ClinicProvider = ({ children }) => {
     }),
     [
       patients, appointments, treatments, invoices, payments, dentists,
-      toothRecords, toothHistory, updateTooth, addPatient, updatePatient,
+      toothRecords, toothHistory, updateTooth, prescriptions, addPrescription,
+      updatePrescriptionStatus, addPatient, updatePatient,
       addAppointment, updateAppointmentStatus, assignDentist, addTreatment,
       addPayment, getTodayAppointments, getTodayMetrics,
     ]
