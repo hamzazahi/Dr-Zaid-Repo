@@ -16,6 +16,14 @@ const KEYFRAMES = `
     10%,90% { transform:translateX(-1px) } 20%,80% { transform:translateX(2px) }
     30%,50%,70% { transform:translateX(-6px) } 40%,60% { transform:translateX(6px) }
   }
+  /* Floating label driven by CSS so it also floats for BROWSER-AUTOFILLED values
+     (autofill doesn't update React state, which used to leave the label overlapping). */
+  .si-field-label { position:absolute; left:16px; pointer-events:none; transition:all .18s ease;
+    top:50%; transform:translateY(-50%); font-size:14.5px; font-weight:500; letter-spacing:0; text-transform:none; }
+  .si-field-input:focus ~ .si-field-label,
+  .si-field-input:not(:placeholder-shown) ~ .si-field-label,
+  .si-field-input:-webkit-autofill ~ .si-field-label {
+    top:8px; transform:none; font-size:11px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; }
 `;
 
 // ── Brand mark (dental cross) ───────────────────────────────────────────────
@@ -56,7 +64,6 @@ const FEATURE_GROUPS = [
 // ── Floating-label input ────────────────────────────────────────────────────
 function Field({ id, label, type, value, onChange, onBlur, valid, error, autoComplete, endAdornment, theme }) {
   const [focused, setFocused] = useState(false);
-  const float = focused || value.length > 0;
   const showError = Boolean(error);
   const showValid = valid && value.length > 0 && !endAdornment;
   const padRight = endAdornment || showValid ? 46 : 16;
@@ -71,12 +78,14 @@ function Field({ id, label, type, value, onChange, onBlur, valid, error, autoCom
       <Box sx={{ position: 'relative' }}>
         <input
           id={id}
+          className="si-field-input"
           type={type}
           value={value}
           onChange={onChange}
           onFocus={() => setFocused(true)}
           onBlur={() => { setFocused(false); onBlur?.(); }}
           autoComplete={autoComplete}
+          placeholder=" "
           style={{
             width: '100%', boxSizing: 'border-box',
             padding: `22px ${padRight}px 8px 16px`,
@@ -87,11 +96,7 @@ function Field({ id, label, type, value, onChange, onBlur, valid, error, autoCom
             transition: 'border-color .18s ease, box-shadow .2s ease, background .18s ease',
           }}
         />
-        <Box component="label" htmlFor={id} sx={{
-          position: 'absolute', left: 16, pointerEvents: 'none', transition: 'all .18s ease',
-          top: float ? 8 : '50%', transform: float ? 'none' : 'translateY(-50%)',
-          fontSize: float ? '11px' : '14.5px', fontWeight: float ? 600 : 500,
-          letterSpacing: float ? '0.03em' : 0, textTransform: float ? 'uppercase' : 'none',
+        <Box component="label" htmlFor={id} className="si-field-label" sx={{
           color: showError ? '#DC2626' : focused ? ACCENT : theme.textMuted,
         }}>
           {label}

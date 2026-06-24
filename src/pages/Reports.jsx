@@ -45,6 +45,7 @@ import {
   AccountBalanceWallet as AccountBalanceWalletIcon,
   TrendingUp as TrendingUpIcon,
   DateRange as DateRangeIcon,
+  Download as DownloadIcon,
 } from '@mui/icons-material';
 import { useClinicData } from '../hooks/useClinicData';
 import { formatCurrency, formatDate } from '../utils/helpers';
@@ -55,7 +56,9 @@ import StatusBadge from '../components/common/StatusBadge';
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const PIE_COLORS = ['#1A5DC8', '#0D9488', '#D97706', '#7C3AED', '#DC2626', '#DB2777', '#0369A1'];
 
-const toDateStr = (d) => d.toISOString().split('T')[0];
+// Format as local YYYY-MM-DD. (toISOString() would convert to UTC and shift the
+// date back a day for timezones ahead of UTC, e.g. PKT — breaking preset ranges.)
+const toDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 const calcPreset = (preset) => {
   const now = new Date();
@@ -300,13 +303,62 @@ export default function Reports() {
       <tbody>${treatmentRows || '<tr><td colspan="5">No treatments available.</td></tr>'}</tbody></table>
       </body></html>`;
 
-    const win = window.open('', '_blank', 'width=1000,height=800');
-    if (!win) { alert('Please allow pop-ups to generate the PDF report.'); return; }
-    win.document.open();
-    win.document.write(html);
-    win.document.close();
-    win.focus();
-    win.print();
+    // Render into a hidden iframe and print from there. This avoids pop-up
+    // blockers (which silently kill window.open on deployed hosts like Vercel),
+    // so "Export PDF → Save as PDF" works reliably.
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(html);
+    doc.close();
+    setTimeout(() => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      setTimeout(() => document.body.removeChild(iframe), 1000);
+    }, 350);
+  };
+
+  // Reliable file download (Blob + anchor) — always downloads, no pop-up needed.
+  const csvEscape = (v) => {
+    const s = String(v ?? '');
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+
+  const downloadCsvReport = () => {
+    const rows = [
+      ['Dr Zaid Dental — Clinic Performance Report'],
+      ['Generated', new Date().toLocaleString()],
+      ['Period', `${startDate} to ${endDate}`],
+      [],
+      ['Summary'],
+      ['Total Billed', report.billed],
+      ['Revenue Collected', report.revenue],
+      ['Outstanding', report.outstanding],
+      ['Collection Rate (%)', report.collectionRate],
+      ['Appointments', filteredAppointments.length],
+      ['Treatments', filteredTreatments.length],
+      [],
+      [`${granularity} Summary`],
+      ['Period', 'Appointments', 'Revenue', 'Billed', 'Outstanding', 'Paid', 'Partial', 'Unpaid'],
+      ...periodSummary.map((r) => [r.label, r.appointments, r.revenue, r.billed, r.outstanding, r.paidInvoices, r.partialInvoices, r.unpaidInvoices]),
+      ['Total', periodTotals.appointments, periodTotals.revenue, periodTotals.billed, periodTotals.outstanding, periodTotals.paidInvoices, periodTotals.partialInvoices, periodTotals.unpaidInvoices],
+      [],
+      ['Invoices in period'],
+      ['Invoice', 'Patient', 'Date', 'Total', 'Paid', 'Balance', 'Status'],
+      ...filteredInvoices.map((i) => [i.invoiceNumber, i.patientName, i.date, i.totalAmount, i.paidAmount, i.balanceDue, i.status]),
+    ];
+    const csv = rows.map((r) => r.map(csvEscape).join(',')).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dr-zaid-report_${startDate}_to_${endDate}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   };
 
   return (
@@ -432,6 +484,16 @@ export default function Reports() {
                 }}
               />
             </Box>
+
+            {/* Download CSV — reliable file download for the selected range */}
+            <Button
+              variant="outlined"
+              startIcon={<DownloadIcon sx={{ fontSize: 17 }} />}
+              onClick={downloadCsvReport}
+              sx={{ height: 38, borderRadius: '8px', fontWeight: 700, fontSize: '0.82rem', flexShrink: 0, whiteSpace: 'nowrap', px: 2 }}
+            >
+              Download CSV
+            </Button>
 
             {/* Export PDF */}
             <Button
