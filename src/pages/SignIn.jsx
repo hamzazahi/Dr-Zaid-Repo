@@ -233,7 +233,7 @@ export default function SignIn() {
           <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <Logo size={38} light />
             <Box>
-              <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '1.05rem', letterSpacing: '-0.02em', lineHeight: 1.15 }}>Dr. Zaid Dental</Typography>
+              <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '1.05rem', letterSpacing: '-0.02em', lineHeight: 1.15 }}>DentSuite</Typography>
               <Typography sx={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Clinic Management</Typography>
             </Box>
           </Box>
@@ -249,7 +249,7 @@ export default function SignIn() {
               Run your whole practice<br />from one calm workspace
             </Typography>
             <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.92rem', lineHeight: 1.7, mb: 4 }}>
-              Stop juggling registers, spreadsheets and reminders. Dr. Zaid Dental brings every chair, patient and rupee into one place — so your team spends less time on admin and more on care.
+              Stop juggling registers, spreadsheets and reminders. DentSuite brings every chair, patient and rupee into one place — so your team spends less time on admin and more on care.
             </Typography>
 
             <Stack spacing={2.25}>

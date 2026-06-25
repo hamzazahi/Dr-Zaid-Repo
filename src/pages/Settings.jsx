@@ -58,7 +58,7 @@ export default function Settings() {
   const [saved, setSaved] = useState('');
 
   const [clinicSettings, setClinicSettings] = useState({
-    clinicName: 'Dr. Zaid Dental Clinic',
+    clinicName: 'DentSuite',
     email: 'info@drzaiddental.com',
     phone: '+92-300-1234567',
     address: '123 Main Street, Karachi',

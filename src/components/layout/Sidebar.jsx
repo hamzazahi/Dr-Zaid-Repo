@@ -142,7 +142,7 @@ export default function Sidebar({ collapsed, onToggle, transition }) {
               </Box>
               <Box sx={{ minWidth: 0, overflow: 'hidden' }}>
                 <Typography noWrap sx={{ color: '#fff', fontWeight: 700, fontSize: '0.875rem', lineHeight: 1.2 }}>
-                  Dr. Zaid Dental
+                  DentSuite
                 </Typography>
                 <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.62rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                   Clinic Management
@@ -253,7 +253,7 @@ export default function Sidebar({ collapsed, onToggle, transition }) {
         )}
 
         {/* User card — width 100% + overflow hidden prevents clipping beyond sidebar edge */}
-        <Tooltip title={collapsed ? `${user?.name || 'Dr. Zaid'} · ${user?.role || 'Admin'}` : ''} placement="right">
+        <Tooltip title={collapsed ? `${user?.name || 'DentSuite'} · ${user?.role || 'Admin'}` : ''} placement="right">
           <Box sx={{
             width: '100%',
             boxSizing: 'border-box',
@@ -282,7 +282,7 @@ export default function Sidebar({ collapsed, onToggle, transition }) {
             {!collapsed && (
               <Box sx={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
                 <Typography noWrap sx={{ color: '#fff', fontWeight: 600, fontSize: '0.78rem', lineHeight: 1.2 }}>
-                  {user?.name || 'Dr. Zaid'}
+                  {user?.name || 'DentSuite'}
                 </Typography>
                 <Typography noWrap sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.66rem' }}>
                   {user?.role || 'Administrator'}
