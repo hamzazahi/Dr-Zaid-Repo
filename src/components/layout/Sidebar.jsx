@@ -145,7 +145,7 @@ export default function Sidebar({ collapsed, onToggle, transition }) {
                   DentSuite
                 </Typography>
                 <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.62rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                  Clinic Management
+                  
                 </Typography>
               </Box>
             </Box>
