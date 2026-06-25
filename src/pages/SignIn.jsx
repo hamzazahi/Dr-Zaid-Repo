@@ -234,7 +234,7 @@ export default function SignIn() {
             <Logo size={38} light />
             <Box>
               <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '1.05rem', letterSpacing: '-0.02em', lineHeight: 1.15 }}>DentSuite</Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Clinic Management</Typography>
+              <Typography sx={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.65rem', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase' }}></Typography>
             </Box>
           </Box>
 
