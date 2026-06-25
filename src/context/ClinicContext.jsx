@@ -6,7 +6,8 @@ import {
   mockTreatments,
   mockInvoices,
   mockPayments,
-  mockDentists
+  mockTreatmentPlans,
+  mockStaff
 } from '../utils/mockData';
 import { recalcInvoice } from '../utils/billing';
 
@@ -46,7 +47,12 @@ export const ClinicProvider = ({ children }) => {
     (stored.invoices || mockInvoices).map((inv) => recalcInvoice(inv))
   );
   const [payments, setPayments] = useState(() => stored.payments || mockPayments);
-  const [dentists] = useState(mockDentists);
+
+  // Staff / team is the master list; dentists are derived from it so every
+  // dentist dropdown (appointments, treatments, prescriptions, plans) reflects
+  // the staff roster — single source of truth, no duplicated dentist data.
+  const [staff, setStaff] = useState(() => stored.staff || mockStaff);
+  const dentists = useMemo(() => staff.filter((s) => s.role === 'Dentist'), [staff]);
 
   // Dental charting (odontogram) state.
   // toothRecords: { [patientId]: { [toothNumber]: { status, surfaces, notes, updatedAt } } }
@@ -56,6 +62,9 @@ export const ClinicProvider = ({ children }) => {
 
   // Prescriptions (persisted, with an active ↔ completed lifecycle).
   const [prescriptions, setPrescriptions] = useState(() => stored.prescriptions || []);
+
+  // Treatment plans (multi-visit, phased; persisted).
+  const [treatmentPlans, setTreatmentPlans] = useState(() => stored.treatmentPlans || mockTreatmentPlans);
 
   useEffect(() => {
     try {
@@ -70,13 +79,15 @@ export const ClinicProvider = ({ children }) => {
           toothRecords,
           toothHistory,
           prescriptions,
+          treatmentPlans,
+          staff,
         })
       );
     } catch {
       // Storage full or unavailable (e.g. private mode). The app keeps working
       // from in-memory state; we just can't persist this change.
     }
-  }, [patients, appointments, treatments, invoices, payments, toothRecords, toothHistory, prescriptions]);
+  }, [patients, appointments, treatments, invoices, payments, toothRecords, toothHistory, prescriptions, treatmentPlans, staff]);
 
   const addPatient = useCallback((patientData) => {
     const newPatient = {
@@ -274,6 +285,105 @@ export const ClinicProvider = ({ children }) => {
     setPrescriptions((prev) => prev.map((px) => (px.id === id ? { ...px, status } : px)));
   }, []);
 
+  // ── Treatment plans ───────────────────────────────────────────────────────
+  // A plan groups several procedure items for a patient. Names are resolved up
+  // front so rows render without re-joining. Lifecycle: Proposed → Accepted
+  // (bills the whole plan as one invoice) → In Progress → Completed (driven by
+  // item completion).
+  const addTreatmentPlan = useCallback((data) => {
+    const patientObj = patients.find((p) => p.id === data.patientId);
+    const dentistObj = dentists.find((d) => d.id === data.dentistId);
+    const items = (data.items || []).map((it) => ({
+      id: uid('pli'),
+      procedure: it.procedure,
+      toothNumber: it.toothNumber || '—',
+      cost: Number(it.cost) || 0,
+      done: false,
+    }));
+    const newPlan = {
+      id: uid('plan'),
+      patientId: data.patientId,
+      patientName: patientObj?.name || 'Unknown',
+      dentistId: data.dentistId,
+      dentistName: dentistObj?.name || 'Unassigned',
+      title: data.title?.trim() || 'Treatment Plan',
+      status: 'Proposed',
+      createdDate: today(),
+      invoiceId: null,
+      items,
+    };
+    setTreatmentPlans((prev) => [newPlan, ...prev]);
+    return newPlan;
+  }, [patients, dentists]);
+
+  const updateTreatmentPlanStatus = useCallback((planId, status) => {
+    const plan = treatmentPlans.find((p) => p.id === planId);
+    if (!plan) return;
+
+    // First acceptance bills the whole plan as a single invoice (routed through
+    // the billing state machine — never hand-set balance/status).
+    if (status === 'Accepted' && !plan.invoiceId) {
+      const now = new Date();
+      const dueDate = new Date(now);
+      dueDate.setDate(now.getDate() + 14);
+      const total = plan.items.reduce((sum, it) => sum + Number(it.cost || 0), 0);
+      const invoiceId = uid('inv');
+      const newInvoice = recalcInvoice({
+        id: invoiceId,
+        patientId: plan.patientId,
+        patientName: plan.patientName,
+        invoiceNumber: `INV-${now.getFullYear()}-${String(now.getTime()).slice(-6)}`,
+        date: today(),
+        dueDate: dueDate.toISOString().split('T')[0],
+        totalAmount: total,
+        paidAmount: 0,
+      });
+      setInvoices((prev) => [newInvoice, ...prev]);
+      setPatients((prev) =>
+        prev.map((p) => (p.id === plan.patientId && p.status !== 'Pending Payment' ? { ...p, status: 'Pending Payment' } : p))
+      );
+      setTreatmentPlans((prev) => prev.map((p) => (p.id === planId ? { ...p, status, invoiceId } : p)));
+      return;
+    }
+
+    setTreatmentPlans((prev) => prev.map((p) => (p.id === planId ? { ...p, status } : p)));
+  }, [treatmentPlans]);
+
+  // Toggle a plan item done/undone and derive the plan status from progress.
+  const togglePlanItem = useCallback((planId, itemId) => {
+    setTreatmentPlans((prev) => prev.map((plan) => {
+      if (plan.id !== planId) return plan;
+      const items = plan.items.map((it) => (it.id === itemId ? { ...it, done: !it.done } : it));
+      const doneCount = items.filter((it) => it.done).length;
+      let status;
+      if (items.length > 0 && doneCount === items.length) status = 'Completed';
+      else if (doneCount > 0) status = 'In Progress';
+      else status = plan.invoiceId ? 'Accepted' : 'Proposed';
+      return { ...plan, items, status };
+    }));
+  }, []);
+
+  // ── Staff / team ──────────────────────────────────────────────────────────
+  const addStaff = useCallback((data) => {
+    const newMember = {
+      // Dentists get a dentist-prefixed id so they read consistently with seeds.
+      id: data.role === 'Dentist' ? uid('dentist') : uid('staff'),
+      name: data.name?.trim() || 'New Staff',
+      role: data.role || 'Receptionist',
+      specialty: data.specialty?.trim() || '',
+      email: data.email?.trim() || '',
+      phone: data.phone?.trim() || '',
+      status: data.status || 'Active',
+      joinedDate: today(),
+    };
+    setStaff((prev) => [newMember, ...prev]);
+    return newMember;
+  }, []);
+
+  const updateStaffStatus = useCallback((id, status) => {
+    setStaff((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
+  }, []);
+
   const getTodayAppointments = useCallback(() => {
     const todayStr = today();
     return appointments.filter((a) => a.date === todayStr);
@@ -317,6 +427,13 @@ export const ClinicProvider = ({ children }) => {
       prescriptions,
       addPrescription,
       updatePrescriptionStatus,
+      treatmentPlans,
+      addTreatmentPlan,
+      updateTreatmentPlanStatus,
+      togglePlanItem,
+      staff,
+      addStaff,
+      updateStaffStatus,
       addPatient,
       updatePatient,
       addAppointment,
@@ -330,7 +447,9 @@ export const ClinicProvider = ({ children }) => {
     [
       patients, appointments, treatments, invoices, payments, dentists,
       toothRecords, toothHistory, updateTooth, prescriptions, addPrescription,
-      updatePrescriptionStatus, addPatient, updatePatient,
+      updatePrescriptionStatus, treatmentPlans, addTreatmentPlan,
+      updateTreatmentPlanStatus, togglePlanItem, staff, addStaff, updateStaffStatus,
+      addPatient, updatePatient,
       addAppointment, updateAppointmentStatus, assignDentist, addTreatment,
       addPayment, getTodayAppointments, getTodayMetrics,
     ]

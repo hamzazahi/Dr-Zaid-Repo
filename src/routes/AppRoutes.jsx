@@ -9,12 +9,14 @@ const Patients = lazy(() => import('../pages/Patients'));
 const PatientProfile = lazy(() => import('../pages/PatientProfile'));
 const Appointments = lazy(() => import('../pages/Appointments'));
 const Treatments = lazy(() => import('../pages/Treatments'));
+const TreatmentPlans = lazy(() => import('../pages/TreatmentPlans'));
 const Billing = lazy(() => import('../pages/Billing'));
 const Payments = lazy(() => import('../pages/Payments'));
 const Reports = lazy(() => import('../pages/Reports'));
 const Prescriptions = lazy(() => import('../pages/Prescriptions'));
 const Inventory = lazy(() => import('../pages/Inventory'));
 const Settings = lazy(() => import('../pages/Settings'));
+const Staff = lazy(() => import('../pages/Staff'));
 
 function RouteFallback() {
   return (
@@ -33,11 +35,13 @@ export default function AppRoutes() {
         <Route path="/patients/:id" element={<PatientProfile />} />
         <Route path="/appointments" element={<Appointments />} />
         <Route path="/treatments" element={<Treatments />} />
+        <Route path="/treatment-plans" element={<TreatmentPlans />} />
         <Route path="/billing" element={<Billing />} />
         <Route path="/payments" element={<Payments />} />
         <Route path="/prescriptions" element={<Prescriptions />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/staff" element={<Staff />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

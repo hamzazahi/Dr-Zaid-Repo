@@ -25,10 +25,12 @@ const PAGE_TITLES = {
   '/patients': 'Patients',
   '/appointments': 'Appointments',
   '/treatments': 'Treatments',
+  '/treatment-plans': 'Treatment Plans',
   '/billing': 'Billing',
   '/payments': 'Payments',
   '/prescriptions': 'Prescriptions',
   '/inventory': 'Inventory',
+  '/staff': 'Staff',
   '/reports': 'Reports',
   '/settings': 'Settings',
 };

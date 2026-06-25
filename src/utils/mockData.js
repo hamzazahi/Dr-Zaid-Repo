@@ -560,3 +560,59 @@ export const mockInventory = [
     status: 'In Stock'
   }
 ];
+
+export const mockTreatmentPlans = [
+  {
+    id: 'plan-1',
+    patientId: 'pat-1',
+    patientName: 'Muhammad Ali',
+    dentistId: 'dentist-1',
+    dentistName: 'Dr. Hamza Zahid',
+    title: 'Full Mouth Rehabilitation',
+    status: 'In Progress',
+    createdDate: getRelativeDateString(-12),
+    invoiceId: null,
+    items: [
+      { id: 'pli-1', procedure: 'Scaling', toothNumber: 'All', cost: 4000, done: true },
+      { id: 'pli-2', procedure: 'Root Canal', toothNumber: '36', cost: 15000, done: true },
+      { id: 'pli-3', procedure: 'Crown', toothNumber: '36', cost: 25000, done: false },
+    ],
+  },
+  {
+    id: 'plan-2',
+    patientId: 'pat-3',
+    patientName: 'Fatima Zahra',
+    dentistId: 'dentist-2',
+    dentistName: 'Dr. Sarah Ahmed',
+    title: 'Cosmetic & Whitening Plan',
+    status: 'Proposed',
+    createdDate: getRelativeDateString(-2),
+    invoiceId: null,
+    items: [
+      { id: 'pli-4', procedure: 'Consultation', toothNumber: '—', cost: 1500, done: false },
+      { id: 'pli-5', procedure: 'Whitening', toothNumber: 'All', cost: 8000, done: false },
+      { id: 'pli-6', procedure: 'Filling', toothNumber: '21', cost: 5000, done: false },
+    ],
+  },
+];
+
+// Master staff list. The 3 dentists keep their exact ids (dentist-1/2/3) so all
+// existing references (appointments, treatments, plans) stay valid; dentists are
+// derived from this list in ClinicContext.
+export const mockStaff = [
+  { id: 'dentist-1', name: 'Dr. Hamza Zahid', role: 'Dentist', specialty: 'Chief Clinical Director & Surgeon', email: 'hamza@dentsuite.com', phone: '+92 300 1112233', status: 'Active', joinedDate: '2021-03-01' },
+  { id: 'dentist-2', name: 'Dr. Sarah Ahmed', role: 'Dentist', specialty: 'Orthodontist & Pedodontist', email: 'sarah@dentsuite.com', phone: '+92 301 2223344', status: 'Active', joinedDate: '2022-07-15' },
+  { id: 'dentist-3', name: 'Dr. Ayesha Khan', role: 'Dentist', specialty: 'Endodontist (Root Canal Specialist)', email: 'ayesha@dentsuite.com', phone: '+92 302 3334455', status: 'Active', joinedDate: '2023-01-10' },
+  { id: 'staff-1', name: 'Bilal Hussain', role: 'Receptionist', specialty: '', email: 'bilal@dentsuite.com', phone: '+92 303 4445566', status: 'Active', joinedDate: '2022-09-01' },
+  { id: 'staff-2', name: 'Nadia Aslam', role: 'Dental Hygienist', specialty: 'Preventive Care', email: 'nadia@dentsuite.com', phone: '+92 304 5556677', status: 'Active', joinedDate: '2023-05-20' },
+  { id: 'staff-3', name: 'Imran Sheikh', role: 'Lab Technician', specialty: 'Prosthetics & Crowns', email: 'imran@dentsuite.com', phone: '+92 305 6667788', status: 'On Leave', joinedDate: '2021-11-05' },
+];
+
+// External lab cases (crowns/bridges/dentures/aligners). Status lifecycle:
+// Sent → In Progress → Received → Fitted. lab-3 is intentionally overdue.
+export const mockLabCases = [
+  { id: 'lab-1', patientId: 'pat-1', patientName: 'Muhammad Ali', dentistId: 'dentist-1', dentistName: 'Dr. Hamza Zahid', labName: 'Apex Dental Lab', caseType: 'Crown', toothNumber: '36', status: 'In Progress', cost: 9000, sentDate: getRelativeDateString(-6), dueDate: getRelativeDateString(2), receivedDate: null, notes: 'Shade A2, porcelain-fused-to-metal.' },
+  { id: 'lab-2', patientId: 'pat-3', patientName: 'Fatima Zahra', dentistId: 'dentist-2', dentistName: 'Dr. Sarah Ahmed', labName: 'SmileCraft Prosthetics', caseType: 'Aligner', toothNumber: 'All', status: 'Sent', cost: 35000, sentDate: getRelativeDateString(-1), dueDate: getRelativeDateString(12), receivedDate: null, notes: 'Full-arch clear aligners — first set.' },
+  { id: 'lab-3', patientId: 'pat-2', patientName: 'Omar Farooq', dentistId: 'dentist-3', dentistName: 'Dr. Ayesha Khan', labName: 'Apex Dental Lab', caseType: 'Bridge', toothNumber: '45', status: 'Sent', cost: 18000, sentDate: getRelativeDateString(-10), dueDate: getRelativeDateString(-2), receivedDate: null, notes: '3-unit bridge — chase the lab.' },
+  { id: 'lab-4', patientId: 'pat-1', patientName: 'Muhammad Ali', dentistId: 'dentist-1', dentistName: 'Dr. Hamza Zahid', labName: 'PrecisionCeramics', caseType: 'Veneer', toothNumber: '11', status: 'Fitted', cost: 12000, sentDate: getRelativeDateString(-20), dueDate: getRelativeDateString(-12), receivedDate: getRelativeDateString(-13), notes: 'E-max veneer, fitted successfully.' },
+];

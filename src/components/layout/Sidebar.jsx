@@ -15,9 +15,11 @@ import {
   People       as PeopleIcon,
   CalendarMonth as CalIcon,
   MedicalServices as TreatIcon,
+  FactCheck    as PlanIcon,
   Receipt      as BillingIcon,
   Payments     as PayIcon,
   Assessment   as ReportsIcon,
+  Groups       as StaffIcon,
   LocalPharmacy as RxIcon,
   Inventory    as InvIcon,
   Settings     as SettingsIcon,
@@ -38,6 +40,7 @@ const SECTIONS = [
       { text: 'Patients',     path: '/patients',      icon: PeopleIcon  },
       { text: 'Appointments', path: '/appointments',  icon: CalIcon     },
       { text: 'Treatments',   path: '/treatments',    icon: TreatIcon   },
+      { text: 'Treatment Plans', path: '/treatment-plans', icon: PlanIcon },
     ],
   },
   {
@@ -57,6 +60,7 @@ const SECTIONS = [
   {
     label: 'System',
     items: [
+      { text: 'Staff',    path: '/staff',    icon: StaffIcon    },
       { text: 'Reports',  path: '/reports',  icon: ReportsIcon  },
       { text: 'Settings', path: '/settings', icon: SettingsIcon },
     ],
