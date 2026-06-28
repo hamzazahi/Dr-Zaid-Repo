@@ -625,3 +625,12 @@ export const mockRecalls = [
   { id: 'rec-3', patientId: 'pat-3', patientName: 'Fatima Zahra', type: 'Ortho Adjustment', dueDate: getRelativeDateString(2), status: 'Pending', channel: 'Email', notes: 'Aligner set #2 due.', lastReminderAt: null },
   { id: 'rec-4', patientId: 'pat-1', patientName: 'Muhammad Ali', type: 'Whitening Touch-up', dueDate: getRelativeDateString(-20), status: 'Completed', channel: 'Email', notes: '', lastReminderAt: getRelativeDateString(-22) },
 ];
+
+// Patient documents (X-rays, consent forms, scans, reports). Frontend-only:
+// records hold file METADATA (name/type/size); actual bytes are not persisted.
+export const mockDocuments = [
+  { id: 'doc-1', patientId: 'pat-1', patientName: 'Muhammad Ali', name: 'Panoramic X-Ray.jpg', category: 'X-Ray', fileType: 'JPG', size: 2411724, uploadedDate: getRelativeDateString(-15), uploadedBy: 'Dr. Hamza Zahid', notes: 'Pre-RCT panoramic radiograph.' },
+  { id: 'doc-2', patientId: 'pat-1', patientName: 'Muhammad Ali', name: 'Consent - Root Canal.pdf', category: 'Consent Form', fileType: 'PDF', size: 184320, uploadedDate: getRelativeDateString(-15), uploadedBy: 'Reception', notes: '' },
+  { id: 'doc-3', patientId: 'pat-3', patientName: 'Fatima Zahra', name: 'CBCT Scan.pdf', category: 'Scan/CBCT', fileType: 'PDF', size: 8734512, uploadedDate: getRelativeDateString(-4), uploadedBy: 'Dr. Sarah Ahmed', notes: 'Orthodontic assessment.' },
+  { id: 'doc-4', patientId: 'pat-2', patientName: 'Omar Farooq', name: 'Insurance Card.png', category: 'Insurance', fileType: 'PNG', size: 512000, uploadedDate: getRelativeDateString(-8), uploadedBy: 'Reception', notes: '' },
+];

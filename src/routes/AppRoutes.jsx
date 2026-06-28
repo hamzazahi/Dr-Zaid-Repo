@@ -17,6 +17,7 @@ const Reports = lazy(() => import('../pages/Reports'));
 const Prescriptions = lazy(() => import('../pages/Prescriptions'));
 const Inventory = lazy(() => import('../pages/Inventory'));
 const LabWork = lazy(() => import('../pages/LabWork'));
+const Documents = lazy(() => import('../pages/Documents'));
 const Settings = lazy(() => import('../pages/Settings'));
 const Staff = lazy(() => import('../pages/Staff'));
 
@@ -44,6 +45,7 @@ export default function AppRoutes() {
         <Route path="/prescriptions" element={<Prescriptions />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/lab-work" element={<LabWork />} />
+        <Route path="/documents" element={<Documents />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/staff" element={<Staff />} />
         <Route path="/settings" element={<Settings />} />

@@ -9,7 +9,8 @@ import {
   mockTreatmentPlans,
   mockStaff,
   mockLabCases,
-  mockRecalls
+  mockRecalls,
+  mockDocuments
 } from '../utils/mockData';
 import { recalcInvoice } from '../utils/billing';
 
@@ -74,6 +75,9 @@ export const ClinicProvider = ({ children }) => {
   // Patient recalls / reminders (email-only; persisted).
   const [recalls, setRecalls] = useState(() => stored.recalls || mockRecalls);
 
+  // Patient documents (metadata only — no file bytes; persisted).
+  const [documents, setDocuments] = useState(() => stored.documents || mockDocuments);
+
   useEffect(() => {
     try {
       window.localStorage.setItem(
@@ -91,13 +95,14 @@ export const ClinicProvider = ({ children }) => {
           staff,
           labCases,
           recalls,
+          documents,
         })
       );
     } catch {
       // Storage full or unavailable (e.g. private mode). The app keeps working
       // from in-memory state; we just can't persist this change.
     }
-  }, [patients, appointments, treatments, invoices, payments, toothRecords, toothHistory, prescriptions, treatmentPlans, staff, labCases, recalls]);
+  }, [patients, appointments, treatments, invoices, payments, toothRecords, toothHistory, prescriptions, treatmentPlans, staff, labCases, recalls, documents]);
 
   const addPatient = useCallback((patientData) => {
     const newPatient = {
@@ -456,6 +461,29 @@ export const ClinicProvider = ({ children }) => {
     setRecalls((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
   }, []);
 
+  // ── Patient documents (metadata only) ─────────────────────────────────────
+  const addDocument = useCallback((data) => {
+    const patientObj = patients.find((p) => p.id === data.patientId);
+    const newDoc = {
+      id: uid('doc'),
+      patientId: data.patientId,
+      patientName: patientObj?.name || 'Unknown',
+      name: data.name?.trim() || 'Untitled',
+      category: data.category || 'Other',
+      fileType: data.fileType || 'FILE',
+      size: Number(data.size) || 0,
+      uploadedDate: today(),
+      uploadedBy: data.uploadedBy?.trim() || 'Staff',
+      notes: data.notes?.trim() || '',
+    };
+    setDocuments((prev) => [newDoc, ...prev]);
+    return newDoc;
+  }, [patients]);
+
+  const deleteDocument = useCallback((id) => {
+    setDocuments((prev) => prev.filter((d) => d.id !== id));
+  }, []);
+
   const getTodayAppointments = useCallback(() => {
     const todayStr = today();
     return appointments.filter((a) => a.date === todayStr);
@@ -513,6 +541,9 @@ export const ClinicProvider = ({ children }) => {
       addRecall,
       sendRecallReminder,
       updateRecallStatus,
+      documents,
+      addDocument,
+      deleteDocument,
       addPatient,
       updatePatient,
       addAppointment,
@@ -529,7 +560,8 @@ export const ClinicProvider = ({ children }) => {
       updatePrescriptionStatus, treatmentPlans, addTreatmentPlan,
       updateTreatmentPlanStatus, togglePlanItem, staff, addStaff, updateStaffStatus,
       labCases, addLabCase, updateLabCaseStatus, recalls, addRecall,
-      sendRecallReminder, updateRecallStatus, addPatient, updatePatient,
+      sendRecallReminder, updateRecallStatus, documents, addDocument, deleteDocument,
+      addPatient, updatePatient,
       addAppointment, updateAppointmentStatus, assignDentist, addTreatment,
       addPayment, getTodayAppointments, getTodayMetrics,
     ]

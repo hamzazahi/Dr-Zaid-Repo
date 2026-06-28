@@ -32,6 +32,7 @@ const PAGE_TITLES = {
   '/prescriptions': 'Prescriptions',
   '/inventory': 'Inventory',
   '/lab-work': 'Lab Work',
+  '/documents': 'Documents',
   '/staff': 'Staff',
   '/reports': 'Reports',
   '/settings': 'Settings',

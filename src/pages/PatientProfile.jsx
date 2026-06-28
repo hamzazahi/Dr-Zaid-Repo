@@ -46,6 +46,13 @@ import { colors } from '../theme/theme';
 const AVATAR_COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626', '#0D9488', '#DB2777'];
 const avatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
 
+const formatSize = (bytes) => {
+  if (!bytes) return '—';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1048576) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1048576).toFixed(1)} MB`;
+};
+
 function TabPanel({ children, value, index }) {
   return (
     <Box role="tabpanel" hidden={value !== index} sx={{ pt: 3 }}>
@@ -70,7 +77,7 @@ const PatientProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { patients, appointments, treatments, invoices, prescriptions, addPayment, addTreatment } = useClinicData();
+  const { patients, appointments, treatments, invoices, prescriptions, documents, addPayment, addTreatment } = useClinicData();
   const { notify } = useNotification();
 
   const [activeTab, setActiveTab] = useState(location.state?.tab ?? 0);
@@ -97,6 +104,7 @@ const PatientProfile = () => {
   const patientTreatments = useMemo(() => treatments.filter((t) => t.patientId === id), [treatments, id]);
   const patientInvoices = useMemo(() => invoices.filter((i) => i.patientId === id), [invoices, id]);
   const patientPrescriptions = useMemo(() => prescriptions.filter((px) => px.patientId === id), [prescriptions, id]);
+  const patientDocuments = useMemo(() => documents.filter((d) => d.patientId === id), [documents, id]);
   const patientOutstanding = useMemo(() => patientInvoices.reduce((sum, inv) => sum + inv.balanceDue, 0), [patientInvoices]);
 
   if (!patient) {
@@ -187,7 +195,7 @@ const PatientProfile = () => {
       <Card sx={{ borderRadius: '12px', overflow: 'hidden' }}>
         <Box sx={{ borderBottom: `1px solid ${colors.border}`, px: 2 }}>
           <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ minHeight: 48 }}>
-            {['Demographics', `Visits (${patientAppts.length})`, `Treatments (${patientTreatments.length})`, 'Dental Chart', `Billing (${patientInvoices.length})`, `Prescriptions (${patientPrescriptions.length})`].map((label) => (
+            {['Demographics', `Visits (${patientAppts.length})`, `Treatments (${patientTreatments.length})`, 'Dental Chart', `Billing (${patientInvoices.length})`, `Prescriptions (${patientPrescriptions.length})`, `Documents (${patientDocuments.length})`].map((label) => (
               <Tab key={label} label={label} sx={{ fontWeight: 700, textTransform: 'none', fontSize: '0.85rem', minHeight: 48 }} />
             ))}
           </Tabs>
@@ -404,6 +412,45 @@ const PatientProfile = () => {
                             <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: px.status === 'active' ? '#1D4ED8' : '#065F46' }}>{px.status === 'active' ? 'Active' : 'Completed'}</Typography>
                           </Box>
                         </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Box>
+            )}
+          </TabPanel>
+
+          <TabPanel value={activeTab} index={6}>
+            {patientDocuments.length === 0 ? (
+              <Box sx={{ py: 6, textAlign: 'center' }}>
+                <LocalHospitalIcon sx={{ fontSize: 40, color: colors.textLight, mb: 1 }} />
+                <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>No documents</Typography>
+                <Typography variant="caption" sx={{ color: colors.textSecondary }}>Upload X-rays, scans or consent forms from the Documents page.</Typography>
+              </Box>
+            ) : (
+              <Box sx={{ overflowX: 'auto' }}>
+                <Table sx={{ minWidth: 560 }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Document</TableCell>
+                      <TableCell>Category</TableCell>
+                      <TableCell>Size</TableCell>
+                      <TableCell>Uploaded</TableCell>
+                      <TableCell>By</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {patientDocuments.map((doc) => (
+                      <TableRow key={doc.id}>
+                        <TableCell><Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.84rem' }}>{doc.name}</Typography></TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'inline-flex', px: '8px', py: '3px', borderRadius: '6px', bgcolor: colors.primaryAlpha8 }}>
+                            <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: colors.primary }}>{doc.category}</Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{formatSize(doc.size)}</Typography></TableCell>
+                        <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{formatDate(doc.uploadedDate)}</Typography></TableCell>
+                        <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem' }}>{doc.uploadedBy}</Typography></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
