@@ -7,7 +7,9 @@ import {
   mockInvoices,
   mockPayments,
   mockTreatmentPlans,
-  mockStaff
+  mockStaff,
+  mockLabCases,
+  mockRecalls
 } from '../utils/mockData';
 import { recalcInvoice } from '../utils/billing';
 
@@ -66,6 +68,12 @@ export const ClinicProvider = ({ children }) => {
   // Treatment plans (multi-visit, phased; persisted).
   const [treatmentPlans, setTreatmentPlans] = useState(() => stored.treatmentPlans || mockTreatmentPlans);
 
+  // External lab cases (Sent → In Progress → Received → Fitted; persisted).
+  const [labCases, setLabCases] = useState(() => stored.labCases || mockLabCases);
+
+  // Patient recalls / reminders (email-only; persisted).
+  const [recalls, setRecalls] = useState(() => stored.recalls || mockRecalls);
+
   useEffect(() => {
     try {
       window.localStorage.setItem(
@@ -81,13 +89,15 @@ export const ClinicProvider = ({ children }) => {
           prescriptions,
           treatmentPlans,
           staff,
+          labCases,
+          recalls,
         })
       );
     } catch {
       // Storage full or unavailable (e.g. private mode). The app keeps working
       // from in-memory state; we just can't persist this change.
     }
-  }, [patients, appointments, treatments, invoices, payments, toothRecords, toothHistory, prescriptions, treatmentPlans, staff]);
+  }, [patients, appointments, treatments, invoices, payments, toothRecords, toothHistory, prescriptions, treatmentPlans, staff, labCases, recalls]);
 
   const addPatient = useCallback((patientData) => {
     const newPatient = {
@@ -384,6 +394,68 @@ export const ClinicProvider = ({ children }) => {
     setStaff((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
   }, []);
 
+  // ── Lab work ──────────────────────────────────────────────────────────────
+  const addLabCase = useCallback((data) => {
+    const patientObj = patients.find((p) => p.id === data.patientId);
+    const dentistObj = dentists.find((d) => d.id === data.dentistId);
+    const newCase = {
+      id: uid('lab'),
+      patientId: data.patientId,
+      patientName: patientObj?.name || 'Unknown',
+      dentistId: data.dentistId,
+      dentistName: dentistObj?.name || 'Unassigned',
+      labName: data.labName?.trim() || 'External Lab',
+      caseType: data.caseType || 'Crown',
+      toothNumber: data.toothNumber || '—',
+      status: 'Sent',
+      cost: Number(data.cost) || 0,
+      sentDate: today(),
+      dueDate: data.dueDate || '',
+      receivedDate: null,
+      notes: data.notes?.trim() || '',
+    };
+    setLabCases((prev) => [newCase, ...prev]);
+    return newCase;
+  }, [patients, dentists]);
+
+  // Advance a case; stamp receivedDate the first time it reaches Received/Fitted.
+  const updateLabCaseStatus = useCallback((id, status) => {
+    setLabCases((prev) => prev.map((c) => {
+      if (c.id !== id) return c;
+      const receivedDate = (status === 'Received' || status === 'Fitted') && !c.receivedDate ? today() : c.receivedDate;
+      return { ...c, status, receivedDate };
+    }));
+  }, []);
+
+  // ── Recalls / reminders (email-only) ──────────────────────────────────────
+  const addRecall = useCallback((data) => {
+    const patientObj = patients.find((p) => p.id === data.patientId);
+    const newRecall = {
+      id: uid('rec'),
+      patientId: data.patientId,
+      patientName: patientObj?.name || 'Unknown',
+      type: data.type || '6-Month Checkup',
+      dueDate: data.dueDate || '',
+      status: 'Pending',
+      channel: 'Email',
+      notes: data.notes?.trim() || '',
+      lastReminderAt: null,
+    };
+    setRecalls((prev) => [newRecall, ...prev]);
+    return newRecall;
+  }, [patients]);
+
+  // Simulated email reminder: stamp the send date and move Pending → Reminded.
+  const sendRecallReminder = useCallback((id) => {
+    setRecalls((prev) => prev.map((r) =>
+      r.id === id ? { ...r, status: r.status === 'Pending' ? 'Reminded' : r.status, lastReminderAt: today() } : r
+    ));
+  }, []);
+
+  const updateRecallStatus = useCallback((id, status) => {
+    setRecalls((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
+  }, []);
+
   const getTodayAppointments = useCallback(() => {
     const todayStr = today();
     return appointments.filter((a) => a.date === todayStr);
@@ -434,6 +506,9 @@ export const ClinicProvider = ({ children }) => {
       staff,
       addStaff,
       updateStaffStatus,
+      labCases,
+      addLabCase,
+      updateLabCaseStatus,
       addPatient,
       updatePatient,
       addAppointment,
@@ -449,7 +524,7 @@ export const ClinicProvider = ({ children }) => {
       toothRecords, toothHistory, updateTooth, prescriptions, addPrescription,
       updatePrescriptionStatus, treatmentPlans, addTreatmentPlan,
       updateTreatmentPlanStatus, togglePlanItem, staff, addStaff, updateStaffStatus,
-      addPatient, updatePatient,
+      labCases, addLabCase, updateLabCaseStatus, addPatient, updatePatient,
       addAppointment, updateAppointmentStatus, assignDentist, addTreatment,
       addPayment, getTodayAppointments, getTodayMetrics,
     ]

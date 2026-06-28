@@ -21,6 +21,7 @@ import {
   Assessment   as ReportsIcon,
   Groups       as StaffIcon,
   LocalPharmacy as RxIcon,
+  Science      as LabIcon,
   Inventory    as InvIcon,
   Settings     as SettingsIcon,
   Logout       as LogoutIcon,
@@ -47,6 +48,7 @@ const SECTIONS = [
     label: 'Clinical',
     items: [
       { text: 'Prescriptions', path: '/prescriptions', icon: RxIcon  },
+      { text: 'Lab Work',      path: '/lab-work',      icon: LabIcon },
       { text: 'Inventory',     path: '/inventory',     icon: InvIcon },
     ],
   },

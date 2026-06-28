@@ -15,6 +15,7 @@ const Payments = lazy(() => import('../pages/Payments'));
 const Reports = lazy(() => import('../pages/Reports'));
 const Prescriptions = lazy(() => import('../pages/Prescriptions'));
 const Inventory = lazy(() => import('../pages/Inventory'));
+const LabWork = lazy(() => import('../pages/LabWork'));
 const Settings = lazy(() => import('../pages/Settings'));
 const Staff = lazy(() => import('../pages/Staff'));
 
@@ -40,6 +41,7 @@ export default function AppRoutes() {
         <Route path="/payments" element={<Payments />} />
         <Route path="/prescriptions" element={<Prescriptions />} />
         <Route path="/inventory" element={<Inventory />} />
+        <Route path="/lab-work" element={<LabWork />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/staff" element={<Staff />} />
         <Route path="/settings" element={<Settings />} />

@@ -616,3 +616,12 @@ export const mockLabCases = [
   { id: 'lab-3', patientId: 'pat-2', patientName: 'Omar Farooq', dentistId: 'dentist-3', dentistName: 'Dr. Ayesha Khan', labName: 'Apex Dental Lab', caseType: 'Bridge', toothNumber: '45', status: 'Sent', cost: 18000, sentDate: getRelativeDateString(-10), dueDate: getRelativeDateString(-2), receivedDate: null, notes: '3-unit bridge — chase the lab.' },
   { id: 'lab-4', patientId: 'pat-1', patientName: 'Muhammad Ali', dentistId: 'dentist-1', dentistName: 'Dr. Hamza Zahid', labName: 'PrecisionCeramics', caseType: 'Veneer', toothNumber: '11', status: 'Fitted', cost: 12000, sentDate: getRelativeDateString(-20), dueDate: getRelativeDateString(-12), receivedDate: getRelativeDateString(-13), notes: 'E-max veneer, fitted successfully.' },
 ];
+
+// Patient recalls / reminders. Email-only (no SMS/WhatsApp). Lifecycle:
+// Pending → Reminded → Completed (or Dismissed). rec-2 is intentionally overdue.
+export const mockRecalls = [
+  { id: 'rec-1', patientId: 'pat-1', patientName: 'Muhammad Ali', type: '6-Month Checkup', dueDate: getRelativeDateString(5), status: 'Pending', channel: 'Email', notes: 'Routine recall after root canal.', lastReminderAt: null },
+  { id: 'rec-2', patientId: 'pat-2', patientName: 'Omar Farooq', type: 'Cleaning / Scaling', dueDate: getRelativeDateString(-3), status: 'Reminded', channel: 'Email', notes: '', lastReminderAt: getRelativeDateString(-1) },
+  { id: 'rec-3', patientId: 'pat-3', patientName: 'Fatima Zahra', type: 'Ortho Adjustment', dueDate: getRelativeDateString(2), status: 'Pending', channel: 'Email', notes: 'Aligner set #2 due.', lastReminderAt: null },
+  { id: 'rec-4', patientId: 'pat-1', patientName: 'Muhammad Ali', type: 'Whitening Touch-up', dueDate: getRelativeDateString(-20), status: 'Completed', channel: 'Email', notes: '', lastReminderAt: getRelativeDateString(-22) },
+];
