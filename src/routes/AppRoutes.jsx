@@ -10,6 +10,7 @@ const PatientProfile = lazy(() => import('../pages/PatientProfile'));
 const Appointments = lazy(() => import('../pages/Appointments'));
 const Treatments = lazy(() => import('../pages/Treatments'));
 const TreatmentPlans = lazy(() => import('../pages/TreatmentPlans'));
+const Recalls = lazy(() => import('../pages/Recalls'));
 const Billing = lazy(() => import('../pages/Billing'));
 const Payments = lazy(() => import('../pages/Payments'));
 const Reports = lazy(() => import('../pages/Reports'));
@@ -37,6 +38,7 @@ export default function AppRoutes() {
         <Route path="/appointments" element={<Appointments />} />
         <Route path="/treatments" element={<Treatments />} />
         <Route path="/treatment-plans" element={<TreatmentPlans />} />
+        <Route path="/recalls" element={<Recalls />} />
         <Route path="/billing" element={<Billing />} />
         <Route path="/payments" element={<Payments />} />
         <Route path="/prescriptions" element={<Prescriptions />} />

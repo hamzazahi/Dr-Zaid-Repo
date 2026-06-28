@@ -26,6 +26,7 @@ const PAGE_TITLES = {
   '/appointments': 'Appointments',
   '/treatments': 'Treatments',
   '/treatment-plans': 'Treatment Plans',
+  '/recalls': 'Recalls & Reminders',
   '/billing': 'Billing',
   '/payments': 'Payments',
   '/prescriptions': 'Prescriptions',
