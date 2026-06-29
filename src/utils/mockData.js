@@ -634,3 +634,28 @@ export const mockDocuments = [
   { id: 'doc-3', patientId: 'pat-3', patientName: 'Fatima Zahra', name: 'CBCT Scan.pdf', category: 'Scan/CBCT', fileType: 'PDF', size: 8734512, uploadedDate: getRelativeDateString(-4), uploadedBy: 'Dr. Sarah Ahmed', notes: 'Orthodontic assessment.' },
   { id: 'doc-4', patientId: 'pat-2', patientName: 'Omar Farooq', name: 'Insurance Card.png', category: 'Insurance', fileType: 'PNG', size: 512000, uploadedDate: getRelativeDateString(-8), uploadedBy: 'Reception', notes: '' },
 ];
+
+// Clinic expenses (the spending side — separate from patient payments/income).
+export const mockExpenses = [
+  { id: 'exp-1', date: getRelativeDateString(-2), category: 'Supplies', vendor: 'Dental Supplies Plus', description: 'Composite & consumables restock', amount: 42000, method: 'Bank Transfer', status: 'Paid' },
+  { id: 'exp-2', date: getRelativeDateString(-5), category: 'Lab Fees', vendor: 'Apex Dental Lab', description: 'Crown & bridge cases', amount: 27000, method: 'Bank Transfer', status: 'Paid' },
+  { id: 'exp-3', date: getRelativeDateString(-1), category: 'Utilities', vendor: 'K-Electric', description: 'Monthly electricity bill', amount: 18500, method: 'Cash', status: 'Pending' },
+  { id: 'exp-4', date: getRelativeDateString(-8), category: 'Salaries', vendor: 'Payroll', description: 'Support staff salaries', amount: 120000, method: 'Bank Transfer', status: 'Paid' },
+  { id: 'exp-5', date: getRelativeDateString(-15), category: 'Equipment', vendor: 'MediCare Supply', description: 'Autoclave servicing', amount: 9500, method: 'Credit Card', status: 'Paid' },
+];
+
+// Insurance claims. Lifecycle: Draft → Submitted → In Review → Approved/Denied → Paid.
+export const mockClaims = [
+  { id: 'clm-1', patientId: 'pat-3', patientName: 'Fatima Zahra', payer: 'Jubilee Health', policyNumber: 'JH-882140', serviceDate: getRelativeDateString(-12), submittedDate: getRelativeDateString(-10), procedures: 'Root canal + crown (tooth 36)', claimedAmount: 40000, approvedAmount: 32000, status: 'Approved', notes: '80% coverage approved.' },
+  { id: 'clm-2', patientId: 'pat-2', patientName: 'Omar Farooq', payer: 'EFU Health', policyNumber: 'EFU-553201', serviceDate: getRelativeDateString(-6), submittedDate: getRelativeDateString(-5), procedures: 'Scaling & filling', claimedAmount: 9000, approvedAmount: 0, status: 'In Review', notes: '' },
+  { id: 'clm-3', patientId: 'pat-1', patientName: 'Muhammad Ali', payer: 'State Life Insurance', policyNumber: 'SL-100923', serviceDate: getRelativeDateString(-3), submittedDate: getRelativeDateString(-2), procedures: 'Consultation + X-ray', claimedAmount: 3500, approvedAmount: 0, status: 'Submitted', notes: '' },
+  { id: 'clm-4', patientId: 'pat-2', patientName: 'Omar Farooq', payer: 'Adamjee Insurance', policyNumber: 'ADJ-771500', serviceDate: getRelativeDateString(-25), submittedDate: getRelativeDateString(-22), procedures: 'Whitening (cosmetic)', claimedAmount: 8000, approvedAmount: 0, status: 'Denied', notes: 'Cosmetic — not covered.' },
+];
+
+// Online booking requests (submitted via the public booking page). Confirming
+// one creates a patient (if new) + a scheduled appointment.
+export const mockBookingRequests = [
+  { id: 'bk-1', patientName: 'Sana Riaz', phone: '+92 333 1234567', email: 'sana.r@email.com', patientId: null, preferredDate: getRelativeDateString(2), preferredTime: '10:30 AM', service: 'Consultation', reason: 'Toothache on lower left side.', status: 'Pending', source: 'Online', submittedDate: getRelativeDateString(0), appointmentId: null },
+  { id: 'bk-2', patientName: 'Muhammad Ali', phone: '+92 300 1234567', email: 'm.ali@email.com', patientId: 'pat-1', preferredDate: getRelativeDateString(3), preferredTime: '02:00 PM', service: 'Scaling', reason: 'Routine cleaning.', status: 'Pending', source: 'Online', submittedDate: getRelativeDateString(-1), appointmentId: null },
+  { id: 'bk-3', patientName: 'Hassan Raza', phone: '+92 345 9876543', email: 'hassan@email.com', patientId: null, preferredDate: getRelativeDateString(-2), preferredTime: '11:00 AM', service: 'Whitening', reason: 'Cosmetic whitening enquiry.', status: 'Confirmed', source: 'Online', submittedDate: getRelativeDateString(-4), appointmentId: null },
+];

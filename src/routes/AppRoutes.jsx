@@ -11,8 +11,11 @@ const Appointments = lazy(() => import('../pages/Appointments'));
 const Treatments = lazy(() => import('../pages/Treatments'));
 const TreatmentPlans = lazy(() => import('../pages/TreatmentPlans'));
 const Recalls = lazy(() => import('../pages/Recalls'));
+const OnlineBooking = lazy(() => import('../pages/OnlineBooking'));
 const Billing = lazy(() => import('../pages/Billing'));
 const Payments = lazy(() => import('../pages/Payments'));
+const Expenses = lazy(() => import('../pages/Expenses'));
+const Insurance = lazy(() => import('../pages/Insurance'));
 const Reports = lazy(() => import('../pages/Reports'));
 const Prescriptions = lazy(() => import('../pages/Prescriptions'));
 const Inventory = lazy(() => import('../pages/Inventory'));
@@ -40,8 +43,11 @@ export default function AppRoutes() {
         <Route path="/treatments" element={<Treatments />} />
         <Route path="/treatment-plans" element={<TreatmentPlans />} />
         <Route path="/recalls" element={<Recalls />} />
+        <Route path="/online-booking" element={<OnlineBooking />} />
         <Route path="/billing" element={<Billing />} />
         <Route path="/payments" element={<Payments />} />
+        <Route path="/expenses" element={<Expenses />} />
+        <Route path="/insurance" element={<Insurance />} />
         <Route path="/prescriptions" element={<Prescriptions />} />
         <Route path="/inventory" element={<Inventory />} />
         <Route path="/lab-work" element={<LabWork />} />

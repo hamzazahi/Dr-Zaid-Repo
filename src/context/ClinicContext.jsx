@@ -10,7 +10,10 @@ import {
   mockStaff,
   mockLabCases,
   mockRecalls,
-  mockDocuments
+  mockDocuments,
+  mockExpenses,
+  mockClaims,
+  mockBookingRequests
 } from '../utils/mockData';
 import { recalcInvoice } from '../utils/billing';
 
@@ -78,6 +81,15 @@ export const ClinicProvider = ({ children }) => {
   // Patient documents (metadata only — no file bytes; persisted).
   const [documents, setDocuments] = useState(() => stored.documents || mockDocuments);
 
+  // Clinic expenses (spending side of the ledger; persisted).
+  const [expenses, setExpenses] = useState(() => stored.expenses || mockExpenses);
+
+  // Insurance claims (Draft → Submitted → In Review → Approved/Denied → Paid; persisted).
+  const [claims, setClaims] = useState(() => stored.claims || mockClaims);
+
+  // Online booking requests (Pending → Confirmed/Declined; persisted).
+  const [bookingRequests, setBookingRequests] = useState(() => stored.bookingRequests || mockBookingRequests);
+
   useEffect(() => {
     try {
       window.localStorage.setItem(
@@ -96,13 +108,16 @@ export const ClinicProvider = ({ children }) => {
           labCases,
           recalls,
           documents,
+          expenses,
+          claims,
+          bookingRequests,
         })
       );
     } catch {
       // Storage full or unavailable (e.g. private mode). The app keeps working
       // from in-memory state; we just can't persist this change.
     }
-  }, [patients, appointments, treatments, invoices, payments, toothRecords, toothHistory, prescriptions, treatmentPlans, staff, labCases, recalls, documents]);
+  }, [patients, appointments, treatments, invoices, payments, toothRecords, toothHistory, prescriptions, treatmentPlans, staff, labCases, recalls, documents, expenses, claims, bookingRequests]);
 
   const addPatient = useCallback((patientData) => {
     const newPatient = {
@@ -484,6 +499,128 @@ export const ClinicProvider = ({ children }) => {
     setDocuments((prev) => prev.filter((d) => d.id !== id));
   }, []);
 
+  // ── Clinic expenses ───────────────────────────────────────────────────────
+  const addExpense = useCallback((data) => {
+    const newExpense = {
+      id: uid('exp'),
+      date: data.date || today(),
+      category: data.category || 'Other',
+      vendor: data.vendor?.trim() || '',
+      description: data.description?.trim() || '',
+      amount: Number(data.amount) || 0,
+      method: data.method || 'Cash',
+      status: data.status || 'Paid',
+    };
+    setExpenses((prev) => [newExpense, ...prev]);
+    return newExpense;
+  }, []);
+
+  const updateExpenseStatus = useCallback((id, status) => {
+    setExpenses((prev) => prev.map((e) => (e.id === id ? { ...e, status } : e)));
+  }, []);
+
+  const deleteExpense = useCallback((id) => {
+    setExpenses((prev) => prev.filter((e) => e.id !== id));
+  }, []);
+
+  // ── Insurance claims ──────────────────────────────────────────────────────
+  const addClaim = useCallback((data) => {
+    const patientObj = patients.find((p) => p.id === data.patientId);
+    const newClaim = {
+      id: uid('clm'),
+      patientId: data.patientId,
+      patientName: patientObj?.name || 'Unknown',
+      payer: data.payer || 'Self-Pay / None',
+      policyNumber: data.policyNumber?.trim() || '',
+      serviceDate: data.serviceDate || today(),
+      submittedDate: today(),
+      procedures: data.procedures?.trim() || '',
+      claimedAmount: Number(data.claimedAmount) || 0,
+      approvedAmount: 0,
+      status: data.status || 'Submitted',
+      notes: data.notes?.trim() || '',
+    };
+    setClaims((prev) => [newClaim, ...prev]);
+    return newClaim;
+  }, [patients]);
+
+  // Advancing to Approved/Paid auto-fills the approved amount (full) if unset;
+  // Denied zeroes it. Adjust manually later if partial.
+  const updateClaimStatus = useCallback((id, status) => {
+    setClaims((prev) => prev.map((c) => {
+      if (c.id !== id) return c;
+      let approvedAmount = c.approvedAmount;
+      if ((status === 'Approved' || status === 'Paid') && !approvedAmount) approvedAmount = c.claimedAmount;
+      if (status === 'Denied') approvedAmount = 0;
+      return { ...c, status, approvedAmount };
+    }));
+  }, []);
+
+  const deleteClaim = useCallback((id) => {
+    setClaims((prev) => prev.filter((c) => c.id !== id));
+  }, []);
+
+  // ── Online booking requests ───────────────────────────────────────────────
+  const addBookingRequest = useCallback((data) => {
+    const newReq = {
+      id: uid('bk'),
+      patientName: data.patientName?.trim() || 'New Patient',
+      phone: data.phone?.trim() || '',
+      email: data.email?.trim() || '',
+      patientId: data.patientId || null,
+      preferredDate: data.preferredDate || today(),
+      preferredTime: data.preferredTime || '10:00 AM',
+      service: data.service || 'Consultation',
+      reason: data.reason?.trim() || '',
+      status: 'Pending',
+      source: data.source || 'Online',
+      submittedDate: today(),
+      appointmentId: null,
+    };
+    setBookingRequests((prev) => [newReq, ...prev]);
+    return newReq;
+  }, []);
+
+  // Confirming a request turns it into a real scheduled appointment. If it isn't
+  // linked to an existing patient, a new patient record is created from it.
+  // Built inline (not via addPatient/addAppointment) so names resolve without
+  // waiting for the just-created patient to land in state.
+  const confirmBookingRequest = useCallback((id, { dentistId, patientId } = {}) => {
+    const req = bookingRequests.find((r) => r.id === id);
+    if (!req) return;
+
+    let pid = patientId || req.patientId;
+    let pname = req.patientName;
+
+    if (!pid) {
+      pid = uid('pat');
+      setPatients((prev) => [{
+        id: pid, name: req.patientName, gender: '', dob: '',
+        phone: req.phone || '', email: req.email || '', address: '',
+        allergies: 'None', status: 'Active', registrationDate: today(), bloodGroup: '',
+      }, ...prev]);
+    } else {
+      const existing = patients.find((p) => p.id === pid);
+      if (existing) pname = existing.name;
+    }
+
+    const dentistObj = dentists.find((d) => d.id === dentistId);
+    const apptId = uid('appt');
+    setAppointments((prev) => [{
+      id: apptId, patientId: pid, patientName: pname,
+      dentistId: dentistId || '', dentistName: dentistObj?.name || 'Unassigned',
+      date: req.preferredDate, time: req.preferredTime, type: req.service,
+      notes: req.reason || 'Booked online', status: 'Scheduled',
+    }, ...prev]);
+
+    setBookingRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'Confirmed', appointmentId: apptId, patientId: pid } : r)));
+    return apptId;
+  }, [bookingRequests, patients, dentists]);
+
+  const declineBookingRequest = useCallback((id) => {
+    setBookingRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'Declined' } : r)));
+  }, []);
+
   const getTodayAppointments = useCallback(() => {
     const todayStr = today();
     return appointments.filter((a) => a.date === todayStr);
@@ -544,6 +681,18 @@ export const ClinicProvider = ({ children }) => {
       documents,
       addDocument,
       deleteDocument,
+      expenses,
+      addExpense,
+      updateExpenseStatus,
+      deleteExpense,
+      claims,
+      addClaim,
+      updateClaimStatus,
+      deleteClaim,
+      bookingRequests,
+      addBookingRequest,
+      confirmBookingRequest,
+      declineBookingRequest,
       addPatient,
       updatePatient,
       addAppointment,
@@ -561,6 +710,9 @@ export const ClinicProvider = ({ children }) => {
       updateTreatmentPlanStatus, togglePlanItem, staff, addStaff, updateStaffStatus,
       labCases, addLabCase, updateLabCaseStatus, recalls, addRecall,
       sendRecallReminder, updateRecallStatus, documents, addDocument, deleteDocument,
+      expenses, addExpense, updateExpenseStatus, deleteExpense,
+      claims, addClaim, updateClaimStatus, deleteClaim,
+      bookingRequests, addBookingRequest, confirmBookingRequest, declineBookingRequest,
       addPatient, updatePatient,
       addAppointment, updateAppointmentStatus, assignDentist, addTreatment,
       addPayment, getTodayAppointments, getTodayMetrics,
