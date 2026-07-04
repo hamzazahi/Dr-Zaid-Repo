@@ -659,3 +659,55 @@ export const mockBookingRequests = [
   { id: 'bk-2', patientName: 'Muhammad Ali', phone: '+92 300 1234567', email: 'm.ali@email.com', patientId: 'pat-1', preferredDate: getRelativeDateString(3), preferredTime: '02:00 PM', service: 'Scaling', reason: 'Routine cleaning.', status: 'Pending', source: 'Online', submittedDate: getRelativeDateString(-1), appointmentId: null },
   { id: 'bk-3', patientName: 'Hassan Raza', phone: '+92 345 9876543', email: 'hassan@email.com', patientId: null, preferredDate: getRelativeDateString(-2), preferredTime: '11:00 AM', service: 'Whitening', reason: 'Cosmetic whitening enquiry.', status: 'Confirmed', source: 'Online', submittedDate: getRelativeDateString(-4), appointmentId: null },
 ];
+
+// In-house membership plans (cash-pay alternative to insurance).
+export const mockMembershipPlans = [
+  { id: 'plan-basic', name: 'Basic Care', price: 6000, cycle: 'Annual', discount: 10, benefits: '2 cleanings, 1 exam, 1 X-ray per year', color: '#0D9488' },
+  { id: 'plan-premium', name: 'Premium Care', price: 12000, cycle: 'Annual', discount: 20, benefits: '3 cleanings, 2 exams, X-rays & 1 whitening per year', color: '#0F4C81' },
+  { id: 'plan-family', name: 'Family Plan', price: 20000, cycle: 'Annual', discount: 25, benefits: 'Up to 4 members, all Premium benefits included', color: '#7C3AED' },
+];
+
+// Patient enrollments. Effective status is computed (renewal < today = Expired).
+export const mockMemberships = [
+  { id: 'mem-1', patientId: 'pat-1', patientName: 'Muhammad Ali', planId: 'plan-premium', planName: 'Premium Care', cycle: 'Annual', startDate: getRelativeDateString(-120), renewalDate: getRelativeDateString(245), status: 'Active', price: 12000 },
+  { id: 'mem-2', patientId: 'pat-2', patientName: 'Omar Farooq', planId: 'plan-basic', planName: 'Basic Care', cycle: 'Annual', startDate: getRelativeDateString(-350), renewalDate: getRelativeDateString(15), status: 'Active', price: 6000 },
+  { id: 'mem-3', patientId: 'pat-3', patientName: 'Fatima Zahra', planId: 'plan-family', planName: 'Family Plan', cycle: 'Annual', startDate: getRelativeDateString(-400), renewalDate: getRelativeDateString(-35), status: 'Active', price: 20000 },
+];
+
+// Digital form templates (intake questionnaires + consent forms).
+export const mockFormTemplates = [
+  { id: 'ft-1', name: 'New Patient Intake', category: 'Intake', description: 'Personal details, contact & insurance info', fields: 12 },
+  { id: 'ft-2', name: 'Medical History', category: 'Intake', description: 'Conditions, medications & allergies', fields: 18 },
+  { id: 'ft-3', name: 'Consent — Extraction', category: 'Consent', description: 'Informed consent for tooth extraction', fields: 5 },
+  { id: 'ft-4', name: 'Consent — Root Canal', category: 'Consent', description: 'Informed consent for endodontic treatment', fields: 5 },
+  { id: 'ft-5', name: 'Financial Agreement', category: 'Financial', description: 'Payment terms & responsibility', fields: 6 },
+  { id: 'ft-6', name: 'Health Screening', category: 'Screening', description: 'Pre-visit health screening questionnaire', fields: 8 },
+];
+
+// Form submissions (assigned to patients). Pending → Completed (e-signed).
+export const mockFormSubmissions = [
+  { id: 'fs-1', patientId: 'pat-1', patientName: 'Muhammad Ali', templateId: 'ft-2', templateName: 'Medical History', category: 'Intake', status: 'Completed', sentDate: getRelativeDateString(-16), completedDate: getRelativeDateString(-15), signedBy: 'Muhammad Ali', signatureDate: getRelativeDateString(-15) },
+  { id: 'fs-2', patientId: 'pat-1', patientName: 'Muhammad Ali', templateId: 'ft-4', templateName: 'Consent — Root Canal', category: 'Consent', status: 'Completed', sentDate: getRelativeDateString(-15), completedDate: getRelativeDateString(-15), signedBy: 'Muhammad Ali', signatureDate: getRelativeDateString(-15) },
+  { id: 'fs-3', patientId: 'pat-3', patientName: 'Fatima Zahra', templateId: 'ft-1', templateName: 'New Patient Intake', category: 'Intake', status: 'Pending', sentDate: getRelativeDateString(-1), completedDate: null, signedBy: null, signatureDate: null },
+  { id: 'fs-4', patientId: 'pat-2', patientName: 'Omar Farooq', templateId: 'ft-3', templateName: 'Consent — Extraction', category: 'Consent', status: 'Pending', sentDate: getRelativeDateString(0), completedDate: null, signedBy: null, signatureDate: null },
+];
+
+// Audit log — append-only activity trail (compliance). Newest first.
+export const mockAuditLog = [
+  { id: 'aud-1', at: `${getRelativeDateString(0)}T09:12:00`, user: 'Dr. Hamza Zahid', module: 'Billing', action: 'Payment recorded', detail: 'Rs 5,000 received from Bilal Khan (Bank Transfer)' },
+  { id: 'aud-2', at: `${getRelativeDateString(-1)}T16:40:00`, user: 'Reception', module: 'Appointments', action: 'Appointment scheduled', detail: 'Muhammad Ali — Scaling with Dr. Hamza Zahid' },
+  { id: 'aud-3', at: `${getRelativeDateString(-1)}T11:05:00`, user: 'Dr. Sarah Ahmed', module: 'Clinical', action: 'Tooth charted', detail: 'Fatima Zahra — tooth 21 marked Filled' },
+  { id: 'aud-4', at: `${getRelativeDateString(-2)}T14:22:00`, user: 'Dr. Hamza Zahid', module: 'Prescriptions', action: 'Prescription created', detail: 'Amoxicillin 500mg for Muhammad Ali' },
+];
+
+// Periodontal charts: per patient → per tooth → 6 pocket depths (MB,B,DB,ML,L,DL)
+// + bleeding-on-probing flag. Seeded for pat-1 to demonstrate.
+export const mockPerioCharts = {
+  'pat-1': {
+    18: { depths: [2, 3, 2, 3, 2, 3], bop: false },
+    16: { depths: [3, 4, 3, 4, 5, 4], bop: true },
+    11: { depths: [2, 2, 2, 2, 3, 2], bop: false },
+    36: { depths: [5, 6, 5, 4, 3, 4], bop: true },
+    46: { depths: [4, 3, 4, 3, 3, 4], bop: false },
+  },
+};

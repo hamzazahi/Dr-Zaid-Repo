@@ -13,7 +13,12 @@ import {
   mockDocuments,
   mockExpenses,
   mockClaims,
-  mockBookingRequests
+  mockBookingRequests,
+  mockMembershipPlans,
+  mockMemberships,
+  mockFormSubmissions,
+  mockPerioCharts,
+  mockAuditLog
 } from '../utils/mockData';
 import { recalcInvoice } from '../utils/billing';
 
@@ -30,6 +35,15 @@ let idSeq = 0;
 const uid = (prefix) => `${prefix}-${Date.now().toString(36)}-${(idSeq++).toString(36)}`;
 
 const today = () => new Date().toISOString().split('T')[0];
+
+// Local YYYY-MM-DD (avoids the UTC day-shift of toISOString).
+const dateStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const addCycle = (cycle, from = new Date()) => {
+  const d = new Date(from);
+  if (cycle === 'Monthly') d.setMonth(d.getMonth() + 1);
+  else d.setFullYear(d.getFullYear() + 1);
+  return dateStr(d);
+};
 
 const readStored = () => {
   try {
@@ -90,6 +104,19 @@ export const ClinicProvider = ({ children }) => {
   // Online booking requests (Pending → Confirmed/Declined; persisted).
   const [bookingRequests, setBookingRequests] = useState(() => stored.bookingRequests || mockBookingRequests);
 
+  // Membership plans + patient enrollments (in-house plans; persisted).
+  const [membershipPlans, setMembershipPlans] = useState(() => stored.membershipPlans || mockMembershipPlans);
+  const [memberships, setMemberships] = useState(() => stored.memberships || mockMemberships);
+
+  // Digital form submissions (Pending → Completed/e-signed; persisted).
+  const [formSubmissions, setFormSubmissions] = useState(() => stored.formSubmissions || mockFormSubmissions);
+
+  // Periodontal charts: { [patientId]: { [toothNumber]: { depths:[6], bop } } } (persisted).
+  const [perioCharts, setPerioCharts] = useState(() => stored.perioCharts || mockPerioCharts);
+
+  // Audit log — append-only activity trail, capped (persisted).
+  const [auditLog, setAuditLog] = useState(() => stored.auditLog || mockAuditLog);
+
   useEffect(() => {
     try {
       window.localStorage.setItem(
@@ -111,13 +138,32 @@ export const ClinicProvider = ({ children }) => {
           expenses,
           claims,
           bookingRequests,
+          membershipPlans,
+          memberships,
+          formSubmissions,
+          perioCharts,
+          auditLog,
         })
       );
     } catch {
       // Storage full or unavailable (e.g. private mode). The app keeps working
       // from in-memory state; we just can't persist this change.
     }
-  }, [patients, appointments, treatments, invoices, payments, toothRecords, toothHistory, prescriptions, treatmentPlans, staff, labCases, recalls, documents, expenses, claims, bookingRequests]);
+  }, [patients, appointments, treatments, invoices, payments, toothRecords, toothHistory, prescriptions, treatmentPlans, staff, labCases, recalls, documents, expenses, claims, bookingRequests, membershipPlans, memberships, formSubmissions, perioCharts, auditLog]);
+
+  // Append an audit entry. User is read from the auth session at call time so
+  // entries carry whoever is signed in. Stable identity ([]) — safe in deps.
+  const logAudit = useCallback((module, action, detail) => {
+    let user = 'Staff';
+    try {
+      const raw = window.localStorage.getItem('dental-auth') || window.sessionStorage.getItem('dental-auth');
+      user = raw ? (JSON.parse(raw)?.name || 'Staff') : 'Staff';
+    } catch { /* keep default */ }
+    setAuditLog((prev) => [
+      { id: uid('aud'), at: new Date().toISOString(), user, module, action, detail },
+      ...prev,
+    ].slice(0, MAX_HISTORY));
+  }, []);
 
   const addPatient = useCallback((patientData) => {
     const newPatient = {
@@ -127,8 +173,9 @@ export const ClinicProvider = ({ children }) => {
       status: patientData.status || 'Active',
     };
     setPatients((prev) => [newPatient, ...prev]);
+    logAudit('Patients', 'Patient registered', newPatient.name);
     return newPatient;
-  }, []);
+  }, [logAudit]);
 
   const updatePatient = useCallback((patientId, updates) => {
     setPatients((prev) =>
@@ -147,8 +194,9 @@ export const ClinicProvider = ({ children }) => {
       status: apptData.status || 'Scheduled',
     };
     setAppointments((prev) => [newAppt, ...prev]);
+    logAudit('Appointments', 'Appointment scheduled', `${newAppt.patientName} — ${newAppt.type} with ${newAppt.dentistName} on ${newAppt.date}`);
     return newAppt;
-  }, [patients, dentists]);
+  }, [patients, dentists, logAudit]);
 
   const updateAppointmentStatus = useCallback((apptId, status) => {
     setAppointments((prev) =>
@@ -203,8 +251,9 @@ export const ClinicProvider = ({ children }) => {
       )
     );
 
+    logAudit('Treatments', 'Treatment logged', `${newTreatment.patientName} — ${newTreatment.type} (tooth ${newTreatment.toothNumber}), invoice ${newInvoice.invoiceNumber} generated`);
     return newTreatment;
-  }, [patients]);
+  }, [patients, logAudit]);
 
   const addPayment = useCallback((paymentData) => {
     // Resolve the target invoice up front so payment metadata and the
@@ -252,8 +301,9 @@ export const ClinicProvider = ({ children }) => {
       }
     }
 
+    logAudit('Billing', 'Payment recorded', `Rs ${amount.toLocaleString()} from ${newPayment.patientName} (${newPayment.method || 'Cash'})`);
     return newPayment;
-  }, [invoices]);
+  }, [invoices, logAudit]);
 
   // Chart a single tooth. Records the change and appends an audit entry.
   // surfaces is a compact string of surface letters (e.g. "MOD"); the caller
@@ -291,8 +341,9 @@ export const ClinicProvider = ({ children }) => {
       return [entry, ...prev].slice(0, MAX_HISTORY);
     });
 
+    logAudit('Clinical', 'Tooth charted', `Tooth ${num} marked ${status}${surfaces ? ` (${surfaces})` : ''}`);
     return record;
-  }, []);
+  }, [logAudit]);
 
   // Prescriptions: create + lifecycle. Patient/dentist names are resolved and
   // stored on the record so the row renders without re-joining on every render.
@@ -308,8 +359,9 @@ export const ClinicProvider = ({ children }) => {
       status: data.status || 'active',
     };
     setPrescriptions((prev) => [newPx, ...prev]);
+    logAudit('Prescriptions', 'Prescription created', `${newPx.medication} ${newPx.dosage || ''} for ${newPx.patientName}`.trim());
     return newPx;
-  }, [patients, dentists]);
+  }, [patients, dentists, logAudit]);
 
   const updatePrescriptionStatus = useCallback((id, status) => {
     setPrescriptions((prev) => prev.map((px) => (px.id === id ? { ...px, status } : px)));
@@ -373,11 +425,12 @@ export const ClinicProvider = ({ children }) => {
         prev.map((p) => (p.id === plan.patientId && p.status !== 'Pending Payment' ? { ...p, status: 'Pending Payment' } : p))
       );
       setTreatmentPlans((prev) => prev.map((p) => (p.id === planId ? { ...p, status, invoiceId } : p)));
+      logAudit('Treatment Plans', 'Plan accepted & billed', `${plan.title} for ${plan.patientName} — Rs ${total.toLocaleString()}`);
       return;
     }
 
     setTreatmentPlans((prev) => prev.map((p) => (p.id === planId ? { ...p, status } : p)));
-  }, [treatmentPlans]);
+  }, [treatmentPlans, logAudit]);
 
   // Toggle a plan item done/undone and derive the plan status from progress.
   const togglePlanItem = useCallback((planId, itemId) => {
@@ -541,8 +594,9 @@ export const ClinicProvider = ({ children }) => {
       notes: data.notes?.trim() || '',
     };
     setClaims((prev) => [newClaim, ...prev]);
+    logAudit('Insurance', 'Claim submitted', `${newClaim.patientName} — ${newClaim.payer}, Rs ${newClaim.claimedAmount.toLocaleString()}`);
     return newClaim;
-  }, [patients]);
+  }, [patients, logAudit]);
 
   // Advancing to Approved/Paid auto-fills the approved amount (full) if unset;
   // Denied zeroes it. Adjust manually later if partial.
@@ -614,12 +668,113 @@ export const ClinicProvider = ({ children }) => {
     }, ...prev]);
 
     setBookingRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'Confirmed', appointmentId: apptId, patientId: pid } : r)));
+    logAudit('Online Booking', 'Booking confirmed', `${pname} — ${req.service} on ${req.preferredDate} at ${req.preferredTime}`);
     return apptId;
-  }, [bookingRequests, patients, dentists]);
+  }, [bookingRequests, patients, dentists, logAudit]);
 
   const declineBookingRequest = useCallback((id) => {
     setBookingRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'Declined' } : r)));
   }, []);
+
+  // ── Memberships / in-house plans ──────────────────────────────────────────
+  const addMembershipPlan = useCallback((data) => {
+    const newPlan = {
+      id: uid('plan'),
+      name: data.name?.trim() || 'New Plan',
+      price: Number(data.price) || 0,
+      cycle: data.cycle || 'Annual',
+      discount: Number(data.discount) || 0,
+      benefits: data.benefits?.trim() || '',
+      color: data.color || '#0F4C81',
+    };
+    setMembershipPlans((prev) => [...prev, newPlan]);
+    return newPlan;
+  }, []);
+
+  const enrollMembership = useCallback((data) => {
+    const patientObj = patients.find((p) => p.id === data.patientId);
+    const plan = membershipPlans.find((p) => p.id === data.planId);
+    const start = data.startDate || today();
+    const newMembership = {
+      id: uid('mem'),
+      patientId: data.patientId,
+      patientName: patientObj?.name || 'Unknown',
+      planId: data.planId,
+      planName: plan?.name || 'Plan',
+      cycle: plan?.cycle || 'Annual',
+      startDate: start,
+      renewalDate: addCycle(plan?.cycle || 'Annual', new Date(start)),
+      status: 'Active',
+      price: plan?.price || 0,
+    };
+    setMemberships((prev) => [newMembership, ...prev]);
+    logAudit('Memberships', 'Patient enrolled', `${newMembership.patientName} — ${newMembership.planName}`);
+    return newMembership;
+  }, [patients, membershipPlans, logAudit]);
+
+  const updateMembershipStatus = useCallback((id, status) => {
+    setMemberships((prev) => prev.map((m) => (m.id === id ? { ...m, status } : m)));
+  }, []);
+
+  // Renew: extend the renewal date by one cycle from the later of (now, current
+  // renewal) and reactivate.
+  const renewMembership = useCallback((id) => {
+    setMemberships((prev) => prev.map((m) => {
+      if (m.id !== id) return m;
+      const fromTime = Math.max(new Date(m.renewalDate || today()).getTime(), Date.now());
+      return { ...m, renewalDate: addCycle(m.cycle || 'Annual', new Date(fromTime)), status: 'Active' };
+    }));
+  }, []);
+
+  // ── Digital forms / e-consent ─────────────────────────────────────────────
+  // Templates are a read-only constant in the Forms page; the page passes the
+  // resolved templateName/category in `data` so the context stays lean.
+  const assignForm = useCallback((data) => {
+    const patientObj = patients.find((p) => p.id === data.patientId);
+    const newSub = {
+      id: uid('fs'),
+      patientId: data.patientId,
+      patientName: patientObj?.name || 'Unknown',
+      templateId: data.templateId,
+      templateName: data.templateName || 'Form',
+      category: data.category || 'Other',
+      status: 'Pending',
+      sentDate: today(),
+      completedDate: null,
+      signedBy: null,
+      signatureDate: null,
+    };
+    setFormSubmissions((prev) => [newSub, ...prev]);
+    return newSub;
+  }, [patients]);
+
+  // Simulated e-signature: capture the typed signer name + date and complete.
+  // Target resolved from closure (not inside the updater) so the audit entry
+  // fires exactly once — updaters can be re-invoked by React.
+  const completeForm = useCallback((id, signedBy) => {
+    const target = formSubmissions.find((s) => s.id === id);
+    setFormSubmissions((prev) => prev.map((s) =>
+      s.id === id ? { ...s, status: 'Completed', completedDate: today(), signedBy: signedBy?.trim() || s.patientName, signatureDate: today() } : s
+    ));
+    if (target) logAudit('Forms', 'Form e-signed', `${target.templateName} signed by ${signedBy?.trim() || target.patientName}`);
+  }, [formSubmissions, logAudit]);
+
+  const deleteFormSubmission = useCallback((id) => {
+    setFormSubmissions((prev) => prev.filter((s) => s.id !== id));
+  }, []);
+
+  // ── Perio charting ────────────────────────────────────────────────────────
+  const updatePerioTooth = useCallback((patientId, toothNumber, data) => {
+    const num = Number(toothNumber);
+    setPerioCharts((prev) => ({
+      ...prev,
+      [patientId]: {
+        ...(prev[patientId] || {}),
+        [num]: { depths: data.depths || [], bop: Boolean(data.bop), updatedAt: new Date().toISOString() },
+      },
+    }));
+    logAudit('Clinical', 'Perio recorded', `Tooth ${num} — depths ${( data.depths || []).join('/')}${data.bop ? ', BOP' : ''}`);
+  }, [logAudit]);
 
   const getTodayAppointments = useCallback(() => {
     const todayStr = today();
@@ -693,6 +848,20 @@ export const ClinicProvider = ({ children }) => {
       addBookingRequest,
       confirmBookingRequest,
       declineBookingRequest,
+      membershipPlans,
+      memberships,
+      addMembershipPlan,
+      enrollMembership,
+      updateMembershipStatus,
+      renewMembership,
+      formSubmissions,
+      assignForm,
+      completeForm,
+      deleteFormSubmission,
+      perioCharts,
+      updatePerioTooth,
+      auditLog,
+      logAudit,
       addPatient,
       updatePatient,
       addAppointment,
@@ -713,7 +882,10 @@ export const ClinicProvider = ({ children }) => {
       expenses, addExpense, updateExpenseStatus, deleteExpense,
       claims, addClaim, updateClaimStatus, deleteClaim,
       bookingRequests, addBookingRequest, confirmBookingRequest, declineBookingRequest,
-      addPatient, updatePatient,
+      membershipPlans, memberships, addMembershipPlan, enrollMembership,
+      updateMembershipStatus, renewMembership, formSubmissions, assignForm,
+      completeForm, deleteFormSubmission, perioCharts, updatePerioTooth,
+      auditLog, logAudit, addPatient, updatePatient,
       addAppointment, updateAppointmentStatus, assignDentist, addTreatment,
       addPayment, getTodayAppointments, getTodayMetrics,
     ]

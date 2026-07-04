@@ -195,15 +195,19 @@ export default function Billing() {
                     <TableCell>{inv.patientName}</TableCell>
                     <TableCell>{formatDate(inv.date)}</TableCell>
                     <TableCell>
-                      <Typography
-                        variant="body2"
-                        sx={{ color: isOverdue ? colors.error : 'inherit', fontWeight: isOverdue ? 700 : 400 }}
-                      >
-                        {formatDate(inv.dueDate)}
+                      {/* Chip renders a <div>, so it must sit beside the <p>
+                          Typography, not inside it (invalid DOM nesting). */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{ color: isOverdue ? colors.error : 'inherit', fontWeight: isOverdue ? 700 : 400 }}
+                        >
+                          {formatDate(inv.dueDate)}
+                        </Typography>
                         {isOverdue && (
-                          <Chip label="Overdue" size="small" color="error" sx={{ ml: 1, height: 18, fontSize: '0.65rem', fontWeight: 700 }} />
+                          <Chip label="Overdue" size="small" color="error" sx={{ height: 18, fontSize: '0.65rem', fontWeight: 700 }} />
                         )}
-                      </Typography>
+                      </Box>
                     </TableCell>
                     <TableCell align="right">{formatCurrency(inv.totalAmount)}</TableCell>
                     <TableCell align="right" sx={{ color: colors.success }}>{formatCurrency(inv.paidAmount)}</TableCell>
