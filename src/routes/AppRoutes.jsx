@@ -27,6 +27,10 @@ const PerioChart = lazy(() => import('../pages/PerioChart'));
 const Settings = lazy(() => import('../pages/Settings'));
 const Staff = lazy(() => import('../pages/Staff'));
 const AuditLog = lazy(() => import('../pages/AuditLog'));
+const Locations = lazy(() => import('../pages/Locations'));
+const Marketing = lazy(() => import('../pages/Marketing'));
+const Imaging = lazy(() => import('../pages/Imaging'));
+const Referrals = lazy(() => import('../pages/Referrals'));
 
 function RouteFallback() {
   return (
@@ -59,6 +63,10 @@ export default function AppRoutes() {
         <Route path="/documents" element={<Documents />} />
         <Route path="/forms" element={<Forms />} />
         <Route path="/perio" element={<PerioChart />} />
+        <Route path="/imaging" element={<Imaging />} />
+        <Route path="/referrals" element={<Referrals />} />
+        <Route path="/marketing" element={<Marketing />} />
+        <Route path="/locations" element={<Locations />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/staff" element={<Staff />} />
         <Route path="/audit-log" element={<AuditLog />} />

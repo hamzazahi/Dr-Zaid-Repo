@@ -32,6 +32,10 @@ import {
   Description   as FormsIcon,
   Straighten    as PerioIcon,
   Inventory    as InvIcon,
+  Collections  as ImagingIcon,
+  SwapHoriz    as ReferralIcon,
+  Campaign     as MarketingIcon,
+  Business     as LocationIcon,
   Settings     as SettingsIcon,
   Logout       as LogoutIcon,
   ChevronLeft  as CollapseIcon,
@@ -51,6 +55,7 @@ const SECTIONS = [
       { text: 'Appointments', path: '/appointments',  icon: CalIcon     },
       { text: 'Recalls',      path: '/recalls',       icon: RecallIcon  },
       { text: 'Online Booking', path: '/online-booking', icon: BookingIcon },
+      { text: 'Marketing',    path: '/marketing',     icon: MarketingIcon },
       { text: 'Treatments',   path: '/treatments',    icon: TreatIcon   },
       { text: 'Treatment Plans', path: '/treatment-plans', icon: PlanIcon },
     ],
@@ -63,6 +68,8 @@ const SECTIONS = [
       { text: 'Documents',     path: '/documents',     icon: DocsIcon },
       { text: 'Forms',         path: '/forms',         icon: FormsIcon },
       { text: 'Perio Chart',   path: '/perio',         icon: PerioIcon },
+      { text: 'Imaging',       path: '/imaging',       icon: ImagingIcon },
+      { text: 'Referrals',     path: '/referrals',     icon: ReferralIcon },
       { text: 'Inventory',     path: '/inventory',     icon: InvIcon },
     ],
   },
@@ -79,6 +86,7 @@ const SECTIONS = [
   {
     label: 'System',
     items: [
+      { text: 'Locations', path: '/locations', icon: LocationIcon },
       { text: 'Staff',    path: '/staff',    icon: StaffIcon    },
       { text: 'Audit Log', path: '/audit-log', icon: AuditIcon  },
       { text: 'Reports',  path: '/reports',  icon: ReportsIcon  },
@@ -90,7 +98,7 @@ const SECTIONS = [
 const AV_COLORS = ['#2563EB','#7C3AED','#059669','#D97706','#0D9488'];
 const avatarBg  = (name) => AV_COLORS[(name?.charCodeAt(0) || 0) % AV_COLORS.length];
 
-export default function Sidebar({ collapsed, onToggle, transition }) {
+export default function Sidebar({ collapsed, onToggle, transition, isMobile = false, mobileOpen = false, onClose }) {
   const { user, signOut } = useAuth();
 
   const initials = user?.initials
@@ -100,18 +108,23 @@ export default function Sidebar({ collapsed, onToggle, transition }) {
 
   return (
     <Drawer
-      variant="permanent"
+      // Mobile: overlay drawer opened from the header hamburger.
+      // Desktop: permanent rail with collapse/expand.
+      variant={isMobile ? 'temporary' : 'permanent'}
+      open={isMobile ? mobileOpen : true}
+      onClose={onClose}
+      ModalProps={{ keepMounted: true }}
       sx={{
         /*
          * Applying width + transition to BOTH the Drawer root element and
          * its paper ensures the flex placeholder and the visible panel stay
-         * perfectly in sync — no gap, no jump.
+         * perfectly in sync — no gap, no jump. (Permanent variant only — the
+         * temporary variant renders in a modal, so sizing the root would
+         * break the backdrop.)
          */
-        width: w,
-        flexShrink: 0,
-        transition,
+        ...(isMobile ? {} : { width: w, flexShrink: 0, transition }),
         '& .MuiDrawer-paper': {
-          width: w,
+          width: isMobile ? W : w,
           boxSizing: 'border-box',
           bgcolor: '#0A1628',
           border: 'none',
@@ -169,10 +182,10 @@ export default function Sidebar({ collapsed, onToggle, transition }) {
                 </Typography>
               </Box>
             </Box>
-            <Tooltip title="Collapse sidebar" placement="right">
+            <Tooltip title={isMobile ? 'Close menu' : 'Collapse sidebar'} placement="right">
               <IconButton
                 size="small"
-                onClick={onToggle}
+                onClick={isMobile ? onClose : onToggle}
                 sx={{ ml: 0.5, flexShrink: 0, color: 'rgba(255,255,255,0.35)', '&:hover': { color: '#fff', bgcolor: 'rgba(255,255,255,0.08)' } }}
               >
                 <CollapseIcon sx={{ fontSize: 18 }} />
@@ -206,6 +219,7 @@ export default function Sidebar({ collapsed, onToggle, transition }) {
                       component={NavLink}
                       to={path}
                       end={path === '/'}
+                      onClick={isMobile ? onClose : undefined}
                       sx={{
                         borderRadius: '8px',
                         minHeight: 38,

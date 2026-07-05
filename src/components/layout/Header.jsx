@@ -15,6 +15,7 @@ import {
   Person as PatientIcon,
   CalendarMonth as ApptIcon,
   Receipt as InvIcon,
+  Menu as HamburgerIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { useClinicData } from '../../hooks/useClinicData';
@@ -39,6 +40,10 @@ const PAGE_TITLES = {
   '/documents': 'Documents',
   '/forms': 'Forms & e-Consent',
   '/perio': 'Periodontal Chart',
+  '/imaging': 'Imaging',
+  '/referrals': 'Referrals',
+  '/marketing': 'Marketing',
+  '/locations': 'Locations',
   '/staff': 'Staff',
   '/audit-log': 'Audit Log',
   '/reports': 'Reports',
@@ -86,7 +91,9 @@ function GlobalSearch() {
   const TYPE_COLOR = { Patient: '#2563EB', Appointment: '#7C3AED', Invoice: '#D97706' };
 
   return (
-    <Box sx={{ position: 'relative', flex: 1, maxWidth: 440 }}>
+    // Hidden on phones — the header keeps hamburger + title + actions; each
+    // page has its own search/filter bar for finding records on mobile.
+    <Box sx={{ position: 'relative', flex: 1, maxWidth: 440, display: { xs: 'none', sm: 'block' } }}>
       <TextField
         inputRef={inputRef}
         placeholder="Search patients, appointments, invoices…"
@@ -190,7 +197,7 @@ function GlobalSearch() {
 }
 
 // ─── Header ─────────────────────────────────────────────────────────────────
-export default function Header() {
+export default function Header({ onMenuClick }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
@@ -215,19 +222,28 @@ export default function Header() {
         right: 0,
       }}
     >
-      <Toolbar sx={{ minHeight: 60, px: { xs: 2, md: 3 }, gap: 2 }}>
-        {/* Page breadcrumb */}
-        <Box sx={{ flexShrink: 0 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: colors.textPrimary, lineHeight: 1 }}>
+      <Toolbar sx={{ minHeight: 60, px: { xs: 1.5, md: 3 }, gap: { xs: 1, md: 2 } }}>
+        {/* Hamburger — opens the mobile nav drawer (hidden on desktop) */}
+        <IconButton
+          onClick={onMenuClick}
+          sx={{ display: { xs: 'inline-flex', md: 'none' }, color: colors.textPrimary, flexShrink: 0 }}
+          aria-label="Open navigation menu"
+        >
+          <HamburgerIcon sx={{ fontSize: 22 }} />
+        </IconButton>
+
+        {/* Page breadcrumb (title truncates on narrow screens; date hidden on phones) */}
+        <Box sx={{ flexShrink: 1, minWidth: 0 }}>
+          <Typography noWrap sx={{ fontWeight: 700, fontSize: '0.9rem', color: colors.textPrimary, lineHeight: 1 }}>
             {getTitle(location.pathname)}
           </Typography>
-          <Typography sx={{ fontSize: '0.68rem', color: colors.textLight, mt: '2px' }}>
+          <Typography noWrap sx={{ fontSize: '0.68rem', color: colors.textLight, mt: '2px', display: { xs: 'none', sm: 'block' } }}>
             {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
           </Typography>
         </Box>
 
         {/* Divider */}
-        <Box sx={{ width: '1px', height: 24, bgcolor: colors.border, flexShrink: 0 }} />
+        <Box sx={{ width: '1px', height: 24, bgcolor: colors.border, flexShrink: 0, display: { xs: 'none', sm: 'block' } }} />
 
         {/* Global search */}
         <GlobalSearch />

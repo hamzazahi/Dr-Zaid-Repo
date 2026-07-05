@@ -194,7 +194,14 @@ const PatientProfile = () => {
 
       <Card sx={{ borderRadius: '12px', overflow: 'hidden' }}>
         <Box sx={{ borderBottom: `1px solid ${colors.border}`, px: 2 }}>
-          <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ minHeight: 48 }}>
+          <Tabs
+            value={activeTab}
+            onChange={(_, v) => setActiveTab(v)}
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
+            sx={{ minHeight: 48 }}
+          >
             {['Demographics', `Visits (${patientAppts.length})`, `Treatments (${patientTreatments.length})`, 'Dental Chart', `Billing (${patientInvoices.length})`, `Prescriptions (${patientPrescriptions.length})`, `Documents (${patientDocuments.length})`].map((label) => (
               <Tab key={label} label={label} sx={{ fontWeight: 700, textTransform: 'none', fontSize: '0.85rem', minHeight: 48 }} />
             ))}

@@ -18,7 +18,11 @@ import {
   mockMemberships,
   mockFormSubmissions,
   mockPerioCharts,
-  mockAuditLog
+  mockAuditLog,
+  mockLocations,
+  mockCampaigns,
+  mockImagingRecords,
+  mockReferrals
 } from '../utils/mockData';
 import { recalcInvoice } from '../utils/billing';
 
@@ -117,6 +121,19 @@ export const ClinicProvider = ({ children }) => {
   // Audit log — append-only activity trail, capped (persisted).
   const [auditLog, setAuditLog] = useState(() => stored.auditLog || mockAuditLog);
 
+  // Clinic locations (multi-branch). Staff carry an optional locationId; a
+  // missing locationId means the primary location (see primaryLocationId).
+  const [locations, setLocations] = useState(() => stored.locations || mockLocations);
+
+  // Marketing campaigns (email-only; Draft → Sent; persisted).
+  const [campaigns, setCampaigns] = useState(() => stored.campaigns || mockCampaigns);
+
+  // Imaging records (metadata only — no image bytes; persisted).
+  const [imagingRecords, setImagingRecords] = useState(() => stored.imagingRecords || mockImagingRecords);
+
+  // Referrals (Inbound/Outbound; Pending → Contacted → Scheduled → Completed; persisted).
+  const [referrals, setReferrals] = useState(() => stored.referrals || mockReferrals);
+
   useEffect(() => {
     try {
       window.localStorage.setItem(
@@ -143,13 +160,17 @@ export const ClinicProvider = ({ children }) => {
           formSubmissions,
           perioCharts,
           auditLog,
+          locations,
+          campaigns,
+          imagingRecords,
+          referrals,
         })
       );
     } catch {
       // Storage full or unavailable (e.g. private mode). The app keeps working
       // from in-memory state; we just can't persist this change.
     }
-  }, [patients, appointments, treatments, invoices, payments, toothRecords, toothHistory, prescriptions, treatmentPlans, staff, labCases, recalls, documents, expenses, claims, bookingRequests, membershipPlans, memberships, formSubmissions, perioCharts, auditLog]);
+  }, [patients, appointments, treatments, invoices, payments, toothRecords, toothHistory, prescriptions, treatmentPlans, staff, labCases, recalls, documents, expenses, claims, bookingRequests, membershipPlans, memberships, formSubmissions, perioCharts, auditLog, locations, campaigns, imagingRecords, referrals]);
 
   // Append an audit entry. User is read from the auth session at call time so
   // entries carry whoever is signed in. Stable identity ([]) — safe in deps.
@@ -776,6 +797,129 @@ export const ClinicProvider = ({ children }) => {
     logAudit('Clinical', 'Perio recorded', `Tooth ${num} — depths ${( data.depths || []).join('/')}${data.bop ? ', BOP' : ''}`);
   }, [logAudit]);
 
+  // ── Locations (multi-branch) ──────────────────────────────────────────────
+  // The primary location is the fallback home for any staff member without an
+  // explicit locationId (a clinic that just enabled multi-location shouldn't
+  // see its whole roster as "unassigned").
+  const primaryLocationId = useMemo(
+    () => (locations.find((l) => l.isPrimary) || locations[0])?.id || '',
+    [locations]
+  );
+
+  const addLocation = useCallback((data) => {
+    const newLocation = {
+      id: uid('loc'),
+      name: data.name?.trim() || 'New Location',
+      address: data.address?.trim() || '',
+      phone: data.phone?.trim() || '',
+      email: data.email?.trim() || '',
+      manager: data.manager?.trim() || '',
+      chairs: Number(data.chairs) || 1,
+      openHours: data.openHours?.trim() || '',
+      status: 'Active',
+      color: data.color || '#0F4C81',
+      isPrimary: false,
+    };
+    setLocations((prev) => [...prev, newLocation]);
+    logAudit('Locations', 'Location added', newLocation.name);
+    return newLocation;
+  }, [logAudit]);
+
+  const updateLocationStatus = useCallback((id, status) => {
+    setLocations((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
+  }, []);
+
+  // Move a staff member to a branch (stored on the staff record itself so the
+  // roster stays the single source of truth).
+  const assignStaffLocation = useCallback((staffId, locationId) => {
+    setStaff((prev) => prev.map((s) => (s.id === staffId ? { ...s, locationId } : s)));
+  }, []);
+
+  // ── Marketing campaigns ───────────────────────────────────────────────────
+  const addCampaign = useCallback((data) => {
+    const newCampaign = {
+      id: uid('cmp'),
+      name: data.name?.trim() || 'Untitled Campaign',
+      channel: 'Email',
+      segment: data.segment || 'All Patients',
+      subject: data.subject?.trim() || '',
+      body: data.body?.trim() || '',
+      status: 'Draft',
+      recipients: 0,
+      createdDate: today(),
+      sentAt: null,
+    };
+    setCampaigns((prev) => [newCampaign, ...prev]);
+    return newCampaign;
+  }, []);
+
+  // Simulated email blast: the page computes the live audience size for the
+  // campaign's segment and passes it in; we stamp it with the send date.
+  const sendCampaign = useCallback((id, recipients) => {
+    const target = campaigns.find((c) => c.id === id);
+    setCampaigns((prev) => prev.map((c) =>
+      c.id === id ? { ...c, status: 'Sent', recipients: Number(recipients) || 0, sentAt: today() } : c
+    ));
+    if (target) logAudit('Marketing', 'Campaign sent', `"${target.name}" to ${recipients} recipient${recipients === 1 ? '' : 's'} (${target.segment})`);
+  }, [campaigns, logAudit]);
+
+  const deleteCampaign = useCallback((id) => {
+    setCampaigns((prev) => prev.filter((c) => c.id !== id));
+  }, []);
+
+  // ── Imaging records (metadata only) ───────────────────────────────────────
+  const addImagingRecord = useCallback((data) => {
+    const patientObj = patients.find((p) => p.id === data.patientId);
+    const newRecord = {
+      id: uid('img'),
+      patientId: data.patientId,
+      patientName: patientObj?.name || 'Unknown',
+      type: data.type || 'Periapical X-Ray',
+      toothNumber: data.toothNumber || 'All',
+      date: data.date || today(),
+      takenBy: data.takenBy?.trim() || 'Staff',
+      notes: data.notes?.trim() || '',
+    };
+    setImagingRecords((prev) => [newRecord, ...prev]);
+    logAudit('Imaging', 'Image recorded', `${newRecord.type} for ${newRecord.patientName} (tooth ${newRecord.toothNumber})`);
+    return newRecord;
+  }, [patients, logAudit]);
+
+  const deleteImagingRecord = useCallback((id) => {
+    setImagingRecords((prev) => prev.filter((r) => r.id !== id));
+  }, []);
+
+  // ── Referrals ─────────────────────────────────────────────────────────────
+  // Inbound referrals can arrive before the patient exists, so patientId is
+  // optional — the free-text patientName is authoritative in that case.
+  const addReferral = useCallback((data) => {
+    const patientObj = patients.find((p) => p.id === data.patientId);
+    const newReferral = {
+      id: uid('ref'),
+      direction: data.direction === 'Inbound' ? 'Inbound' : 'Outbound',
+      patientId: data.patientId || null,
+      patientName: patientObj?.name || data.patientName?.trim() || 'Unknown',
+      provider: data.provider?.trim() || '',
+      practice: data.practice?.trim() || '',
+      specialty: data.specialty?.trim() || '',
+      reason: data.reason?.trim() || '',
+      date: today(),
+      status: 'Pending',
+      notes: data.notes?.trim() || '',
+    };
+    setReferrals((prev) => [newReferral, ...prev]);
+    logAudit('Referrals', `${newReferral.direction} referral created`, `${newReferral.patientName} ↔ ${newReferral.provider} (${newReferral.specialty})`);
+    return newReferral;
+  }, [patients, logAudit]);
+
+  const updateReferralStatus = useCallback((id, status) => {
+    setReferrals((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
+  }, []);
+
+  const deleteReferral = useCallback((id) => {
+    setReferrals((prev) => prev.filter((r) => r.id !== id));
+  }, []);
+
   const getTodayAppointments = useCallback(() => {
     const todayStr = today();
     return appointments.filter((a) => a.date === todayStr);
@@ -862,6 +1006,22 @@ export const ClinicProvider = ({ children }) => {
       updatePerioTooth,
       auditLog,
       logAudit,
+      locations,
+      primaryLocationId,
+      addLocation,
+      updateLocationStatus,
+      assignStaffLocation,
+      campaigns,
+      addCampaign,
+      sendCampaign,
+      deleteCampaign,
+      imagingRecords,
+      addImagingRecord,
+      deleteImagingRecord,
+      referrals,
+      addReferral,
+      updateReferralStatus,
+      deleteReferral,
       addPatient,
       updatePatient,
       addAppointment,
@@ -885,7 +1045,12 @@ export const ClinicProvider = ({ children }) => {
       membershipPlans, memberships, addMembershipPlan, enrollMembership,
       updateMembershipStatus, renewMembership, formSubmissions, assignForm,
       completeForm, deleteFormSubmission, perioCharts, updatePerioTooth,
-      auditLog, logAudit, addPatient, updatePatient,
+      auditLog, logAudit,
+      locations, primaryLocationId, addLocation, updateLocationStatus, assignStaffLocation,
+      campaigns, addCampaign, sendCampaign, deleteCampaign,
+      imagingRecords, addImagingRecord, deleteImagingRecord,
+      referrals, addReferral, updateReferralStatus, deleteReferral,
+      addPatient, updatePatient,
       addAppointment, updateAppointmentStatus, assignDentist, addTreatment,
       addPayment, getTodayAppointments, getTodayMetrics,
     ]

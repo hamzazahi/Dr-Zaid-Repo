@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Box } from '@mui/material';
+import { Box, useMediaQuery, useTheme } from '@mui/material';
 import Sidebar from './Sidebar';
 import Header from './Header';
 
@@ -9,7 +9,13 @@ export const SIDEBAR_W_COLLAPSED = 64;
 const TRANSITION = 'width 0.22s cubic-bezier(0.4,0,0.2,1)';
 
 const Layout = ({ children }) => {
+  const theme = useTheme();
+  // Below md the permanent sidebar becomes a temporary (overlay) drawer opened
+  // from a hamburger button in the header.
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     /*
@@ -27,9 +33,12 @@ const Layout = ({ children }) => {
       }}
     >
       <Sidebar
-        collapsed={collapsed}
+        collapsed={isMobile ? false : collapsed}
         onToggle={() => setCollapsed((c) => !c)}
         transition={TRANSITION}
+        isMobile={isMobile}
+        mobileOpen={mobileOpen}
+        onClose={() => setMobileOpen(false)}
       />
 
       {/*
@@ -47,7 +56,7 @@ const Layout = ({ children }) => {
           transition: TRANSITION,
         }}
       >
-        <Header />
+        <Header onMenuClick={() => setMobileOpen(true)} />
 
         {/* Scrollable page body */}
         <Box

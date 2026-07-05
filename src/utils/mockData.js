@@ -711,3 +711,39 @@ export const mockPerioCharts = {
     46: { depths: [4, 3, 4, 3, 3, 4], bop: false },
   },
 };
+
+// Clinic locations (multi-branch). loc-1 is the primary site; staff without a
+// locationId are treated as belonging to the primary location by default.
+export const mockLocations = [
+  { id: 'loc-1', name: 'Main Clinic — Gulshan', address: 'Plot 45-C, Block 5, Gulshan-e-Iqbal, Karachi', phone: '+92 21 3482 0011', email: 'gulshan@dentsuite.com', manager: 'Dr. Hamza Zahid', chairs: 4, openHours: 'Mon–Sat · 9 AM – 8 PM', status: 'Active', color: '#0F4C81', isPrimary: true },
+  { id: 'loc-2', name: 'DHA Branch', address: '12th Commercial Street, DHA Phase 6, Karachi', phone: '+92 21 3584 7722', email: 'dha@dentsuite.com', manager: 'Dr. Sarah Ahmed', chairs: 2, openHours: 'Mon–Fri · 10 AM – 7 PM', status: 'Active', color: '#0D9488', isPrimary: false },
+];
+
+// Marketing campaigns (email-only, matching Recalls). Lifecycle: Draft → Sent.
+// `recipients` is stamped at send time from the live audience segment size.
+export const mockCampaigns = [
+  { id: 'cmp-1', name: 'Whitening Month Offer', channel: 'Email', segment: 'All Patients', subject: '20% off teeth whitening this month ✨', body: 'Brighten your smile — book a whitening session this month and save 20%.', status: 'Sent', recipients: 10, createdDate: getRelativeDateString(-20), sentAt: getRelativeDateString(-18) },
+  { id: 'cmp-2', name: 'Overdue Check-up Nudge', channel: 'Email', segment: 'Overdue Recalls', subject: 'Your dental check-up is overdue', body: 'Our records show your recall visit is overdue. Reply or call us to book a slot.', status: 'Sent', recipients: 2, createdDate: getRelativeDateString(-6), sentAt: getRelativeDateString(-5) },
+  { id: 'cmp-3', name: 'Membership Plan Launch', channel: 'Email', segment: 'Active Patients', subject: 'Save up to 25% with DentSuite Care Plans', body: 'Introducing in-house membership plans — cleanings, exams and X-rays bundled at a flat yearly price.', status: 'Draft', recipients: 0, createdDate: getRelativeDateString(-1), sentAt: null },
+];
+
+// Imaging records (X-rays, scans, photos). Frontend-only: METADATA only — the
+// actual image bytes are not stored (mirrors the Documents module).
+export const mockImagingRecords = [
+  { id: 'img-1', patientId: 'pat-1', patientName: 'Muhammad Ali', type: 'Periapical X-Ray', toothNumber: '36', date: getRelativeDateString(-15), takenBy: 'Dr. Hamza Zahid', notes: 'Pre-RCT — periapical radiolucency at mesial root.' },
+  { id: 'img-2', patientId: 'pat-1', patientName: 'Muhammad Ali', type: 'Panoramic (OPG)', toothNumber: 'All', date: getRelativeDateString(-15), takenBy: 'Dr. Hamza Zahid', notes: 'Baseline panoramic radiograph.' },
+  { id: 'img-3', patientId: 'pat-8', patientName: 'Fatima Zahra', type: 'CBCT Scan', toothNumber: 'All', date: getRelativeDateString(-4), takenBy: 'Dr. Sarah Ahmed', notes: '3D volume for endodontic assessment.' },
+  { id: 'img-4', patientId: 'pat-4', patientName: 'Omar Farooq', type: 'Bitewing X-Ray', toothNumber: '45', date: getRelativeDateString(-8), takenBy: 'Dr. Ayesha Khan', notes: 'Interproximal caries check.' },
+  { id: 'img-5', patientId: 'pat-5', patientName: 'Bilal Khan', type: 'Intraoral Photo', toothNumber: '24', date: getRelativeDateString(0), takenBy: 'Dr. Hamza Zahid', notes: 'Post-restoration photo of composite on #24.' },
+];
+
+// Patient referrals. Outbound = we refer a patient to a specialist; Inbound =
+// another provider sends a patient to us. Pending → Contacted → Scheduled →
+// Completed (or Cancelled). Inbound referrals may arrive before the patient is
+// registered, so patientId can be null with just a name.
+export const mockReferrals = [
+  { id: 'ref-1', direction: 'Outbound', patientId: 'pat-8', patientName: 'Fatima Zahra', provider: 'Dr. Kamran Qureshi', practice: 'Karachi Maxillofacial Centre', specialty: 'Oral & Maxillofacial Surgery', reason: 'Impacted #38 — surgical extraction under GA.', date: getRelativeDateString(-7), status: 'Scheduled', notes: 'Surgery booked at KMC next week; report to follow.' },
+  { id: 'ref-2', direction: 'Inbound', patientId: 'pat-5', patientName: 'Bilal Khan', provider: 'Dr. Naila Farhat', practice: 'City Family Clinic', specialty: 'General Practice', reason: 'Persistent gum bleeding — periodontal evaluation.', date: getRelativeDateString(-3), status: 'Contacted', notes: '' },
+  { id: 'ref-3', direction: 'Outbound', patientId: 'pat-1', patientName: 'Muhammad Ali', provider: 'Dr. Adeel Mirza', practice: 'OrthoSmile Clinic', specialty: 'Orthodontics', reason: 'Lower anterior crowding — aligner assessment.', date: getRelativeDateString(-30), status: 'Completed', notes: 'Specialist report received; patient deferred treatment.' },
+  { id: 'ref-4', direction: 'Inbound', patientId: null, patientName: 'Areeba Shah', provider: 'Dr. Salman Tariq', practice: 'Wellness GP Clinic', specialty: 'General Practice', reason: 'Suspected dental abscess, upper right quadrant.', date: getRelativeDateString(0), status: 'Pending', notes: 'New patient — register on arrival.' },
+];
