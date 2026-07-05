@@ -1,6 +1,8 @@
-import { NavLink } from 'react-router-dom';
+import { useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   Box,
+  Collapse,
   Drawer,
   IconButton,
   List,
@@ -40,6 +42,7 @@ import {
   Logout       as LogoutIcon,
   ChevronLeft  as CollapseIcon,
   ChevronRight as ExpandIcon,
+  ExpandMore   as SectionChevron,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -98,8 +101,53 @@ const SECTIONS = [
 const AV_COLORS = ['#2563EB','#7C3AED','#059669','#D97706','#0D9488'];
 const avatarBg  = (name) => AV_COLORS[(name?.charCodeAt(0) || 0) % AV_COLORS.length];
 
+// Persisted expand/collapse state per nav section. Only EXPLICIT user toggles
+// are stored; sections without an entry fall back to the default (Overview
+// open, others closed — unless they contain the active route).
+const SECTIONS_KEY = 'dental-sidebar-sections';
+const readSectionPrefs = () => {
+  try {
+    return JSON.parse(window.localStorage.getItem(SECTIONS_KEY)) || {};
+  } catch {
+    return {};
+  }
+};
+
 export default function Sidebar({ collapsed, onToggle, transition, isMobile = false, mobileOpen = false, onClose }) {
   const { user, signOut } = useAuth();
+  const location = useLocation();
+
+  const [sectionPrefs, setSectionPrefs] = useState(readSectionPrefs);
+  // null initial value → the reopen check below also runs on first render,
+  // so a reload while on a route inside a closed section still reveals it.
+  const [prevPath, setPrevPath] = useState(null);
+
+  const isActivePath = (path) =>
+    path === '/' ? location.pathname === '/' : location.pathname === path || location.pathname.startsWith(`${path}/`);
+  const sectionHasActive = (section) => section.items.some((i) => isActivePath(i.path));
+  const isExpanded = (section) =>
+    sectionPrefs[section.label] !== undefined
+      ? sectionPrefs[section.label]
+      : section.label === 'Overview' || sectionHasActive(section);
+
+  // Render-phase adjustment (React's sanctioned pattern): when navigation
+  // lands on a route inside an explicitly-closed section, reopen that section
+  // so the active item is never hidden.
+  if (prevPath !== location.pathname) {
+    setPrevPath(location.pathname);
+    const activeSection = SECTIONS.find(sectionHasActive);
+    if (activeSection && sectionPrefs[activeSection.label] === false) {
+      setSectionPrefs((prev) => ({ ...prev, [activeSection.label]: true }));
+    }
+  }
+
+  const toggleSection = (section) => {
+    const next = { ...sectionPrefs, [section.label]: !isExpanded(section) };
+    setSectionPrefs(next);
+    try {
+      window.localStorage.setItem(SECTIONS_KEY, JSON.stringify(next));
+    } catch { /* storage unavailable — state still works in-memory */ }
+  };
 
   const initials = user?.initials
     || (user?.name ? user.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() : 'DR');
@@ -196,24 +244,13 @@ export default function Sidebar({ collapsed, onToggle, transition, isMobile = fa
       </Box>
 
       {/* ── Scrollable nav ── */}
-      <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', py: 1.5, pb: 2 }}>
-        {SECTIONS.map((section) => (
-          <Box key={section.label} sx={{ mb: 0.5 }}>
-            {!collapsed ? (
-              <Typography sx={{
-                px: 2.5, mb: 0.5, mt: 1,
-                fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em',
-                textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)',
-              }}>
-                {section.label}
-              </Typography>
-            ) : (
-              <Box sx={{ height: 8 }} />
-            )}
-
+      <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', py: 1, pb: 2 }}>
+        {SECTIONS.map((section) => {
+          const expanded = isExpanded(section);
+          const items = (
             <List disablePadding sx={{ px: collapsed ? 0.75 : 1 }}>
               {section.items.map(({ text, path, icon: Icon }) => (
-                <ListItem key={path} disablePadding sx={{ mb: 0.5 }}>
+                <ListItem key={path} disablePadding sx={{ mb: 0.25 }}>
                   <Tooltip title={collapsed ? text : ''} placement="right" arrow>
                     <ListItemButton
                       component={NavLink}
@@ -222,7 +259,8 @@ export default function Sidebar({ collapsed, onToggle, transition, isMobile = fa
                       onClick={isMobile ? onClose : undefined}
                       sx={{
                         borderRadius: '8px',
-                        minHeight: 38,
+                        minHeight: 31,
+                        py: 0,
                         px: collapsed ? 0 : 1.25,
                         justifyContent: collapsed ? 'center' : 'flex-start',
                         gap: collapsed ? 0 : 1.25,
@@ -248,10 +286,10 @@ export default function Sidebar({ collapsed, onToggle, transition, isMobile = fa
                       }}
                     >
                       <ListItemIcon sx={{ minWidth: 0, color: 'inherit', justifyContent: 'center' }}>
-                        <Icon sx={{ fontSize: 18 }} />
+                        <Icon sx={{ fontSize: 17 }} />
                       </ListItemIcon>
                       {!collapsed && (
-                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 500, color: 'inherit', whiteSpace: 'nowrap' }}>
+                        <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, color: 'inherit', whiteSpace: 'nowrap' }}>
                           {text}
                         </Typography>
                       )}
@@ -260,8 +298,51 @@ export default function Sidebar({ collapsed, onToggle, transition, isMobile = fa
                 </ListItem>
               ))}
             </List>
-          </Box>
-        ))}
+          );
+
+          // Icon-rail mode has no headers to click — always show every icon.
+          if (collapsed) {
+            return (
+              <Box key={section.label} sx={{ mb: 0.5 }}>
+                <Box sx={{ height: 8 }} />
+                {items}
+              </Box>
+            );
+          }
+
+          return (
+            <Box key={section.label} sx={{ mb: 0.25 }}>
+              <Box
+                onClick={() => toggleSection(section)}
+                role="button"
+                aria-expanded={expanded}
+                sx={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  px: 2.5, pr: 1.75, mt: 0.75, mb: 0.25, py: 0.4,
+                  cursor: 'pointer', userSelect: 'none', borderRadius: '6px',
+                  '&:hover .si-sec-label': { color: 'rgba(255,255,255,0.6)' },
+                  '&:hover .si-sec-chevron': { color: 'rgba(255,255,255,0.6)' },
+                }}
+              >
+                <Typography className="si-sec-label" sx={{
+                  fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em',
+                  textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)',
+                  transition: 'color 0.15s ease',
+                }}>
+                  {section.label}
+                </Typography>
+                <SectionChevron className="si-sec-chevron" sx={{
+                  fontSize: 15, color: 'rgba(255,255,255,0.25)',
+                  transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                  transition: 'transform 0.18s ease, color 0.15s ease',
+                }} />
+              </Box>
+              <Collapse in={expanded} timeout={180}>
+                {items}
+              </Collapse>
+            </Box>
+          );
+        })}
       </Box>
 
       {/* ── User footer ── */}

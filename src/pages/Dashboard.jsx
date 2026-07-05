@@ -27,6 +27,7 @@ import {
   PieChart, Pie, Cell,
 } from 'recharts';
 import { useClinicData } from '../hooks/useClinicData';
+import { useAuth } from '../hooks/useAuth';
 import { useNotification } from '../hooks/useNotification';
 import { formatCurrency } from '../utils/helpers';
 import { APPOINTMENT_STATUSES } from '../utils/constants';
@@ -218,8 +219,12 @@ function SectionHead({ title, sub, action }) {
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { getTodayAppointments, getTodayMetrics, updateAppointmentStatus, appointments, payments, patients, invoices, treatments } = useClinicData();
+  const { user } = useAuth();
   const { notify } = useNotification();
   const navigate = useNavigate();
+
+  // Greet by first name ("Dr. Hamza Zahid" → "Dr. Hamza"); fall back gracefully.
+  const firstName = user?.name ? user.name.split(' ').slice(0, 2).join(' ') : 'Doctor';
 
   const todayAppts = useMemo(() => getTodayAppointments(), [getTodayAppointments]);
   const metrics    = useMemo(() => getTodayMetrics(),       [getTodayMetrics]);
@@ -344,7 +349,7 @@ export default function Dashboard() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography sx={{ fontWeight: 800, fontSize: '1.35rem', color: colors.textPrimary, letterSpacing: '-0.025em' }}>
-            {greeting()}, DentSuite 👋
+            {greeting()}, {firstName} 👋
           </Typography>
           <Typography sx={{ color: colors.textSecondary, fontSize: '0.85rem', mt: 0.25 }}>
             Here's what needs your attention today.
