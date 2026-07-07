@@ -292,7 +292,7 @@ export default function OnlineBooking() {
           <DialogContent sx={{ p: 3 }}>
             {formError && <Alert severity="error" sx={{ mb: 2, borderRadius: '8px' }}>{formError}</Alert>}
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}><TextField label="Full Name *" name="patientName" value={form.patientName} onChange={handleChange} fullWidth required /></Grid>
+              <Grid item xs={12} sm={6}><TextField label="Full Name" name="patientName" value={form.patientName} onChange={handleChange} fullWidth required /></Grid>
               <Grid item xs={12} sm={6}><TextField label="Phone" name="phone" value={form.phone} onChange={handleChange} fullWidth /></Grid>
               <Grid item xs={12} sm={6}><TextField label="Email" name="email" type="email" value={form.email} onChange={handleChange} fullWidth /></Grid>
               <Grid item xs={12} sm={6}>

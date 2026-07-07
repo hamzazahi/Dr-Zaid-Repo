@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AppBar, Avatar, Badge, Box, Divider, IconButton,
@@ -43,6 +43,7 @@ const PAGE_TITLES = {
   '/imaging': 'Imaging',
   '/referrals': 'Referrals',
   '/marketing': 'Marketing',
+  '/messages': 'Messages',
   '/locations': 'Locations',
   '/staff': 'Staff',
   '/audit-log': 'Audit Log',
@@ -205,6 +206,11 @@ export default function Header({ onMenuClick }) {
 
   const [notifAnchor, setNotifAnchor] = useState(null);
   const [profileAnchor, setProfileAnchor] = useState(null);
+
+  // Keep the browser tab title in sync with the current page.
+  useEffect(() => {
+    document.title = `${getTitle(location.pathname)} · DentSuite`;
+  }, [location.pathname]);
 
   const overdue = invoices.filter((inv) => inv.balanceDue > 0 && new Date(inv.dueDate) < new Date());
   const initials = user?.initials || (user?.name ? user.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() : 'DR');

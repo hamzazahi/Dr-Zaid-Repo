@@ -114,7 +114,7 @@ export default function Treatments() {
           <Box component="form" onSubmit={handleSubmit} noValidate>
             <Grid container spacing={2}>
               <Grid item xs={12} md={3}>
-                <TextField select label="Patient *" value={form.patientId} onChange={(e) => handleChange('patientId', e.target.value)} fullWidth required error={Boolean(formError && !form.patientId)}>
+                <TextField select label="Patient" value={form.patientId} onChange={(e) => handleChange('patientId', e.target.value)} fullWidth required error={Boolean(formError && !form.patientId)}>
                   {patients.map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
                 </TextField>
               </Grid>

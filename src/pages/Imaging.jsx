@@ -38,6 +38,7 @@ import { useClinicData } from '../hooks/useClinicData';
 import { useNotification } from '../hooks/useNotification';
 import { formatDate } from '../utils/helpers';
 import { TOOTH_NUMBERS } from '../utils/constants';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 import { colors } from '../theme/theme';
 
 const IMAGING_TYPES = ['Periapical X-Ray', 'Bitewing X-Ray', 'Panoramic (OPG)', 'Cephalometric', 'CBCT Scan', 'Intraoral Photo'];
@@ -85,6 +86,7 @@ export default function Imaging() {
   const [formError, setFormError] = useState('');
   const [q, setQ] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
+  const [confirmTarget, setConfirmTarget] = useState(null);
 
   const thisMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
 
@@ -234,7 +236,7 @@ export default function Imaging() {
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Delete record">
-                          <IconButton size="small" onClick={() => handleDelete(r)} sx={{ color: colors.textLight, '&:hover': { color: colors.error } }}>
+                          <IconButton size="small" onClick={() => setConfirmTarget(r)} sx={{ color: colors.textLight, '&:hover': { color: colors.error } }}>
                             <DeleteIcon sx={{ fontSize: 17 }} />
                           </IconButton>
                         </Tooltip>
@@ -293,7 +295,7 @@ export default function Imaging() {
             {formError && <Alert severity="error" sx={{ mb: 2, borderRadius: '8px' }}>{formError}</Alert>}
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
-                <TextField select label="Patient *" name="patientId" value={form.patientId} onChange={handleChange} fullWidth required>
+                <TextField select label="Patient" name="patientId" value={form.patientId} onChange={handleChange} fullWidth required>
                   {patients.map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
                 </TextField>
               </Grid>
@@ -309,7 +311,7 @@ export default function Imaging() {
                 </TextField>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField select label="Captured By *" name="takenBy" value={form.takenBy} onChange={handleChange} fullWidth required>
+                <TextField select label="Captured By" name="takenBy" value={form.takenBy} onChange={handleChange} fullWidth required>
                   {dentists.map((d) => <MenuItem key={d.id} value={d.name}>{d.name}</MenuItem>)}
                 </TextField>
               </Grid>
@@ -328,6 +330,14 @@ export default function Imaging() {
           </DialogActions>
         </form>
       </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(confirmTarget)}
+        title="Delete this imaging record?"
+        message={confirmTarget ? `${confirmTarget.type} for ${confirmTarget.patientName} will be permanently removed.` : ''}
+        onConfirm={() => handleDelete(confirmTarget)}
+        onClose={() => setConfirmTarget(null)}
+      />
     </Box>
   );
 }

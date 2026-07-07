@@ -278,7 +278,7 @@ export default function TreatmentPlans() {
             {formError && <Alert severity="error" sx={{ mb: 2, borderRadius: '8px' }}>{formError}</Alert>}
             <Grid container spacing={2} sx={{ mb: 1 }}>
               <Grid item xs={12} sm={5}>
-                <TextField select label="Patient *" value={form.patientId} onChange={(e) => { setForm((p) => ({ ...p, patientId: e.target.value })); setFormError(''); }} fullWidth required>
+                <TextField select label="Patient" value={form.patientId} onChange={(e) => { setForm((p) => ({ ...p, patientId: e.target.value })); setFormError(''); }} fullWidth required>
                   {patients.map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
                 </TextField>
               </Grid>

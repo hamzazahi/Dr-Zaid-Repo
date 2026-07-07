@@ -274,14 +274,14 @@ export default function Referrals() {
                 </TextField>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField select label="Patient *" name="patientId" value={form.patientId} onChange={handleChange} fullWidth required>
+                <TextField select label="Patient" name="patientId" value={form.patientId} onChange={handleChange} fullWidth required>
                   {form.direction === 'Inbound' && <MenuItem value={NOT_REGISTERED}>— Not registered yet —</MenuItem>}
                   {patients.map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
                 </TextField>
               </Grid>
               {form.patientId === NOT_REGISTERED && (
                 <Grid item xs={12}>
-                  <TextField label="Patient Name *" name="patientName" value={form.patientName} onChange={handleChange} fullWidth required placeholder="Name of the incoming patient" />
+                  <TextField label="Patient Name" name="patientName" value={form.patientName} onChange={handleChange} fullWidth required placeholder="Name of the incoming patient" />
                 </Grid>
               )}
               <Grid item xs={12} sm={6}>
@@ -296,7 +296,7 @@ export default function Referrals() {
                 </TextField>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField label="Reason for Referral *" name="reason" value={form.reason} onChange={handleChange} fullWidth required />
+                <TextField label="Reason for Referral" name="reason" value={form.reason} onChange={handleChange} fullWidth required />
               </Grid>
               <Grid item xs={12}>
                 <TextField label="Notes" name="notes" value={form.notes} onChange={handleChange} fullWidth multiline rows={2} placeholder="Additional context, urgency, attached reports…" />

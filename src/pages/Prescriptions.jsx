@@ -192,7 +192,7 @@ export default function Prescriptions() {
             )}
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
-                <TextField select label="Patient *" name="patientId" value={form.patientId} onChange={handleChange} fullWidth required>
+                <TextField select label="Patient" name="patientId" value={form.patientId} onChange={handleChange} fullWidth required>
                   {patients.map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
                 </TextField>
               </Grid>
@@ -202,10 +202,10 @@ export default function Prescriptions() {
                 </TextField>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField label="Medication Name *" name="medication" value={form.medication} onChange={handleChange} fullWidth required />
+                <TextField label="Medication Name" name="medication" value={form.medication} onChange={handleChange} fullWidth required />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField label="Dosage *" name="dosage" value={form.dosage} onChange={handleChange} placeholder="e.g. 500mg" fullWidth required />
+                <TextField label="Dosage" name="dosage" value={form.dosage} onChange={handleChange} placeholder="e.g. 500mg" fullWidth required />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField label="Frequency" name="frequency" value={form.frequency} onChange={handleChange} placeholder="e.g. Twice daily" fullWidth />

@@ -22,7 +22,8 @@ import {
   mockLocations,
   mockCampaigns,
   mockImagingRecords,
-  mockReferrals
+  mockReferrals,
+  mockConversations
 } from '../utils/mockData';
 import { recalcInvoice } from '../utils/billing';
 
@@ -134,6 +135,9 @@ export const ClinicProvider = ({ children }) => {
   // Referrals (Inbound/Outbound; Pending → Contacted → Scheduled → Completed; persisted).
   const [referrals, setReferrals] = useState(() => stored.referrals || mockReferrals);
 
+  // Two-way patient messaging (WhatsApp/SMS; sends simulated until gateway; persisted).
+  const [conversations, setConversations] = useState(() => stored.conversations || mockConversations);
+
   useEffect(() => {
     try {
       window.localStorage.setItem(
@@ -164,13 +168,14 @@ export const ClinicProvider = ({ children }) => {
           campaigns,
           imagingRecords,
           referrals,
+          conversations,
         })
       );
     } catch {
       // Storage full or unavailable (e.g. private mode). The app keeps working
       // from in-memory state; we just can't persist this change.
     }
-  }, [patients, appointments, treatments, invoices, payments, toothRecords, toothHistory, prescriptions, treatmentPlans, staff, labCases, recalls, documents, expenses, claims, bookingRequests, membershipPlans, memberships, formSubmissions, perioCharts, auditLog, locations, campaigns, imagingRecords, referrals]);
+  }, [patients, appointments, treatments, invoices, payments, toothRecords, toothHistory, prescriptions, treatmentPlans, staff, labCases, recalls, documents, expenses, claims, bookingRequests, membershipPlans, memberships, formSubmissions, perioCharts, auditLog, locations, campaigns, imagingRecords, referrals, conversations]);
 
   // Append an audit entry. User is read from the auth session at call time so
   // entries carry whoever is signed in. Stable identity ([]) — safe in deps.
@@ -531,7 +536,7 @@ export const ClinicProvider = ({ children }) => {
       type: data.type || '6-Month Checkup',
       dueDate: data.dueDate || '',
       status: 'Pending',
-      channel: 'Email',
+      channel: data.channel || 'WhatsApp',
       notes: data.notes?.trim() || '',
       lastReminderAt: null,
     };
@@ -920,6 +925,48 @@ export const ClinicProvider = ({ children }) => {
     setReferrals((prev) => prev.filter((r) => r.id !== id));
   }, []);
 
+  // ── Patient messaging (two-way inbox) ─────────────────────────────────────
+  const sendMessage = useCallback((conversationId, text) => {
+    const body = text?.trim();
+    if (!body) return;
+    setConversations((prev) => prev.map((c) =>
+      c.id === conversationId
+        ? { ...c, messages: [...c.messages, { id: uid('msg'), from: 'clinic', text: body, at: new Date().toISOString() }] }
+        : c
+    ));
+  }, []);
+
+  const markConversationRead = useCallback((conversationId) => {
+    setConversations((prev) => prev.map((c) => (c.id === conversationId ? { ...c, unread: false } : c)));
+  }, []);
+
+  // Start (or continue) a thread with a patient. If a conversation already
+  // exists for that patient, the message is appended there instead of
+  // creating a duplicate thread. Returns the conversation id.
+  const startConversation = useCallback(({ patientId, channel = 'WhatsApp', text }) => {
+    const body = text?.trim();
+    if (!patientId || !body) return null;
+    const existing = conversations.find((c) => c.patientId === patientId);
+    const message = { id: uid('msg'), from: 'clinic', text: body, at: new Date().toISOString() };
+    if (existing) {
+      setConversations((prev) => prev.map((c) =>
+        c.id === existing.id ? { ...c, channel, messages: [...c.messages, message] } : c
+      ));
+      return existing.id;
+    }
+    const patientObj = patients.find((p) => p.id === patientId);
+    const newConv = {
+      id: uid('conv'),
+      patientId,
+      patientName: patientObj?.name || 'Unknown',
+      channel,
+      unread: false,
+      messages: [message],
+    };
+    setConversations((prev) => [newConv, ...prev]);
+    return newConv.id;
+  }, [conversations, patients]);
+
   const getTodayAppointments = useCallback(() => {
     const todayStr = today();
     return appointments.filter((a) => a.date === todayStr);
@@ -1022,6 +1069,10 @@ export const ClinicProvider = ({ children }) => {
       addReferral,
       updateReferralStatus,
       deleteReferral,
+      conversations,
+      sendMessage,
+      markConversationRead,
+      startConversation,
       addPatient,
       updatePatient,
       addAppointment,
@@ -1050,6 +1101,7 @@ export const ClinicProvider = ({ children }) => {
       campaigns, addCampaign, sendCampaign, deleteCampaign,
       imagingRecords, addImagingRecord, deleteImagingRecord,
       referrals, addReferral, updateReferralStatus, deleteReferral,
+      conversations, sendMessage, markConversationRead, startConversation,
       addPatient, updatePatient,
       addAppointment, updateAppointmentStatus, assignDentist, addTreatment,
       addPayment, getTodayAppointments, getTodayMetrics,

@@ -34,6 +34,7 @@ import {
 import { useClinicData } from '../hooks/useClinicData';
 import { useNotification } from '../hooks/useNotification';
 import { formatCurrency, formatDate } from '../utils/helpers';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 import { colors } from '../theme/theme';
 
 const PAYERS = ['State Life Insurance', 'Jubilee Health', 'EFU Health', 'Adamjee Insurance', 'Pak-Qatar Takaful', 'TPL Insurance', 'Self-Pay / None'];
@@ -123,10 +124,16 @@ export default function Insurance() {
     notify(`Claim for ${menuClaim.patientName} marked ${status}.`, 'success');
     closeMenu();
   };
-  const removeClaim = () => {
-    deleteClaim(menuClaim.id);
-    notify('Claim deleted.', 'success');
+  // Capture the claim BEFORE closing the menu (closeMenu clears menuClaim),
+  // then delete only after the user confirms.
+  const [confirmTarget, setConfirmTarget] = useState(null);
+  const askRemoveClaim = () => {
+    setConfirmTarget(menuClaim);
     closeMenu();
+  };
+  const removeClaim = () => {
+    deleteClaim(confirmTarget.id);
+    notify('Claim deleted.', 'success');
   };
 
   const statCards = [
@@ -247,7 +254,7 @@ export default function Insurance() {
             Mark {s}
           </MenuItem>
         ))}
-        <MenuItem onClick={removeClaim} sx={{ fontSize: '0.85rem', color: colors.error, borderTop: `1px solid ${colors.borderLight}`, mt: 0.5 }}>Delete claim</MenuItem>
+        <MenuItem onClick={askRemoveClaim} sx={{ fontSize: '0.85rem', color: colors.error, borderTop: `1px solid ${colors.borderLight}`, mt: 0.5 }}>Delete claim</MenuItem>
       </Menu>
 
       {/* New claim dialog */}
@@ -261,7 +268,7 @@ export default function Insurance() {
             {formError && <Alert severity="error" sx={{ mb: 2, borderRadius: '8px' }}>{formError}</Alert>}
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
-                <TextField select label="Patient *" name="patientId" value={form.patientId} onChange={handleChange} fullWidth required>
+                <TextField select label="Patient" name="patientId" value={form.patientId} onChange={handleChange} fullWidth required>
                   {patients.map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
                 </TextField>
               </Grid>
@@ -278,7 +285,7 @@ export default function Insurance() {
                 <Box component="input" type="date" name="serviceDate" value={form.serviceDate} max={todayStr()} onChange={handleChange} sx={DATE_INPUT_SX} />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField label="Claimed Amount (PKR) *" name="claimedAmount" type="number" value={form.claimedAmount} onChange={handleChange} fullWidth required inputProps={{ min: 0 }} />
+                <TextField label="Claimed Amount (PKR)" name="claimedAmount" type="number" value={form.claimedAmount} onChange={handleChange} fullWidth required inputProps={{ min: 0 }} />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField select label="Status" name="status" value={form.status} onChange={handleChange} fullWidth>
@@ -299,6 +306,14 @@ export default function Insurance() {
           </DialogActions>
         </form>
       </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(confirmTarget)}
+        title="Delete this claim?"
+        message={confirmTarget ? `The ${confirmTarget.payer} claim for ${confirmTarget.patientName} (${formatCurrency(confirmTarget.claimedAmount)}) will be permanently removed.` : ''}
+        onConfirm={removeClaim}
+        onClose={() => setConfirmTarget(null)}
+      />
     </Box>
   );
 }

@@ -352,7 +352,7 @@ const Appointments = () => {
             {formError && <Alert severity="error" sx={{ borderRadius: '8px', py: 0.5 }}>{formError}</Alert>}
             <TextField
               select
-              label="Patient *"
+              label="Patient"
               name="patientId"
               value={formData.patientId}
               onChange={handleInputChange}
@@ -372,7 +372,7 @@ const Appointments = () => {
               {dentists.map((d) => <MenuItem key={d.id} value={d.id}>{d.name} — {d.specialty}</MenuItem>)}
             </TextField>
             <TextField
-              label="Date *"
+              label="Date"
               name="date"
               type="date"
               value={formData.date}

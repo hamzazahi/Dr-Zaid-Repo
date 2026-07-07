@@ -34,6 +34,7 @@ import {
 import { useClinicData } from '../hooks/useClinicData';
 import { useNotification } from '../hooks/useNotification';
 import { formatCurrency, formatDate } from '../utils/helpers';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 import { colors } from '../theme/theme';
 
 const CATEGORIES = ['Rent', 'Salaries', 'Supplies', 'Lab Fees', 'Utilities', 'Equipment', 'Marketing', 'Maintenance', 'Other'];
@@ -142,10 +143,16 @@ export default function Expenses() {
     notify(`Expense marked ${next}.`, 'success');
     closeMenu();
   };
-  const removeExpense = () => {
-    deleteExpense(menuExpense.id);
-    notify('Expense deleted.', 'success');
+  // Capture the expense BEFORE closing the menu (closeMenu clears menuExpense),
+  // then delete only after the user confirms.
+  const [confirmTarget, setConfirmTarget] = useState(null);
+  const askRemoveExpense = () => {
+    setConfirmTarget(menuExpense);
     closeMenu();
+  };
+  const removeExpense = () => {
+    deleteExpense(confirmTarget.id);
+    notify('Expense deleted.', 'success');
   };
 
   const statCards = [
@@ -271,7 +278,7 @@ export default function Expenses() {
         <MenuItem onClick={toggleStatus} sx={{ fontSize: '0.85rem' }}>
           Mark {menuExpense?.status === 'Paid' ? 'Pending' : 'Paid'}
         </MenuItem>
-        <MenuItem onClick={removeExpense} sx={{ fontSize: '0.85rem', color: colors.error }}>Delete</MenuItem>
+        <MenuItem onClick={askRemoveExpense} sx={{ fontSize: '0.85rem', color: colors.error }}>Delete</MenuItem>
       </Menu>
 
       {/* Add expense dialog */}
@@ -294,10 +301,10 @@ export default function Expenses() {
                 </TextField>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField label="Vendor / Payee *" name="vendor" value={form.vendor} onChange={handleChange} fullWidth required />
+                <TextField label="Vendor / Payee" name="vendor" value={form.vendor} onChange={handleChange} fullWidth required />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField label="Amount (PKR) *" name="amount" type="number" value={form.amount} onChange={handleChange} fullWidth required inputProps={{ min: 0 }} />
+                <TextField label="Amount (PKR)" name="amount" type="number" value={form.amount} onChange={handleChange} fullWidth required inputProps={{ min: 0 }} />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField select label="Payment Method" name="method" value={form.method} onChange={handleChange} fullWidth>
@@ -321,6 +328,14 @@ export default function Expenses() {
           </DialogActions>
         </form>
       </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(confirmTarget)}
+        title="Delete this expense?"
+        message={confirmTarget ? `${confirmTarget.description || confirmTarget.category} (${formatCurrency(confirmTarget.amount)}) will be permanently removed.` : ''}
+        onConfirm={removeExpense}
+        onClose={() => setConfirmTarget(null)}
+      />
     </Box>
   );
 }

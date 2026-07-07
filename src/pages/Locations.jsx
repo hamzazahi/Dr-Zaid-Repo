@@ -265,13 +265,13 @@ export default function Locations() {
             {formError && <Alert severity="error" sx={{ mb: 2, borderRadius: '8px' }}>{formError}</Alert>}
             <Grid container spacing={2}>
               <Grid item xs={12} sm={8}>
-                <TextField label="Location Name *" name="name" value={form.name} onChange={handleChange} fullWidth required placeholder="e.g. Clifton Branch" />
+                <TextField label="Location Name" name="name" value={form.name} onChange={handleChange} fullWidth required placeholder="e.g. Clifton Branch" />
               </Grid>
               <Grid item xs={12} sm={4}>
                 <TextField label="Chairs" name="chairs" type="number" value={form.chairs} onChange={handleChange} fullWidth inputProps={{ min: 1 }} />
               </Grid>
               <Grid item xs={12}>
-                <TextField label="Address *" name="address" value={form.address} onChange={handleChange} fullWidth required />
+                <TextField label="Address" name="address" value={form.address} onChange={handleChange} fullWidth required />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField label="Phone" name="phone" value={form.phone} onChange={handleChange} fullWidth />

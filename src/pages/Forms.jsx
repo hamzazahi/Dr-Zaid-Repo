@@ -38,6 +38,7 @@ import { useClinicData } from '../hooks/useClinicData';
 import { useNotification } from '../hooks/useNotification';
 import { formatDate } from '../utils/helpers';
 import { mockFormTemplates } from '../utils/mockData';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 import { colors } from '../theme/theme';
 
 const AVATAR_COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626', '#0D9488', '#DB2777'];
@@ -87,6 +88,7 @@ export default function Forms() {
 
   const [signSub, setSignSub] = useState(null);
   const [signature, setSignature] = useState('');
+  const [confirmTarget, setConfirmTarget] = useState(null);
 
   const stats = useMemo(() => ({
     total: formSubmissions.length,
@@ -258,7 +260,7 @@ export default function Forms() {
                         <Button size="small" variant="contained" startIcon={<SignIcon sx={{ fontSize: 14 }} />} onClick={() => openSign(s)} sx={{ fontWeight: 700, fontSize: '0.74rem', whiteSpace: 'nowrap', mr: 0.5 }}>Sign</Button>
                       )}
                       <Tooltip title="Delete">
-                        <IconButton size="small" onClick={() => { deleteFormSubmission(s.id); notify('Form removed.', 'success'); }}><DeleteIcon sx={{ fontSize: 18, color: colors.error }} /></IconButton>
+                        <IconButton size="small" onClick={() => setConfirmTarget(s)}><DeleteIcon sx={{ fontSize: 18, color: colors.error }} /></IconButton>
                       </Tooltip>
                     </TableCell>
                   </TableRow>
@@ -275,10 +277,10 @@ export default function Forms() {
         <form onSubmit={handleSend} noValidate>
           <DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {error && <Alert severity="error" sx={{ borderRadius: '8px' }}>{error}</Alert>}
-            <TextField select label="Patient *" value={sendForm.patientId} onChange={(e) => { setSendForm((p) => ({ ...p, patientId: e.target.value })); setError(''); }} fullWidth required>
+            <TextField select label="Patient" value={sendForm.patientId} onChange={(e) => { setSendForm((p) => ({ ...p, patientId: e.target.value })); setError(''); }} fullWidth required>
               {patients.map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
             </TextField>
-            <TextField select label="Form *" value={sendForm.templateId} onChange={(e) => { setSendForm((p) => ({ ...p, templateId: e.target.value })); setError(''); }} fullWidth required>
+            <TextField select label="Form" value={sendForm.templateId} onChange={(e) => { setSendForm((p) => ({ ...p, templateId: e.target.value })); setError(''); }} fullWidth required>
               {mockFormTemplates.map((t) => <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>)}
             </TextField>
           </DialogContent>
@@ -309,6 +311,14 @@ export default function Forms() {
           <Button onClick={doSign} variant="contained" disabled={!signature.trim()} startIcon={<SignIcon sx={{ fontSize: 16 }} />} sx={{ fontWeight: 700 }}>Sign &amp; Complete</Button>
         </DialogActions>
       </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(confirmTarget)}
+        title="Delete this form?"
+        message={confirmTarget ? `"${confirmTarget.templateName}" assigned to ${confirmTarget.patientName} will be permanently removed.` : ''}
+        onConfirm={() => { deleteFormSubmission(confirmTarget.id); notify('Form removed.', 'success'); }}
+        onClose={() => setConfirmTarget(null)}
+      />
     </Box>
   );
 }

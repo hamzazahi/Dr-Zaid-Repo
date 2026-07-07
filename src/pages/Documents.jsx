@@ -36,6 +36,7 @@ import {
 import { useClinicData } from '../hooks/useClinicData';
 import { useNotification } from '../hooks/useNotification';
 import { formatDate } from '../utils/helpers';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 import { colors } from '../theme/theme';
 
 const CATEGORIES = ['X-Ray', 'Scan/CBCT', 'Consent Form', 'Lab Report', 'Insurance', 'Clinical Photo', 'Prescription', 'Other'];
@@ -139,6 +140,8 @@ export default function Documents() {
     setFormError('');
     notify(`Document added to ${patient?.name}'s records.`, 'success');
   };
+
+  const [confirmTarget, setConfirmTarget] = useState(null);
 
   const handleDelete = (doc) => {
     deleteDocument(doc.id);
@@ -249,7 +252,7 @@ export default function Documents() {
                         <IconButton size="small" onClick={() => notify('File preview is not available in this demo build.', 'info')}><ViewIcon sx={{ fontSize: 18, color: colors.textSecondary }} /></IconButton>
                       </Tooltip>
                       <Tooltip title="Delete">
-                        <IconButton size="small" onClick={() => handleDelete(doc)}><DeleteIcon sx={{ fontSize: 18, color: colors.error }} /></IconButton>
+                        <IconButton size="small" onClick={() => setConfirmTarget(doc)}><DeleteIcon sx={{ fontSize: 18, color: colors.error }} /></IconButton>
                       </Tooltip>
                     </TableCell>
                   </TableRow>
@@ -289,7 +292,7 @@ export default function Documents() {
 
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
-                <TextField select label="Patient *" name="patientId" value={form.patientId} onChange={handleChange} fullWidth required>
+                <TextField select label="Patient" name="patientId" value={form.patientId} onChange={handleChange} fullWidth required>
                   {patients.map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
                 </TextField>
               </Grid>
@@ -299,7 +302,7 @@ export default function Documents() {
                 </TextField>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField label="Document Name *" name="name" value={form.name} onChange={handleChange} fullWidth required placeholder="e.g. Bitewing X-Ray.jpg" />
+                <TextField label="Document Name" name="name" value={form.name} onChange={handleChange} fullWidth required placeholder="e.g. Bitewing X-Ray.jpg" />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField label="Uploaded By" name="uploadedBy" value={form.uploadedBy} onChange={handleChange} fullWidth placeholder="e.g. Reception" />
@@ -315,6 +318,14 @@ export default function Documents() {
           </DialogActions>
         </form>
       </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(confirmTarget)}
+        title="Delete this document?"
+        message={confirmTarget ? `"${confirmTarget.name}" will be permanently removed.` : ''}
+        onConfirm={() => handleDelete(confirmTarget)}
+        onClose={() => setConfirmTarget(null)}
+      />
     </Box>
   );
 }

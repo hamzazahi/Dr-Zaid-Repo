@@ -269,7 +269,7 @@ export default function LabWork() {
             {formError && <Alert severity="error" sx={{ mb: 2, borderRadius: '8px' }}>{formError}</Alert>}
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
-                <TextField select label="Patient *" name="patientId" value={form.patientId} onChange={handleChange} fullWidth required>
+                <TextField select label="Patient" name="patientId" value={form.patientId} onChange={handleChange} fullWidth required>
                   {patients.map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
                 </TextField>
               </Grid>
@@ -291,10 +291,10 @@ export default function LabWork() {
                 </TextField>
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField label="Lab / Vendor *" name="labName" value={form.labName} onChange={handleChange} placeholder="e.g. Apex Dental Lab" fullWidth required />
+                <TextField label="Lab / Vendor" name="labName" value={form.labName} onChange={handleChange} placeholder="e.g. Apex Dental Lab" fullWidth required />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField label="Lab Cost (PKR) *" name="cost" type="number" value={form.cost} onChange={handleChange} fullWidth required inputProps={{ min: 0 }} />
+                <TextField label="Lab Cost (PKR)" name="cost" type="number" value={form.cost} onChange={handleChange} fullWidth required inputProps={{ min: 0 }} />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: colors.textSecondary, mb: 0.5 }}>Due Date</Typography>

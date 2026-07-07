@@ -234,11 +234,11 @@ export default function Inventory() {
           <DialogContent sx={{ p: 3 }}>
             {formError && <Alert severity="error" sx={{ mb: 2, borderRadius: '8px' }}>{formError}</Alert>}
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={8}><TextField label="Item Name *" name="name" value={form.name} onChange={handleChange} fullWidth required /></Grid>
+              <Grid item xs={12} sm={8}><TextField label="Item Name" name="name" value={form.name} onChange={handleChange} fullWidth required /></Grid>
               <Grid item xs={12} sm={4}><TextField label="SKU" name="sku" value={form.sku} onChange={handleChange} placeholder="e.g. AMAL-001" fullWidth /></Grid>
               <Grid item xs={12} sm={6}><TextField select label="Category" name="category" value={form.category} onChange={handleChange} fullWidth>{CATEGORIES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}</TextField></Grid>
               <Grid item xs={12} sm={6}><TextField label="Supplier" name="supplier" value={form.supplier} onChange={handleChange} fullWidth /></Grid>
-              <Grid item xs={12} sm={4}><TextField label="Quantity *" name="quantity" type="number" value={form.quantity} onChange={handleChange} fullWidth required inputProps={{ min: 0 }} /></Grid>
+              <Grid item xs={12} sm={4}><TextField label="Quantity" name="quantity" type="number" value={form.quantity} onChange={handleChange} fullWidth required inputProps={{ min: 0 }} /></Grid>
               <Grid item xs={12} sm={4}><TextField label="Min Level" name="minLevel" type="number" value={form.minLevel} onChange={handleChange} fullWidth inputProps={{ min: 0 }} /></Grid>
               <Grid item xs={12} sm={4}><TextField label="Unit" name="unit" value={form.unit} onChange={handleChange} placeholder="pcs, boxes…" fullWidth /></Grid>
               <Grid item xs={12} sm={6}><TextField label="Unit Price (PKR)" name="unitPrice" value={form.unitPrice} onChange={handleChange} type="number" fullWidth inputProps={{ min: 0 }} /></Grid>

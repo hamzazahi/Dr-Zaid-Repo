@@ -256,7 +256,7 @@ export default function Staff() {
           <DialogContent sx={{ p: 3 }}>
             {formError && <Alert severity="error" sx={{ mb: 2, borderRadius: '8px' }}>{formError}</Alert>}
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={7}><TextField label="Full Name *" name="name" value={form.name} onChange={handleChange} fullWidth required /></Grid>
+              <Grid item xs={12} sm={7}><TextField label="Full Name" name="name" value={form.name} onChange={handleChange} fullWidth required /></Grid>
               <Grid item xs={12} sm={5}>
                 <TextField select label="Role" name="role" value={form.role} onChange={handleChange} fullWidth>
                   {ROLES.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}

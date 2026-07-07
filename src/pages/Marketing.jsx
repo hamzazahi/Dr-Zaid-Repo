@@ -36,6 +36,7 @@ import {
 import { useClinicData } from '../hooks/useClinicData';
 import { useNotification } from '../hooks/useNotification';
 import { formatDate } from '../utils/helpers';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 import { colors } from '../theme/theme';
 
 const todayStr = () => new Date().toISOString().split('T')[0];
@@ -83,6 +84,7 @@ export default function Marketing() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState('');
   const [q, setQ] = useState('');
+  const [confirmTarget, setConfirmTarget] = useState(null);
 
   const segmentData = useMemo(() => ({ patients, recalls, memberships }), [patients, recalls, memberships]);
   const audienceSize = (segment) => (SEGMENT_BUILDERS[segment] || SEGMENT_BUILDERS['All Patients'])(segmentData).length;
@@ -252,7 +254,7 @@ export default function Marketing() {
                           </Tooltip>
                         )}
                         <Tooltip title="Delete campaign">
-                          <IconButton size="small" onClick={() => handleDelete(c)} sx={{ color: colors.textLight, '&:hover': { color: colors.error } }}>
+                          <IconButton size="small" onClick={() => setConfirmTarget(c)} sx={{ color: colors.textLight, '&:hover': { color: colors.error } }}>
                             <DeleteIcon sx={{ fontSize: 17 }} />
                           </IconButton>
                         </Tooltip>
@@ -277,7 +279,7 @@ export default function Marketing() {
             {formError && <Alert severity="error" sx={{ mb: 2, borderRadius: '8px' }}>{formError}</Alert>}
             <Grid container spacing={2}>
               <Grid item xs={12} sm={7}>
-                <TextField label="Campaign Name *" name="name" value={form.name} onChange={handleChange} fullWidth required placeholder="e.g. Summer Whitening Offer" />
+                <TextField label="Campaign Name" name="name" value={form.name} onChange={handleChange} fullWidth required placeholder="e.g. Summer Whitening Offer" />
               </Grid>
               <Grid item xs={12} sm={5}>
                 <TextField select label="Audience Segment" name="segment" value={form.segment} onChange={handleChange} fullWidth>
@@ -287,7 +289,7 @@ export default function Marketing() {
                 </TextField>
               </Grid>
               <Grid item xs={12}>
-                <TextField label="Email Subject *" name="subject" value={form.subject} onChange={handleChange} fullWidth required />
+                <TextField label="Email Subject" name="subject" value={form.subject} onChange={handleChange} fullWidth required />
               </Grid>
               <Grid item xs={12}>
                 <TextField label="Email Body" name="body" value={form.body} onChange={handleChange} fullWidth multiline rows={4} placeholder="Write the campaign message…" />
@@ -305,6 +307,14 @@ export default function Marketing() {
           </DialogActions>
         </form>
       </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(confirmTarget)}
+        title="Delete this campaign?"
+        message={confirmTarget ? `"${confirmTarget.name}" will be permanently removed.` : ''}
+        onConfirm={() => handleDelete(confirmTarget)}
+        onClose={() => setConfirmTarget(null)}
+      />
     </Box>
   );
 }

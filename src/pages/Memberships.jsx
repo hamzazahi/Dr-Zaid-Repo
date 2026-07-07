@@ -274,10 +274,10 @@ export default function Memberships() {
         <form onSubmit={handleEnroll} noValidate>
           <DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {error && <Alert severity="error" sx={{ borderRadius: '8px' }}>{error}</Alert>}
-            <TextField select label="Patient *" value={enroll.patientId} onChange={(e) => { setEnroll((p) => ({ ...p, patientId: e.target.value })); setError(''); }} fullWidth required>
+            <TextField select label="Patient" value={enroll.patientId} onChange={(e) => { setEnroll((p) => ({ ...p, patientId: e.target.value })); setError(''); }} fullWidth required>
               {patients.map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
             </TextField>
-            <TextField select label="Plan *" value={enroll.planId} onChange={(e) => { setEnroll((p) => ({ ...p, planId: e.target.value })); setError(''); }} fullWidth required>
+            <TextField select label="Plan" value={enroll.planId} onChange={(e) => { setEnroll((p) => ({ ...p, planId: e.target.value })); setError(''); }} fullWidth required>
               {membershipPlans.map((p) => <MenuItem key={p.id} value={p.id}>{p.name} — {formatCurrency(p.price)}/{p.cycle === 'Annual' ? 'yr' : 'mo'}</MenuItem>)}
             </TextField>
             <Box>
@@ -299,8 +299,8 @@ export default function Memberships() {
           <DialogContent sx={{ p: 3 }}>
             {error && <Alert severity="error" sx={{ mb: 2, borderRadius: '8px' }}>{error}</Alert>}
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}><TextField label="Plan Name *" value={plan.name} onChange={(e) => { setPlan((p) => ({ ...p, name: e.target.value })); setError(''); }} fullWidth required /></Grid>
-              <Grid item xs={12} sm={6}><TextField label="Price (PKR) *" type="number" value={plan.price} onChange={(e) => { setPlan((p) => ({ ...p, price: e.target.value })); setError(''); }} fullWidth required inputProps={{ min: 0 }} /></Grid>
+              <Grid item xs={12} sm={6}><TextField label="Plan Name" value={plan.name} onChange={(e) => { setPlan((p) => ({ ...p, name: e.target.value })); setError(''); }} fullWidth required /></Grid>
+              <Grid item xs={12} sm={6}><TextField label="Price (PKR)" type="number" value={plan.price} onChange={(e) => { setPlan((p) => ({ ...p, price: e.target.value })); setError(''); }} fullWidth required inputProps={{ min: 0 }} /></Grid>
               <Grid item xs={12} sm={6}>
                 <TextField select label="Billing Cycle" value={plan.cycle} onChange={(e) => setPlan((p) => ({ ...p, cycle: e.target.value }))} fullWidth>
                   <MenuItem value="Annual">Annual</MenuItem>

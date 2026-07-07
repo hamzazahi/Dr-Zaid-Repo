@@ -737,6 +737,32 @@ export const mockImagingRecords = [
   { id: 'img-5', patientId: 'pat-5', patientName: 'Bilal Khan', type: 'Intraoral Photo', toothNumber: '24', date: getRelativeDateString(0), takenBy: 'Dr. Hamza Zahid', notes: 'Post-restoration photo of composite on #24.' },
 ];
 
+// Two-way patient messaging (WhatsApp/SMS). Frontend-only: sends are simulated
+// until a messaging gateway is connected in the backend phase.
+export const mockConversations = [
+  {
+    id: 'conv-1', patientId: 'pat-1', patientName: 'Muhammad Ali', channel: 'WhatsApp', unread: true,
+    messages: [
+      { id: 'msg-1', from: 'clinic', text: 'Salaam Muhammad, a reminder of your root canal follow-up tomorrow at 9:30 AM with Dr. Hamza.', at: `${getRelativeDateString(-1)}T10:02:00` },
+      { id: 'msg-2', from: 'patient', text: 'Thank you, I will be there inshAllah.', at: `${getRelativeDateString(-1)}T10:15:00` },
+      { id: 'msg-3', from: 'patient', text: 'Is it okay if I come 15 minutes late? Traffic on Shahrah-e-Faisal.', at: `${getRelativeDateString(0)}T08:40:00` },
+    ],
+  },
+  {
+    id: 'conv-2', patientId: 'pat-6', patientName: 'Sana Malik', channel: 'SMS', unread: false,
+    messages: [
+      { id: 'msg-4', from: 'clinic', text: 'Hello Sana, we missed you at your extraction appointment today. Reply here or call us to reschedule.', at: `${getRelativeDateString(0)}T17:05:00` },
+    ],
+  },
+  {
+    id: 'conv-3', patientId: 'pat-2', patientName: 'Ayesha Siddiqua', channel: 'WhatsApp', unread: false,
+    messages: [
+      { id: 'msg-5', from: 'patient', text: 'Do you offer teeth whitening? What is the price?', at: `${getRelativeDateString(-2)}T14:20:00` },
+      { id: 'msg-6', from: 'clinic', text: 'Yes! In-clinic whitening is Rs 8,000. Would you like to book a slot this week?', at: `${getRelativeDateString(-2)}T14:32:00` },
+    ],
+  },
+];
+
 // Patient referrals. Outbound = we refer a patient to a specialist; Inbound =
 // another provider sends a patient to us. Pending → Contacted → Scheduled →
 // Completed (or Cancelled). Inbound referrals may arrive before the patient is
