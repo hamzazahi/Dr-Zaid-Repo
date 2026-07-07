@@ -1,16 +1,22 @@
 import { useState } from 'react';
 import { Box, ButtonBase, Stack, Typography } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
+import {
+  Visibility,
+  VisibilityOff,
+  CalendarMonth as ScheduleIcon,
+  MedicalServices as ClinicalIcon,
+  ReceiptLong as BillingIcon,
+  Insights as ReportsIcon,
+} from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 
 const ACCENT = '#0F4C81';
 const ACCENT_HOVER = '#0A3254';
+const PANEL_BG = '#0A1628'; // same navy as the app sidebar — sign-in flows into the app
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const COLORS = {
-  bg: '#F4F6FA',
-  card: '#FFFFFF',
-  cardBorder: '#E5E9F0',
+  bg: '#FFFFFF',
   text: '#0F172A',
   textMuted: '#5A6577',
   textFaint: '#94A0B0',
@@ -38,10 +44,20 @@ const KEYFRAMES = `
     top:7px; transform:none; font-size:11px; font-weight:600; letter-spacing:.02em; }
 `;
 
-function Logo({ size = 36 }) {
+// Real product capabilities — no invented stats or testimonials.
+const CAPABILITIES = [
+  { icon: <ScheduleIcon sx={{ fontSize: 17 }} />, title: 'Front desk', desc: 'Scheduling, recalls, online booking & patient messaging' },
+  { icon: <ClinicalIcon sx={{ fontSize: 17 }} />, title: 'Clinical', desc: 'Dental & perio charting, treatment plans, imaging & e-prescriptions' },
+  { icon: <BillingIcon sx={{ fontSize: 17 }} />, title: 'Billing', desc: 'Invoices, payment tracking, insurance claims & expenses' },
+  { icon: <ReportsIcon sx={{ fontSize: 17 }} />, title: 'Insight', desc: 'Daily to quarterly reports with PDF & CSV export' },
+];
+
+function Logo({ size = 36, light = false }) {
   return (
     <Box sx={{
-      width: size, height: size, borderRadius: '9px', flexShrink: 0, bgcolor: ACCENT,
+      width: size, height: size, borderRadius: '9px', flexShrink: 0,
+      bgcolor: light ? 'rgba(255,255,255,0.1)' : ACCENT,
+      border: light ? '1px solid rgba(255,255,255,0.14)' : 'none',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <svg width={size * 0.5} height={size * 0.5} viewBox="0 0 24 24" fill="none">
@@ -154,109 +170,150 @@ export default function SignIn() {
     <>
       <style>{KEYFRAMES}</style>
 
-      <Box sx={{
-        minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        bgcolor: COLORS.bg, p: '24px 16px',
-        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
-      }}>
-        {/* Brand */}
-        <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mb: 3, animation: 'si-fadeUp .4s ease both' }}>
-          <Logo size={34} />
-          <Typography sx={{ fontWeight: 700, fontSize: '1.15rem', letterSpacing: '-0.02em', color: COLORS.text }}>
-            DentSuite
-          </Typography>
-        </Stack>
+      <Box sx={{ minHeight: '100vh', display: 'flex', fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif' }}>
 
-        {/* Card */}
-        <Box
-          component="form"
-          onSubmit={handleSubmit}
-          noValidate
-          onAnimationEnd={() => setShaking(false)}
-          sx={{
-            width: '100%', maxWidth: 392,
-            bgcolor: COLORS.card, border: `1px solid ${COLORS.cardBorder}`, borderRadius: '12px',
-            p: { xs: '24px 20px', sm: '32px' },
-            boxShadow: '0 1px 3px rgba(15,23,42,0.06), 0 8px 24px -12px rgba(15,23,42,0.10)',
-            animation: shaking ? 'si-shake .4s ease' : 'si-fadeUp .4s ease both',
-          }}
-        >
-          <Typography sx={{ fontWeight: 700, fontSize: '1.2rem', letterSpacing: '-0.02em', color: COLORS.text, mb: 0.5 }}>
-            Sign in
-          </Typography>
-          <Typography sx={{ color: COLORS.textMuted, fontSize: '0.85rem', mb: 3 }}>
-            Use your clinic account to continue.
-          </Typography>
-
-          {(error || info) && (
-            <Box sx={{
-              display: 'flex', alignItems: 'flex-start', gap: 1, mb: 2.5, px: 1.5, py: 1.25, borderRadius: '8px',
-              bgcolor: error ? COLORS.errorBg : '#EAF2FB',
-              border: `1px solid ${error ? COLORS.errorBorder : '#C3DCF3'}`,
-            }}>
-              <Box sx={{ mt: '1px', flexShrink: 0, color: error ? '#DC2626' : ACCENT, display: 'flex' }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" /></svg>
-              </Box>
-              <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, color: error ? COLORS.error : '#0A3254' }}>
-                {error || info}
-              </Typography>
-            </Box>
-          )}
-
-          <Stack spacing={0.5}>
-            <Field id="email" label="Email address" type="email" autoComplete="email"
-              value={email} error={emailError}
-              onChange={(e) => { setEmail(e.target.value); clearBanners(); }} onBlur={() => setEmailTouched(true)} />
-            <Field id="password" label="Password" type={showPw ? 'text' : 'password'} autoComplete="current-password"
-              value={password} error={pwError}
-              onChange={(e) => { setPassword(e.target.value); clearBanners(); }} onBlur={() => setPwTouched(true)}
-              endAdornment={
-                <ButtonBase onClick={() => setShowPw((p) => !p)} tabIndex={-1} aria-label={showPw ? 'Hide password' : 'Show password'}
-                  sx={{ p: 1, borderRadius: '6px', color: COLORS.textMuted, '&:hover': { color: COLORS.text } }}>
-                  {showPw ? <VisibilityOff sx={{ fontSize: 18 }} /> : <Visibility sx={{ fontSize: 18 }} />}
-                </ButtonBase>
-              } />
+        {/* ── Brand panel (desktop only) — matches the app sidebar navy ── */}
+        <Box sx={{
+          display: { xs: 'none', md: 'flex' }, width: { md: '42%', lg: '40%' },
+          flexDirection: 'column', justifyContent: 'space-between',
+          p: { md: '44px 44px', lg: '52px 56px' },
+          bgcolor: PANEL_BG,
+          backgroundImage: 'radial-gradient(90% 60% at 0% 0%, rgba(21,101,168,0.16), transparent 60%)',
+        }}>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Logo size={38} light />
+            <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '1.1rem', letterSpacing: '-0.02em' }}>DentSuite</Typography>
           </Stack>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 0.5, mb: 2.5 }}>
-            <Box onClick={() => setRemember((r) => !r)} sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, cursor: 'pointer', userSelect: 'none' }}>
-              <Box sx={{
-                width: 17, height: 17, borderRadius: '4px', flexShrink: 0,
-                border: `1.5px solid ${remember ? ACCENT : COLORS.inputBorder}`, bgcolor: remember ? ACCENT : 'transparent',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .15s ease',
-              }}>
-                {remember && <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-              </Box>
-              <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, color: COLORS.textMuted }}>Remember me</Typography>
-            </Box>
-            <ButtonBase
-              onClick={() => { setError(''); setInfo('Password resets are handled by your clinic administrator.'); }}
-              sx={{ fontSize: '0.8rem', fontWeight: 600, color: ACCENT, fontFamily: 'inherit', borderRadius: '4px', '&:hover': { color: ACCENT_HOVER, textDecoration: 'underline' } }}
-            >
-              Forgot password?
-            </ButtonBase>
+          <Box sx={{ maxWidth: 400 }}>
+            <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: { md: '1.6rem', lg: '1.8rem' }, lineHeight: 1.25, letterSpacing: '-0.03em', mb: 1.5 }}>
+              Everything your practice runs on, in one place
+            </Typography>
+            <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.9rem', lineHeight: 1.65, mb: 4 }}>
+              Appointments, clinical records, billing and reporting — connected, so your team works from a single source of truth.
+            </Typography>
+
+            <Stack spacing={2.25}>
+              {CAPABILITIES.map(({ icon, title, desc }) => (
+                <Box key={title} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.75 }}>
+                  <Box sx={{
+                    width: 36, height: 36, borderRadius: '9px', flexShrink: 0,
+                    bgcolor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8FBADE',
+                  }}>
+                    {icon}
+                  </Box>
+                  <Box>
+                    <Typography sx={{ color: 'rgba(255,255,255,0.92)', fontSize: '0.82rem', fontWeight: 700 }}>{title}</Typography>
+                    <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', lineHeight: 1.5, mt: 0.25 }}>{desc}</Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Stack>
           </Box>
 
-          <ButtonBase type="submit" disabled={busy} sx={{
-            width: '100%', py: 1.5, borderRadius: '8px', fontFamily: 'inherit', fontSize: '0.9rem', fontWeight: 700, color: '#fff',
-            bgcolor: success ? '#15833F' : ACCENT,
-            transition: 'background-color .15s ease',
-            '&:hover': busy ? {} : { bgcolor: ACCENT_HOVER },
-            '&.Mui-disabled': { color: '#fff', opacity: 0.9 },
-          }}>
-            {success ? 'Signed in' : loading ? (
-              <Stack direction="row" alignItems="center" spacing={1.25}>
-                <Box sx={{ width: 15, height: 15, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', animation: 'si-spin .7s linear infinite' }} />
-                <span>Signing in…</span>
-              </Stack>
-            ) : 'Sign in'}
-          </ButtonBase>
+          <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.72rem' }}>
+            © {new Date().getFullYear()} DentSuite · Clinic Management System
+          </Typography>
         </Box>
 
-        {/* Footer */}
-        <Typography sx={{ mt: 3, fontSize: '0.75rem', color: COLORS.textFaint, textAlign: 'center' }}>
-          © {new Date().getFullYear()} DentSuite · Clinic Management System
-        </Typography>
+        {/* ── Form panel ── */}
+        <Box sx={{
+          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          bgcolor: COLORS.bg, p: { xs: '32px 20px', sm: '48px 40px' }, position: 'relative',
+        }}>
+          <Box
+            component="form"
+            onSubmit={handleSubmit}
+            noValidate
+            onAnimationEnd={() => setShaking(false)}
+            sx={{
+              width: '100%', maxWidth: 384,
+              animation: shaking ? 'si-shake .4s ease' : 'si-fadeUp .4s ease both',
+            }}
+          >
+            {/* Mobile brand (panel hidden below md) */}
+            <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mb: 4, display: { xs: 'flex', md: 'none' } }}>
+              <Logo size={34} />
+              <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', letterSpacing: '-0.02em', color: COLORS.text }}>DentSuite</Typography>
+            </Stack>
+
+            <Typography sx={{ fontWeight: 800, fontSize: '1.45rem', letterSpacing: '-0.025em', color: COLORS.text, mb: 0.5 }}>
+              Welcome back
+            </Typography>
+            <Typography sx={{ color: COLORS.textMuted, fontSize: '0.875rem', mb: 3.5 }}>
+              Sign in to your clinic workspace.
+            </Typography>
+
+            {(error || info) && (
+              <Box sx={{
+                display: 'flex', alignItems: 'flex-start', gap: 1, mb: 2.5, px: 1.5, py: 1.25, borderRadius: '8px',
+                bgcolor: error ? COLORS.errorBg : '#EAF2FB',
+                border: `1px solid ${error ? COLORS.errorBorder : '#C3DCF3'}`,
+              }}>
+                <Box sx={{ mt: '1px', flexShrink: 0, color: error ? '#DC2626' : ACCENT, display: 'flex' }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" /></svg>
+                </Box>
+                <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, color: error ? COLORS.error : '#0A3254' }}>
+                  {error || info}
+                </Typography>
+              </Box>
+            )}
+
+            <Stack spacing={0.5}>
+              <Field id="email" label="Email address" type="email" autoComplete="email"
+                value={email} error={emailError}
+                onChange={(e) => { setEmail(e.target.value); clearBanners(); }} onBlur={() => setEmailTouched(true)} />
+              <Field id="password" label="Password" type={showPw ? 'text' : 'password'} autoComplete="current-password"
+                value={password} error={pwError}
+                onChange={(e) => { setPassword(e.target.value); clearBanners(); }} onBlur={() => setPwTouched(true)}
+                endAdornment={
+                  <ButtonBase onClick={() => setShowPw((p) => !p)} tabIndex={-1} aria-label={showPw ? 'Hide password' : 'Show password'}
+                    sx={{ p: 1, borderRadius: '6px', color: COLORS.textMuted, '&:hover': { color: COLORS.text } }}>
+                    {showPw ? <VisibilityOff sx={{ fontSize: 18 }} /> : <Visibility sx={{ fontSize: 18 }} />}
+                  </ButtonBase>
+                } />
+            </Stack>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 0.5, mb: 3 }}>
+              <Box onClick={() => setRemember((r) => !r)} sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, cursor: 'pointer', userSelect: 'none' }}>
+                <Box sx={{
+                  width: 17, height: 17, borderRadius: '4px', flexShrink: 0,
+                  border: `1.5px solid ${remember ? ACCENT : COLORS.inputBorder}`, bgcolor: remember ? ACCENT : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .15s ease',
+                }}>
+                  {remember && <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                </Box>
+                <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, color: COLORS.textMuted }}>Remember me</Typography>
+              </Box>
+              <ButtonBase
+                onClick={() => { setError(''); setInfo('Password resets are handled by your clinic administrator.'); }}
+                sx={{ fontSize: '0.8rem', fontWeight: 600, color: ACCENT, fontFamily: 'inherit', borderRadius: '4px', '&:hover': { color: ACCENT_HOVER, textDecoration: 'underline' } }}
+              >
+                Forgot password?
+              </ButtonBase>
+            </Box>
+
+            <ButtonBase type="submit" disabled={busy} sx={{
+              width: '100%', py: 1.5, borderRadius: '8px', fontFamily: 'inherit', fontSize: '0.9rem', fontWeight: 700, color: '#fff',
+              bgcolor: success ? '#15833F' : ACCENT,
+              transition: 'background-color .15s ease',
+              '&:hover': busy ? {} : { bgcolor: ACCENT_HOVER },
+              '&.Mui-disabled': { color: '#fff', opacity: 0.9 },
+            }}>
+              {success ? 'Signed in' : loading ? (
+                <Stack direction="row" alignItems="center" spacing={1.25}>
+                  <Box sx={{ width: 15, height: 15, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', animation: 'si-spin .7s linear infinite' }} />
+                  <span>Signing in…</span>
+                </Stack>
+              ) : 'Sign in'}
+            </ButtonBase>
+
+            <Typography sx={{ mt: 3, fontSize: '0.75rem', color: COLORS.textFaint, textAlign: 'center', display: { xs: 'block', md: 'none' } }}>
+              © {new Date().getFullYear()} DentSuite · Clinic Management System
+            </Typography>
+          </Box>
+        </Box>
       </Box>
     </>
   );
