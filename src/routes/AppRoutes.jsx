@@ -30,6 +30,7 @@ const AuditLog = lazy(() => import('../pages/AuditLog'));
 const Locations = lazy(() => import('../pages/Locations'));
 const Marketing = lazy(() => import('../pages/Marketing'));
 const Messages = lazy(() => import('../pages/Messages'));
+const Assistant = lazy(() => import('../pages/Assistant'));
 const Imaging = lazy(() => import('../pages/Imaging'));
 const Referrals = lazy(() => import('../pages/Referrals'));
 
@@ -68,6 +69,7 @@ export default function AppRoutes() {
         <Route path="/referrals" element={<Referrals />} />
         <Route path="/marketing" element={<Marketing />} />
         <Route path="/messages" element={<Messages />} />
+        <Route path="/assistant" element={<Assistant />} />
         <Route path="/locations" element={<Locations />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/staff" element={<Staff />} />

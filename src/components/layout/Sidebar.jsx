@@ -38,6 +38,7 @@ import {
   SwapHoriz    as ReferralIcon,
   Campaign     as MarketingIcon,
   Forum        as MessagesIcon,
+  AutoAwesome  as AssistantIcon,
   Business     as LocationIcon,
   Settings     as SettingsIcon,
   Logout       as LogoutIcon,
@@ -55,6 +56,7 @@ const SECTIONS = [
     label: 'Overview',
     items: [
       { text: 'Dashboard',    path: '/',              icon: DashIcon    },
+      { text: 'DentIQ Assistant', path: '/assistant', icon: AssistantIcon },
       { text: 'Patients',     path: '/patients',      icon: PeopleIcon  },
       { text: 'Appointments', path: '/appointments',  icon: CalIcon     },
       { text: 'Recalls',      path: '/recalls',       icon: RecallIcon  },
