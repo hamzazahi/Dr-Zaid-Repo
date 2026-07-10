@@ -236,7 +236,7 @@ export default function Insurance() {
                     <TableCell align="right"><Typography sx={{ fontWeight: 700, color: c.approvedAmount > 0 ? colors.success : colors.textLight }}>{c.approvedAmount > 0 ? formatCurrency(c.approvedAmount) : '—'}</Typography></TableCell>
                     <TableCell><StatusPill status={c.status} /></TableCell>
                     <TableCell align="right">
-                      <IconButton size="small" onClick={(e) => openMenu(e, c)}><MoreIcon sx={{ fontSize: 18 }} /></IconButton>
+                      <IconButton size="small" aria-label="Open actions menu" onClick={(e) => openMenu(e, c)}><MoreIcon sx={{ fontSize: 18 }} /></IconButton>
                     </TableCell>
                   </TableRow>
                 ))

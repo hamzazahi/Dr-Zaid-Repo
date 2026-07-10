@@ -249,7 +249,7 @@ export default function Memberships() {
                       <TableCell align="right"><Typography variant="body2" fontWeight={600}>{formatCurrency(m.price)}</Typography></TableCell>
                       <TableCell><StatusPill status={m.effective} /></TableCell>
                       <TableCell align="right">
-                        <IconButton size="small" onClick={(e) => openMenu(e, m)}><MoreIcon sx={{ fontSize: 18 }} /></IconButton>
+                        <IconButton size="small" aria-label="Open actions menu" onClick={(e) => openMenu(e, m)}><MoreIcon sx={{ fontSize: 18 }} /></IconButton>
                       </TableCell>
                     </TableRow>
                   );

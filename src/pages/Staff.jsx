@@ -226,7 +226,7 @@ export default function Staff() {
                     <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{member.joinedDate ? formatDate(member.joinedDate) : '—'}</Typography></TableCell>
                     <TableCell><StatusPill status={member.status} /></TableCell>
                     <TableCell align="right">
-                      <IconButton size="small" onClick={(e) => openMenu(e, member)}><MoreIcon sx={{ fontSize: 18 }} /></IconButton>
+                      <IconButton size="small" aria-label="Open actions menu" onClick={(e) => openMenu(e, member)}><MoreIcon sx={{ fontSize: 18 }} /></IconButton>
                     </TableCell>
                   </TableRow>
                 ))

@@ -51,39 +51,48 @@ import { useAuth } from '../../hooks/useAuth';
 const W  = 256;   // expanded width  (px)
 const WC = 64;    // collapsed width (px)
 
+// Workflow-first navigation: the pinned section holds the screens staff open
+// every day (always visible, no header); everything else lives in collapsible
+// groups so it stays one click away without crowding the nav.
 const SECTIONS = [
   {
-    label: 'Overview',
+    label: null, pinned: true,
     items: [
       { text: 'Dashboard',    path: '/',              icon: DashIcon    },
       { text: 'DentIQ Assistant', path: '/assistant', icon: AssistantIcon },
       { text: 'Patients',     path: '/patients',      icon: PeopleIcon  },
       { text: 'Appointments', path: '/appointments',  icon: CalIcon     },
+      { text: 'Treatments',   path: '/treatments',    icon: TreatIcon   },
+      { text: 'Billing',      path: '/billing',       icon: BillingIcon },
+      { text: 'Messages',     path: '/messages',      icon: MessagesIcon },
+      { text: 'Reports',      path: '/reports',       icon: ReportsIcon },
+      { text: 'Settings',     path: '/settings',      icon: SettingsIcon },
+    ],
+  },
+  {
+    label: 'Engagement',
+    items: [
       { text: 'Recalls',      path: '/recalls',       icon: RecallIcon  },
       { text: 'Online Booking', path: '/online-booking', icon: BookingIcon },
-      { text: 'Messages',     path: '/messages',      icon: MessagesIcon },
       { text: 'Marketing',    path: '/marketing',     icon: MarketingIcon },
-      { text: 'Treatments',   path: '/treatments',    icon: TreatIcon   },
-      { text: 'Treatment Plans', path: '/treatment-plans', icon: PlanIcon },
     ],
   },
   {
     label: 'Clinical',
     items: [
+      { text: 'Treatment Plans', path: '/treatment-plans', icon: PlanIcon },
       { text: 'Prescriptions', path: '/prescriptions', icon: RxIcon  },
       { text: 'Lab Work',      path: '/lab-work',      icon: LabIcon },
+      { text: 'Imaging',       path: '/imaging',       icon: ImagingIcon },
+      { text: 'Perio Chart',   path: '/perio',         icon: PerioIcon },
       { text: 'Documents',     path: '/documents',     icon: DocsIcon },
       { text: 'Forms',         path: '/forms',         icon: FormsIcon },
-      { text: 'Perio Chart',   path: '/perio',         icon: PerioIcon },
-      { text: 'Imaging',       path: '/imaging',       icon: ImagingIcon },
       { text: 'Referrals',     path: '/referrals',     icon: ReferralIcon },
-      { text: 'Inventory',     path: '/inventory',     icon: InvIcon },
     ],
   },
   {
     label: 'Finance',
     items: [
-      { text: 'Billing',  path: '/billing',  icon: BillingIcon },
       { text: 'Payments', path: '/payments', icon: PayIcon     },
       { text: 'Expenses', path: '/expenses', icon: ExpenseIcon },
       { text: 'Insurance', path: '/insurance', icon: ClaimIcon },
@@ -91,13 +100,12 @@ const SECTIONS = [
     ],
   },
   {
-    label: 'System',
+    label: 'Administration',
     items: [
+      { text: 'Inventory', path: '/inventory', icon: InvIcon },
       { text: 'Locations', path: '/locations', icon: LocationIcon },
       { text: 'Staff',    path: '/staff',    icon: StaffIcon    },
       { text: 'Audit Log', path: '/audit-log', icon: AuditIcon  },
-      { text: 'Reports',  path: '/reports',  icon: ReportsIcon  },
-      { text: 'Settings', path: '/settings', icon: SettingsIcon },
     ],
   },
 ];
@@ -129,17 +137,21 @@ export default function Sidebar({ collapsed, onToggle, transition, isMobile = fa
   const isActivePath = (path) =>
     path === '/' ? location.pathname === '/' : location.pathname === path || location.pathname.startsWith(`${path}/`);
   const sectionHasActive = (section) => section.items.some((i) => isActivePath(i.path));
+  // Pinned section is always visible; named groups default closed unless they
+  // contain the active route (or the user explicitly toggled them).
   const isExpanded = (section) =>
-    sectionPrefs[section.label] !== undefined
-      ? sectionPrefs[section.label]
-      : section.label === 'Overview' || sectionHasActive(section);
+    section.pinned
+      ? true
+      : sectionPrefs[section.label] !== undefined
+        ? sectionPrefs[section.label]
+        : sectionHasActive(section);
 
   // Render-phase adjustment (React's sanctioned pattern): when navigation
   // lands on a route inside an explicitly-closed section, reopen that section
   // so the active item is never hidden.
   if (prevPath !== location.pathname) {
     setPrevPath(location.pathname);
-    const activeSection = SECTIONS.find(sectionHasActive);
+    const activeSection = SECTIONS.find((s) => !s.pinned && sectionHasActive(s));
     if (activeSection && sectionPrefs[activeSection.label] === false) {
       setSectionPrefs((prev) => ({ ...prev, [activeSection.label]: true }));
     }
@@ -307,9 +319,19 @@ export default function Sidebar({ collapsed, onToggle, transition, isMobile = fa
           // Icon-rail mode has no headers to click — always show every icon.
           if (collapsed) {
             return (
-              <Box key={section.label} sx={{ mb: 0.5 }}>
+              <Box key={section.label || 'pinned'} sx={{ mb: 0.5 }}>
                 <Box sx={{ height: 8 }} />
                 {items}
+              </Box>
+            );
+          }
+
+          // Pinned core workflows: no header, always visible, divider below.
+          if (section.pinned) {
+            return (
+              <Box key="pinned" sx={{ mb: 0.75 }}>
+                {items}
+                <Box sx={{ height: '1px', bgcolor: 'rgba(255,255,255,0.07)', mx: 2, mt: 1.25 }} />
               </Box>
             );
           }

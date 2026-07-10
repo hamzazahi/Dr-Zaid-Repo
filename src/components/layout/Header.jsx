@@ -16,6 +16,7 @@ import {
   CalendarMonth as ApptIcon,
   Receipt as InvIcon,
   Menu as HamburgerIcon,
+  Launch as PageIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { useClinicData } from '../../hooks/useClinicData';
@@ -70,6 +71,12 @@ function GlobalSearch() {
   const q = query.trim().toLowerCase();
 
   const results = q.length < 2 ? [] : [
+    // Command-palette behaviour: typing a module name jumps straight to it
+    // (same interaction Linear/Notion/Stripe ship on Cmd/Ctrl+K).
+    ...Object.entries(PAGE_TITLES)
+      .filter(([, title]) => title.toLowerCase().includes(q))
+      .slice(0, 3)
+      .map(([path, title]) => ({ type: 'Page', label: title, sub: `Jump to ${title}`, path, icon: <PageIcon sx={{ fontSize: 15 }} /> })),
     ...patients
       .filter((p) => p.name?.toLowerCase().includes(q) || p.phone?.includes(q))
       .slice(0, 3)
@@ -90,7 +97,7 @@ function GlobalSearch() {
     setOpen(false);
   };
 
-  const TYPE_COLOR = { Patient: '#2563EB', Appointment: '#7C3AED', Invoice: '#D97706' };
+  const TYPE_COLOR = { Page: '#0D9488', Patient: '#2563EB', Appointment: '#7C3AED', Invoice: '#D97706' };
 
   return (
     // Hidden on phones — the header keeps hamburger + title + actions; each
@@ -98,7 +105,7 @@ function GlobalSearch() {
     <Box sx={{ position: 'relative', flex: 1, maxWidth: 440, display: { xs: 'none', sm: 'block' } }}>
       <TextField
         inputRef={inputRef}
-        placeholder="Search patients, appointments, invoices…"
+        placeholder="Search patients, invoices, or jump to a page…"
         value={query}
         size="small"
         onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
@@ -146,7 +153,7 @@ function GlobalSearch() {
           overflow: 'hidden',
         }}>
           {/* Group by type */}
-          {['Patient', 'Appointment', 'Invoice'].map((type) => {
+          {['Page', 'Patient', 'Appointment', 'Invoice'].map((type) => {
             const group = results.filter((r) => r.type === type);
             if (!group.length) return null;
             return (

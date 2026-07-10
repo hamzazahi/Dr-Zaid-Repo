@@ -237,7 +237,7 @@ export default function LabWork() {
                       <TableCell align="right"><Typography variant="body2" fontWeight={600}>{formatCurrency(c.cost)}</Typography></TableCell>
                       <TableCell><StatusPill status={c.status} /></TableCell>
                       <TableCell align="right">
-                        <IconButton size="small" onClick={(e) => openMenu(e, c)}><MoreIcon sx={{ fontSize: 18 }} /></IconButton>
+                        <IconButton size="small" aria-label="Open actions menu" onClick={(e) => openMenu(e, c)}><MoreIcon sx={{ fontSize: 18 }} /></IconButton>
                       </TableCell>
                     </TableRow>
                   );

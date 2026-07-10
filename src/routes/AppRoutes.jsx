@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Box, CircularProgress } from '@mui/material';
+import { Box, Grid, Skeleton } from '@mui/material';
 
 // Route-level code splitting: each page becomes its own chunk and is only
 // fetched when its route is visited, keeping the initial bundle small.
@@ -34,10 +34,23 @@ const Assistant = lazy(() => import('../pages/Assistant'));
 const Imaging = lazy(() => import('../pages/Imaging'));
 const Referrals = lazy(() => import('../pages/Referrals'));
 
+// Page-shaped skeleton: mirrors the standard module layout (title, stat cards,
+// content card) so lazy-loaded routes feel instant instead of flashing a spinner.
 function RouteFallback() {
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 10 }}>
-      <CircularProgress size={32} />
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }} aria-busy="true" aria-label="Loading page">
+      <Box>
+        <Skeleton variant="text" width={220} height={34} />
+        <Skeleton variant="text" width={320} height={20} />
+      </Box>
+      <Grid container spacing={2}>
+        {[0, 1, 2, 3].map((i) => (
+          <Grid item xs={6} md={3} key={i}>
+            <Skeleton variant="rounded" height={84} sx={{ borderRadius: '12px' }} />
+          </Grid>
+        ))}
+      </Grid>
+      <Skeleton variant="rounded" height={320} sx={{ borderRadius: '12px' }} />
     </Box>
   );
 }

@@ -263,7 +263,7 @@ export default function Recalls() {
                               Book
                             </Button>
                           </Tooltip>
-                          <IconButton size="small" onClick={(e) => openMenu(e, r)}><MoreIcon sx={{ fontSize: 18 }} /></IconButton>
+                          <IconButton size="small" aria-label="Open actions menu" onClick={(e) => openMenu(e, r)}><MoreIcon sx={{ fontSize: 18 }} /></IconButton>
                         </Box>
                       </TableCell>
                     </TableRow>

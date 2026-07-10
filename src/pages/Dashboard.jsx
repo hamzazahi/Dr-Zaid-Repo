@@ -355,7 +355,15 @@ export default function Dashboard() {
             Here's what needs your attention today.
           </Typography>
         </Box>
+        {/* Quick actions — the receptionist's daily workflows, one click away */}
         <Stack direction="row" gap={1.25} flexWrap="wrap">
+          <Button
+            variant="outlined"
+            onClick={() => navigate('/billing')}
+            sx={{ borderRadius: '8px', fontWeight: 600, fontSize: '0.8rem', borderColor: colors.border, color: colors.textPrimary, '&:hover': { borderColor: colors.primary, color: colors.primary } }}
+          >
+            Collect Payment
+          </Button>
           <Button
             variant="outlined"
             startIcon={<BookIcon sx={{ fontSize: 16 }}/>}
@@ -608,7 +616,7 @@ export default function Dashboard() {
                             <Stack direction="row" alignItems="center" gap={0.25}>
                               <StatusBadge status={appt.status}/>
                               <Tooltip title="Change status">
-                                <IconButton size="small" onClick={(e) => openMenu(e, appt.id)} sx={{ color: colors.textLight }}>
+                                <IconButton size="small" aria-label="Open actions menu" onClick={(e) => openMenu(e, appt.id)} sx={{ color: colors.textLight }}>
                                   <MoreIcon sx={{ fontSize: 15 }}/>
                                 </IconButton>
                               </Tooltip>
