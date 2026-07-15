@@ -106,15 +106,20 @@ const Appointments = () => {
     if (formError) setFormError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.patientId) { setFormError('Please select a patient.'); return; }
     if (!formData.date) { setFormError('Please pick a date.'); return; }
-    const added = addAppointment(formData);
-    setOpenModal(false);
-    setFormData(EMPTY_FORM);
-    setFormError('');
-    notify(`Appointment booked for ${added.patientName} on ${formatDate(added.date)}.`, 'success');
+    try {
+      const added = await addAppointment(formData);
+      setOpenModal(false);
+      setFormData(EMPTY_FORM);
+      setFormError('');
+      notify(`Appointment booked for ${added.patientName} on ${formatDate(added.date)}.`, 'success');
+    } catch (err) {
+      console.error('Book appointment failed:', err);
+      setFormError('Could not save the appointment — please try again.');
+    }
   };
 
   const handleStatusChange = (status) => {

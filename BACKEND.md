@@ -1,0 +1,61 @@
+# DentSuite backend — Supabase setup
+
+The repo now contains everything the backend needs except your project keys.
+Three things only you can do (≈15 minutes):
+
+## 1 · Create the Supabase project
+1. Go to [supabase.com](https://supabase.com) → sign in → **New project**.
+2. Name: `dentsuite` (any region close to Pakistan, e.g. Mumbai `ap-south-1`).
+3. Save the **database password** somewhere safe.
+
+## 2 · Run the migrations + seed
+In the Supabase Dashboard → **SQL Editor** → New query, run these files
+from this repo **in order** (paste contents, Run):
+1. `supabase/migrations/0001_init.sql` — tables, billing trigger, reporting function
+2. `supabase/migrations/0002_rls.sql` — roles + row-level security
+3. `supabase/seed.sql` — development data
+
+**Verify the state machine:** Table Editor → `invoices` — you should see
+INV-2026-001 `Partially Paid` (6000/12000), INV-2026-002 `Paid`,
+INV-2026-003 `Unpaid`. The seed only inserted payments; the trigger set those.
+
+## 3 · Create the two staff logins
+Dashboard → **Authentication → Users → Add user** (check “Auto confirm”):
+- `admin@drzaiddental.com` (doctor)
+- `reception@drzaiddental.com` (receptionist)
+
+Then SQL Editor, run:
+```sql
+insert into profiles (id, name, role, initials)
+select id, 'Dr. Hamza Zahid', 'doctor', 'HZ'
+from auth.users where email = 'admin@drzaiddental.com';
+
+insert into profiles (id, name, role, initials)
+select id, 'Bilal Hussain', 'receptionist', 'BH'
+from auth.users where email = 'reception@drzaiddental.com';
+```
+
+## 4 · Connect the frontend
+Copy `.env.example` → `.env`, paste **Project URL** and **anon public key**
+from Dashboard → Project Settings → API. Restart `npm run dev`.
+
+That's it. Then tell Claude “keys are in” and Phase 2 begins: swapping
+AuthContext to Supabase Auth and migrating modules one by one
+(`src/services/patientService.js` is the pattern each module follows).
+
+## What's already in the repo
+| Piece | File |
+|---|---|
+| Supabase client (graceful when unconfigured) | `src/lib/supabase.js` |
+| Schema: 30 tables, FKs, CHECK constraints | `supabase/migrations/0001_init.sql` |
+| Billing state machine as DB triggers (overpayment impossible) | same file |
+| `period_summary()` reporting function (daily/weekly/monthly/quarterly) | same file |
+| Doctor/receptionist RLS permission matrix | `supabase/migrations/0002_rls.sql` |
+| Dev seed mirroring the mock data | `supabase/seed.sql` |
+| Services-layer pattern | `src/services/patientService.js` |
+
+## Security notes
+- Only the **anon** key goes in `.env` (safe in the browser — RLS is the lock).
+- Never commit `.env` (already gitignored) or use the `service_role` key client-side.
+- Receptionist logins physically cannot write clinical records or read expenses —
+  the database refuses, regardless of what any UI does.

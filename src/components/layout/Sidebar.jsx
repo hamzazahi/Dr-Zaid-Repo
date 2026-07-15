@@ -394,7 +394,7 @@ export default function Sidebar({ collapsed, onToggle, transition, isMobile = fa
         )}
 
         {/* User card — width 100% + overflow hidden prevents clipping beyond sidebar edge */}
-        <Tooltip title={collapsed ? `${user?.name || 'DentSuite'} · ${user?.role || 'Admin'}` : ''} placement="right">
+        <Tooltip title={collapsed ? `${user?.name || 'DentSuite'} · ${user?.roleLabel || user?.role || 'Admin'}` : ''} placement="right">
           <Box sx={{
             width: '100%',
             boxSizing: 'border-box',
@@ -426,7 +426,7 @@ export default function Sidebar({ collapsed, onToggle, transition, isMobile = fa
                   {user?.name || 'DentSuite'}
                 </Typography>
                 <Typography noWrap sx={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.66rem' }}>
-                  {user?.role || 'Administrator'}
+                  {user?.roleLabel || user?.role || 'Administrator'}
                 </Typography>
               </Box>
             )}

@@ -82,16 +82,21 @@ const Patients = () => {
     return errors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const errors = validate();
     if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
-    const created = addPatient(form);
-    setOpenModal(false);
-    setForm(EMPTY_FORM);
-    setFormErrors({});
-    notify(`Patient "${created.name}" registered successfully.`, 'success');
-    navigate(`/patients/${created.id}`);
+    try {
+      const created = await addPatient(form);
+      setOpenModal(false);
+      setForm(EMPTY_FORM);
+      setFormErrors({});
+      notify(`Patient "${created.name}" registered successfully.`, 'success');
+      navigate(`/patients/${created.id}`);
+    } catch (err) {
+      console.error('Register patient failed:', err);
+      notify('Could not save the patient — please try again.', 'error');
+    }
   };
 
   const handleClose = () => {

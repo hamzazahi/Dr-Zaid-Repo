@@ -119,7 +119,7 @@ function Field({ id, label, type, value, onChange, onBlur, onKeyEvent, error, au
 }
 
 export default function SignIn() {
-  const { signIn, verifyCredentials } = useAuth();
+  const { signIn } = useAuth();
 
   // Remember-email: initialise from the last "remembered" sign-in (lazy
   // initialisers — no effect needed, no cascading render).
@@ -160,7 +160,7 @@ export default function SignIn() {
     return null;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setEmailTouched(true);
     setPwTouched(true);
@@ -169,20 +169,19 @@ export default function SignIn() {
 
     clearBanners();
     setLoading(true);
-    setTimeout(() => {
-      if (!verifyCredentials(email.trim(), password)) {
-        setLoading(false);
-        setError('Incorrect email or password. Please try again.');
-        triggerShake();
-        return;
-      }
-      try {
-        if (remember) window.localStorage.setItem(REMEMBER_EMAIL_KEY, email.trim());
-        else window.localStorage.removeItem(REMEMBER_EMAIL_KEY);
-      } catch { /* storage unavailable */ }
-      setSuccess(true);
-      setTimeout(() => signIn({ email: email.trim(), password, keepSignedIn: remember }), 600);
-    }, 800);
+    // Real authentication (Supabase when configured, demo accounts otherwise).
+    const result = await signIn({ email: email.trim(), password, keepSignedIn: remember });
+    if (!result.ok) {
+      setLoading(false);
+      setError(result.error);
+      triggerShake();
+      return;
+    }
+    try {
+      if (remember) window.localStorage.setItem(REMEMBER_EMAIL_KEY, email.trim());
+      else window.localStorage.removeItem(REMEMBER_EMAIL_KEY);
+    } catch { /* storage unavailable */ }
+    setSuccess(true); // the auth state change swaps in the app shell
   };
 
   const busy = loading || success;

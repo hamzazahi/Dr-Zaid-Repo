@@ -349,7 +349,7 @@ export default function Header({ onMenuClick }) {
               <Typography sx={{ fontSize: '0.72rem', color: colors.textSecondary }}>{user?.email}</Typography>
               <Box sx={{ mt: 0.75, display: 'inline-flex', px: 0.75, py: 0.25, borderRadius: '4px', bgcolor: '#EFF6FF' }}>
                 <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#1D4ED8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  {user?.role || 'Admin'}
+                  {user?.roleLabel || user?.role || 'Admin'}
                 </Typography>
               </Box>
             </Box>

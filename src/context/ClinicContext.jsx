@@ -26,6 +26,13 @@ import {
   mockConversations
 } from '../utils/mockData';
 import { recalcInvoice } from '../utils/billing';
+import { useAuth } from '../hooks/useAuth';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { patientService } from '../services/patientService';
+import { staffService } from '../services/staffService';
+import { appointmentService } from '../services/appointmentService';
+import { treatmentService } from '../services/treatmentService';
+import { billingService } from '../services/billingService';
 
 const STORAGE_KEY = 'dental-clinic-app-data';
 
@@ -61,23 +68,59 @@ const readStored = () => {
 
 export const ClinicProvider = ({ children }) => {
   const stored = useMemo(() => readStored(), []);
+  const { isAuthenticated } = useAuth();
 
-  const [patients, setPatients] = useState(() => stored.patients || mockPatients);
-  const [appointments, setAppointments] = useState(() => stored.appointments || mockAppointments);
-  const [treatments, setTreatments] = useState(() => stored.treatments || mockTreatments);
+  // LIVE mode: the clinical core (patients, staff, appointments, treatments,
+  // invoices, payments) is served by Supabase — states start empty and fill
+  // from the database after sign-in. DEMO mode keeps localStorage + mocks.
+  const live = isSupabaseConfigured && isAuthenticated;
+  const [coreLoading, setCoreLoading] = useState(isSupabaseConfigured);
+
+  const [patients, setPatients] = useState(() => (isSupabaseConfigured ? [] : stored.patients || mockPatients));
+  const [appointments, setAppointments] = useState(() => (isSupabaseConfigured ? [] : stored.appointments || mockAppointments));
+  const [treatments, setTreatments] = useState(() => (isSupabaseConfigured ? [] : stored.treatments || mockTreatments));
   // Normalise every invoice through the billing state machine on load so
   // balanceDue / status / paymentPercentage are always derived from the
   // amounts — this self-heals any inconsistent persisted or seed data.
+  // (Live mode skips this: the database trigger is the source of truth.)
   const [invoices, setInvoices] = useState(() =>
-    (stored.invoices || mockInvoices).map((inv) => recalcInvoice(inv))
+    isSupabaseConfigured ? [] : (stored.invoices || mockInvoices).map((inv) => recalcInvoice(inv))
   );
-  const [payments, setPayments] = useState(() => stored.payments || mockPayments);
+  const [payments, setPayments] = useState(() => (isSupabaseConfigured ? [] : stored.payments || mockPayments));
 
   // Staff / team is the master list; dentists are derived from it so every
   // dentist dropdown (appointments, treatments, prescriptions, plans) reflects
   // the staff roster — single source of truth, no duplicated dentist data.
-  const [staff, setStaff] = useState(() => stored.staff || mockStaff);
+  const [staff, setStaff] = useState(() => (isSupabaseConfigured ? [] : stored.staff || mockStaff));
   const dentists = useMemo(() => staff.filter((s) => s.role === 'Dentist'), [staff]);
+
+  // Refetch any subset of the live core collections (all of them by default).
+  const reloadLive = useCallback(async (...keys) => {
+    const jobs = {
+      patients: async () => setPatients(await patientService.list()),
+      staff: async () => setStaff(await staffService.list()),
+      appointments: async () => setAppointments(await appointmentService.list()),
+      treatments: async () => setTreatments(await treatmentService.list()),
+      invoices: async () => setInvoices(await billingService.listInvoices()),
+      payments: async () => setPayments(await billingService.listPayments()),
+    };
+    const list = keys.length ? keys : Object.keys(jobs);
+    await Promise.all(list.map((k) => jobs[k]().catch((e) => console.error(`[live] reload ${k}:`, e.message))));
+  }, []);
+
+  // Initial load after sign-in + realtime sync: any change to a core table
+  // (this device or another) refetches that collection.
+  useEffect(() => {
+    if (!live) return undefined;
+    reloadLive().then(() => setCoreLoading(false));
+    const tables = ['patients', 'staff', 'appointments', 'treatments', 'invoices', 'payments'];
+    let channel = supabase.channel('core-sync');
+    tables.forEach((table) => {
+      channel = channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => reloadLive(table));
+    });
+    channel.subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [live, reloadLive]);
 
   // Dental charting (odontogram) state.
   // toothRecords: { [patientId]: { [toothNumber]: { status, surfaces, notes, updatedAt } } }
@@ -191,7 +234,13 @@ export const ClinicProvider = ({ children }) => {
     ].slice(0, MAX_HISTORY));
   }, []);
 
-  const addPatient = useCallback((patientData) => {
+  const addPatient = useCallback(async (patientData) => {
+    if (live) {
+      const created = await patientService.create(patientData);
+      setPatients((prev) => [created, ...prev]);
+      logAudit('Patients', 'Patient registered', created.name);
+      return created;
+    }
     const newPatient = {
       ...patientData,
       id: uid('pat'),
@@ -201,15 +250,28 @@ export const ClinicProvider = ({ children }) => {
     setPatients((prev) => [newPatient, ...prev]);
     logAudit('Patients', 'Patient registered', newPatient.name);
     return newPatient;
-  }, [logAudit]);
+  }, [live, logAudit]);
 
   const updatePatient = useCallback((patientId, updates) => {
+    // Optimistic local update either way; live mode persists behind it.
     setPatients((prev) =>
       prev.map((p) => (p.id === patientId ? { ...p, ...updates } : p))
     );
-  }, []);
+    if (live) {
+      patientService.update(patientId, updates).catch((e) => {
+        console.error('[live] updatePatient:', e.message);
+        reloadLive('patients');
+      });
+    }
+  }, [live, reloadLive]);
 
-  const addAppointment = useCallback((apptData) => {
+  const addAppointment = useCallback(async (apptData) => {
+    if (live) {
+      const created = await appointmentService.create(apptData);
+      setAppointments((prev) => [created, ...prev]);
+      logAudit('Appointments', 'Appointment scheduled', `${created.patientName} — ${created.type} with ${created.dentistName} on ${created.date}`);
+      return created;
+    }
     const patientObj = patients.find((p) => p.id === apptData.patientId);
     const dentistObj = dentists.find((d) => d.id === apptData.dentistId);
     const newAppt = {
@@ -222,13 +284,19 @@ export const ClinicProvider = ({ children }) => {
     setAppointments((prev) => [newAppt, ...prev]);
     logAudit('Appointments', 'Appointment scheduled', `${newAppt.patientName} — ${newAppt.type} with ${newAppt.dentistName} on ${newAppt.date}`);
     return newAppt;
-  }, [patients, dentists, logAudit]);
+  }, [live, patients, dentists, logAudit]);
 
   const updateAppointmentStatus = useCallback((apptId, status) => {
     setAppointments((prev) =>
       prev.map((a) => (a.id === apptId ? { ...a, status } : a))
     );
-  }, []);
+    if (live) {
+      appointmentService.updateStatus(apptId, status).catch((e) => {
+        console.error('[live] updateAppointmentStatus:', e.message);
+        reloadLive('appointments');
+      });
+    }
+  }, [live, reloadLive]);
 
   const assignDentist = useCallback((apptId, dentistId) => {
     const dentistObj = dentists.find((d) => d.id === dentistId);
@@ -238,9 +306,40 @@ export const ClinicProvider = ({ children }) => {
         a.id === apptId ? { ...a, dentistId, dentistName: dentistObj.name } : a
       )
     );
-  }, [dentists]);
+    if (live) {
+      appointmentService.assignDentist(apptId, dentistId).catch((e) => {
+        console.error('[live] assignDentist:', e.message);
+        reloadLive('appointments');
+      });
+    }
+  }, [live, dentists, reloadLive]);
 
   const addTreatment = useCallback((treatmentData) => {
+    if (live) {
+      // Fire-and-forget for callers; the database is the source of truth and
+      // the refetch below brings every derived record (invoice, patient
+      // status) back in one consistent snapshot.
+      return (async () => {
+        try {
+          const created = await treatmentService.create(treatmentData);
+          await billingService.createInvoice({
+            patientId: treatmentData.patientId,
+            totalAmount: Number(treatmentData.cost),
+            dueDays: 10,
+          });
+          const pat = patients.find((p) => p.id === treatmentData.patientId);
+          if (pat && pat.status !== 'Pending Payment') {
+            await patientService.update(pat.id, { status: 'Pending Payment' });
+          }
+          await reloadLive('treatments', 'invoices', 'patients');
+          logAudit('Treatments', 'Treatment logged', `${created.patientName} — ${created.type} (tooth ${created.toothNumber}), invoice generated`);
+          return created;
+        } catch (e) {
+          console.error('[live] addTreatment:', e.message);
+          return null;
+        }
+      })();
+    }
     const patientObj = patients.find((p) => p.id === treatmentData.patientId);
     const now = new Date();
     const newTreatment = {
@@ -279,9 +378,32 @@ export const ClinicProvider = ({ children }) => {
 
     logAudit('Treatments', 'Treatment logged', `${newTreatment.patientName} — ${newTreatment.type} (tooth ${newTreatment.toothNumber}), invoice ${newInvoice.invoiceNumber} generated`);
     return newTreatment;
-  }, [patients, logAudit]);
+  }, [live, patients, reloadLive, logAudit]);
 
   const addPayment = useCallback((paymentData) => {
+    if (live) {
+      // The Postgres trigger recalculates the invoice (and refuses
+      // overpayment); we insert, then refetch the consistent result.
+      return (async () => {
+        try {
+          const payment = await billingService.addPayment(paymentData);
+          const inv = await billingService.getInvoice(paymentData.invoiceId);
+          if (inv.balanceDue <= 0) {
+            const pat = patients.find((p) => p.id === inv.patientId);
+            if (pat?.status === 'Pending Payment') {
+              await patientService.update(inv.patientId, { status: 'Active' });
+            }
+          }
+          await reloadLive('invoices', 'payments', 'patients');
+          logAudit('Billing', 'Payment recorded', `Rs ${Number(paymentData.amount).toLocaleString()} from ${inv.patientName} (${paymentData.method || 'Cash'})`);
+          return payment;
+        } catch (e) {
+          console.error('[live] addPayment:', e.message);
+          await reloadLive('invoices', 'payments');
+          return null;
+        }
+      })();
+    }
     // Resolve the target invoice up front so payment metadata and the
     // patient-status decision are based on real values — not on flags mutated
     // inside a setState updater (those run during commit, after this function
@@ -329,7 +451,7 @@ export const ClinicProvider = ({ children }) => {
 
     logAudit('Billing', 'Payment recorded', `Rs ${amount.toLocaleString()} from ${newPayment.patientName} (${newPayment.method || 'Cash'})`);
     return newPayment;
-  }, [invoices, logAudit]);
+  }, [live, patients, invoices, reloadLive, logAudit]);
 
   // Chart a single tooth. Records the change and appends an audit entry.
   // surfaces is a compact string of surface letters (e.g. "MOD"); the caller
@@ -431,6 +553,24 @@ export const ClinicProvider = ({ children }) => {
     // First acceptance bills the whole plan as a single invoice (routed through
     // the billing state machine — never hand-set balance/status).
     if (status === 'Accepted' && !plan.invoiceId) {
+      if (live) {
+        (async () => {
+          try {
+            const total = plan.items.reduce((sum, it) => sum + Number(it.cost || 0), 0);
+            const inv = await billingService.createInvoice({ patientId: plan.patientId, totalAmount: total, dueDays: 14 });
+            const pat = patients.find((p) => p.id === plan.patientId);
+            if (pat && pat.status !== 'Pending Payment') {
+              await patientService.update(plan.patientId, { status: 'Pending Payment' });
+            }
+            setTreatmentPlans((prev) => prev.map((p) => (p.id === planId ? { ...p, status, invoiceId: inv.id } : p)));
+            await reloadLive('invoices', 'patients');
+            logAudit('Treatment Plans', 'Plan accepted & billed', `${plan.title} for ${plan.patientName} — Rs ${total.toLocaleString()}`);
+          } catch (e) {
+            console.error('[live] plan accept & bill:', e.message);
+          }
+        })();
+        return;
+      }
       const now = new Date();
       const dueDate = new Date(now);
       dueDate.setDate(now.getDate() + 14);
@@ -456,7 +596,7 @@ export const ClinicProvider = ({ children }) => {
     }
 
     setTreatmentPlans((prev) => prev.map((p) => (p.id === planId ? { ...p, status } : p)));
-  }, [treatmentPlans, logAudit]);
+  }, [live, patients, reloadLive, treatmentPlans, logAudit]);
 
   // Toggle a plan item done/undone and derive the plan status from progress.
   const togglePlanItem = useCallback((planId, itemId) => {
@@ -474,6 +614,18 @@ export const ClinicProvider = ({ children }) => {
 
   // ── Staff / team ──────────────────────────────────────────────────────────
   const addStaff = useCallback((data) => {
+    if (live) {
+      return staffService.create({
+        ...data,
+        name: data.name?.trim() || 'New Staff',
+      }).then((created) => {
+        setStaff((prev) => [created, ...prev]);
+        return created;
+      }).catch((e) => {
+        console.error('[live] addStaff:', e.message);
+        return null;
+      });
+    }
     const newMember = {
       // Dentists get a dentist-prefixed id so they read consistently with seeds.
       id: data.role === 'Dentist' ? uid('dentist') : uid('staff'),
@@ -487,11 +639,17 @@ export const ClinicProvider = ({ children }) => {
     };
     setStaff((prev) => [newMember, ...prev]);
     return newMember;
-  }, []);
+  }, [live]);
 
   const updateStaffStatus = useCallback((id, status) => {
     setStaff((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
-  }, []);
+    if (live) {
+      staffService.updateStatus(id, status).catch((e) => {
+        console.error('[live] updateStaffStatus:', e.message);
+        reloadLive('staff');
+      });
+    }
+  }, [live, reloadLive]);
 
   // ── Lab work ──────────────────────────────────────────────────────────────
   const addLabCase = useCallback((data) => {
@@ -838,7 +996,13 @@ export const ClinicProvider = ({ children }) => {
   // roster stays the single source of truth).
   const assignStaffLocation = useCallback((staffId, locationId) => {
     setStaff((prev) => prev.map((s) => (s.id === staffId ? { ...s, locationId } : s)));
-  }, []);
+    if (live) {
+      staffService.assignLocation(staffId, locationId).catch((e) => {
+        console.error('[live] assignStaffLocation:', e.message);
+        reloadLive('staff');
+      });
+    }
+  }, [live, reloadLive]);
 
   // ── Marketing campaigns ───────────────────────────────────────────────────
   const addCampaign = useCallback((data) => {
@@ -998,6 +1162,8 @@ export const ClinicProvider = ({ children }) => {
   // handler identity actually changes — not on every provider render.
   const value = useMemo(
     () => ({
+      dataLive: live,
+      coreLoading,
       patients,
       appointments,
       treatments,
@@ -1084,6 +1250,7 @@ export const ClinicProvider = ({ children }) => {
       getTodayMetrics,
     }),
     [
+      live, coreLoading,
       patients, appointments, treatments, invoices, payments, dentists,
       toothRecords, toothHistory, updateTooth, prescriptions, addPrescription,
       updatePrescriptionStatus, treatmentPlans, addTreatmentPlan,
