@@ -100,15 +100,15 @@ export default function Messages() {
     setDraft('');
   };
 
-  const handleStart = (e) => {
+  const handleStart = async (e) => {
     e.preventDefault();
     if (!form.patientId) { setFormError('Please select a patient.'); return; }
     if (!form.text.trim()) { setFormError('Please write a message.'); return; }
-    const convId = startConversation(form);
+    const convId = await startConversation(form);
     setOpenDialog(false);
     setForm({ patientId: '', channel: 'WhatsApp', text: '' });
     setFormError('');
-    setSelectedId(convId);
+    if (convId) setSelectedId(convId);
     notify('Message sent (simulated until the messaging gateway is connected).', 'success');
   };
 

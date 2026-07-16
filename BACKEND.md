@@ -14,6 +14,11 @@ from this repo **in order** (paste contents, Run):
 1. `supabase/migrations/0001_init.sql` — tables, billing trigger, reporting function
 2. `supabase/migrations/0002_rls.sql` — roles + row-level security
 3. `supabase/seed.sql` — development data
+4. `supabase/migrations/0003_realtime.sql` — realtime on the clinical core
+5. `supabase/migrations/0004_realtime_rest.sql` — realtime on everything else
+
+(3 and 4 enable cross-device live sync; the app works without them, but two
+open front-desk screens won't update each other until they're run.)
 
 **Verify the state machine:** Table Editor → `invoices` — you should see
 INV-2026-001 `Partially Paid` (6000/12000), INV-2026-002 `Paid`,

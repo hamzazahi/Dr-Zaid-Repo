@@ -33,6 +33,7 @@ import { staffService } from '../services/staffService';
 import { appointmentService } from '../services/appointmentService';
 import { treatmentService } from '../services/treatmentService';
 import { billingService } from '../services/billingService';
+import { entityServices as es } from '../services/entityServices';
 
 const STORAGE_KEY = 'dental-clinic-app-data';
 
@@ -68,7 +69,7 @@ const readStored = () => {
 
 export const ClinicProvider = ({ children }) => {
   const stored = useMemo(() => readStored(), []);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user: authUser } = useAuth();
 
   // LIVE mode: the clinical core (patients, staff, appointments, treatments,
   // invoices, payments) is served by Supabase — states start empty and fill
@@ -94,7 +95,69 @@ export const ClinicProvider = ({ children }) => {
   const [staff, setStaff] = useState(() => (isSupabaseConfigured ? [] : stored.staff || mockStaff));
   const dentists = useMemo(() => staff.filter((s) => s.role === 'Dentist'), [staff]);
 
-  // Refetch any subset of the live core collections (all of them by default).
+  // (reloadLive + the initial-load/realtime effect are defined below, after
+  // every entity state they refetch has been declared.)
+
+  // Dental charting (odontogram) state.
+  // toothRecords: { [patientId]: { [toothNumber]: { status, surfaces, notes, updatedAt } } }
+  // toothHistory: append-only audit log of every charting change (capped).
+  const [toothRecords, setToothRecords] = useState(() => (isSupabaseConfigured ? {} : stored.toothRecords || {}));
+  const [toothHistory, setToothHistory] = useState(() => (isSupabaseConfigured ? [] : stored.toothHistory || []));
+
+  // Prescriptions (persisted, with an active ↔ completed lifecycle).
+  const [prescriptions, setPrescriptions] = useState(() => (isSupabaseConfigured ? [] : stored.prescriptions || []));
+
+  // Treatment plans (multi-visit, phased; persisted).
+  const [treatmentPlans, setTreatmentPlans] = useState(() => (isSupabaseConfigured ? [] : stored.treatmentPlans || mockTreatmentPlans));
+
+  // External lab cases (Sent → In Progress → Received → Fitted; persisted).
+  const [labCases, setLabCases] = useState(() => (isSupabaseConfigured ? [] : stored.labCases || mockLabCases));
+
+  // Patient recalls / reminders (email-only; persisted).
+  const [recalls, setRecalls] = useState(() => (isSupabaseConfigured ? [] : stored.recalls || mockRecalls));
+
+  // Patient documents (metadata only — no file bytes; persisted).
+  const [documents, setDocuments] = useState(() => (isSupabaseConfigured ? [] : stored.documents || mockDocuments));
+
+  // Clinic expenses (spending side of the ledger; persisted).
+  const [expenses, setExpenses] = useState(() => (isSupabaseConfigured ? [] : stored.expenses || mockExpenses));
+
+  // Insurance claims (Draft → Submitted → In Review → Approved/Denied → Paid; persisted).
+  const [claims, setClaims] = useState(() => (isSupabaseConfigured ? [] : stored.claims || mockClaims));
+
+  // Online booking requests (Pending → Confirmed/Declined; persisted).
+  const [bookingRequests, setBookingRequests] = useState(() => (isSupabaseConfigured ? [] : stored.bookingRequests || mockBookingRequests));
+
+  // Membership plans + patient enrollments (in-house plans; persisted).
+  const [membershipPlans, setMembershipPlans] = useState(() => (isSupabaseConfigured ? [] : stored.membershipPlans || mockMembershipPlans));
+  const [memberships, setMemberships] = useState(() => (isSupabaseConfigured ? [] : stored.memberships || mockMemberships));
+
+  // Digital form submissions (Pending → Completed/e-signed; persisted).
+  const [formSubmissions, setFormSubmissions] = useState(() => (isSupabaseConfigured ? [] : stored.formSubmissions || mockFormSubmissions));
+
+  // Periodontal charts: { [patientId]: { [toothNumber]: { depths:[6], bop } } } (persisted).
+  const [perioCharts, setPerioCharts] = useState(() => (isSupabaseConfigured ? {} : stored.perioCharts || mockPerioCharts));
+
+  // Audit log — append-only activity trail, capped (persisted).
+  const [auditLog, setAuditLog] = useState(() => (isSupabaseConfigured ? [] : stored.auditLog || mockAuditLog));
+
+  // Clinic locations (multi-branch). Staff carry an optional locationId; a
+  // missing locationId means the primary location (see primaryLocationId).
+  const [locations, setLocations] = useState(() => (isSupabaseConfigured ? [] : stored.locations || mockLocations));
+
+  // Marketing campaigns (email-only; Draft → Sent; persisted).
+  const [campaigns, setCampaigns] = useState(() => (isSupabaseConfigured ? [] : stored.campaigns || mockCampaigns));
+
+  // Imaging records (metadata only — no image bytes; persisted).
+  const [imagingRecords, setImagingRecords] = useState(() => (isSupabaseConfigured ? [] : stored.imagingRecords || mockImagingRecords));
+
+  // Referrals (Inbound/Outbound; Pending → Contacted → Scheduled → Completed; persisted).
+  const [referrals, setReferrals] = useState(() => (isSupabaseConfigured ? [] : stored.referrals || mockReferrals));
+
+  // Two-way patient messaging (WhatsApp/SMS; sends simulated until gateway; persisted).
+  const [conversations, setConversations] = useState(() => (isSupabaseConfigured ? [] : stored.conversations || mockConversations));
+
+  // Refetch any subset of the live collections (all of them by default).
   const reloadLive = useCallback(async (...keys) => {
     const jobs = {
       patients: async () => setPatients(await patientService.list()),
@@ -103,83 +166,56 @@ export const ClinicProvider = ({ children }) => {
       treatments: async () => setTreatments(await treatmentService.list()),
       invoices: async () => setInvoices(await billingService.listInvoices()),
       payments: async () => setPayments(await billingService.listPayments()),
+      prescriptions: async () => setPrescriptions(await es.prescriptions.list()),
+      treatmentPlans: async () => setTreatmentPlans(await es.treatmentPlans.list()),
+      labCases: async () => setLabCases(await es.labCases.list()),
+      recalls: async () => setRecalls(await es.recalls.list()),
+      documents: async () => setDocuments(await es.documents.list()),
+      expenses: async () => setExpenses(await es.expenses.list()),
+      claims: async () => setClaims(await es.claims.list()),
+      bookings: async () => setBookingRequests(await es.bookings.list()),
+      membershipPlans: async () => setMembershipPlans(await es.memberships.listPlans()),
+      memberships: async () => setMemberships(await es.memberships.list()),
+      forms: async () => setFormSubmissions(await es.forms.list()),
+      campaigns: async () => setCampaigns(await es.campaigns.list()),
+      referrals: async () => setReferrals(await es.referrals.list()),
+      imaging: async () => setImagingRecords(await es.imaging.list()),
+      locations: async () => setLocations(await es.locations.list()),
+      conversations: async () => setConversations(await es.conversations.list()),
+      toothRecords: async () => setToothRecords(await es.charting.listToothRecords()),
+      toothHistory: async () => setToothHistory(await es.charting.listToothHistory()),
+      perio: async () => setPerioCharts(await es.charting.listPerio()),
+      audit: async () => setAuditLog(await es.audit.list()),
     };
     const list = keys.length ? keys : Object.keys(jobs);
     await Promise.all(list.map((k) => jobs[k]().catch((e) => console.error(`[live] reload ${k}:`, e.message))));
   }, []);
 
-  // Initial load after sign-in + realtime sync: any change to a core table
-  // (this device or another) refetches that collection.
+  // Initial load after sign-in + realtime sync: any change to a table (this
+  // device or another) refetches the matching collection.
   useEffect(() => {
     if (!live) return undefined;
     reloadLive().then(() => setCoreLoading(false));
-    const tables = ['patients', 'staff', 'appointments', 'treatments', 'invoices', 'payments'];
-    let channel = supabase.channel('core-sync');
-    tables.forEach((table) => {
-      channel = channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => reloadLive(table));
+    const TABLE_JOBS = {
+      patients: 'patients', staff: 'staff', appointments: 'appointments',
+      treatments: 'treatments', invoices: 'invoices', payments: 'payments',
+      prescriptions: 'prescriptions', treatment_plans: 'treatmentPlans', plan_items: 'treatmentPlans',
+      lab_cases: 'labCases', recalls: 'recalls', documents: 'documents',
+      expenses: 'expenses', claims: 'claims', booking_requests: 'bookings',
+      membership_plans: 'membershipPlans', memberships: 'memberships',
+      form_submissions: 'forms', campaigns: 'campaigns', referrals: 'referrals',
+      imaging_records: 'imaging', locations: 'locations',
+      conversations: 'conversations', messages: 'conversations',
+      tooth_records: 'toothRecords', tooth_history: 'toothHistory',
+      perio_entries: 'perio', audit_log: 'audit',
+    };
+    let channel = supabase.channel('clinic-sync');
+    Object.entries(TABLE_JOBS).forEach(([table, job]) => {
+      channel = channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => reloadLive(job));
     });
     channel.subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [live, reloadLive]);
-
-  // Dental charting (odontogram) state.
-  // toothRecords: { [patientId]: { [toothNumber]: { status, surfaces, notes, updatedAt } } }
-  // toothHistory: append-only audit log of every charting change (capped).
-  const [toothRecords, setToothRecords] = useState(() => stored.toothRecords || {});
-  const [toothHistory, setToothHistory] = useState(() => stored.toothHistory || []);
-
-  // Prescriptions (persisted, with an active ↔ completed lifecycle).
-  const [prescriptions, setPrescriptions] = useState(() => stored.prescriptions || []);
-
-  // Treatment plans (multi-visit, phased; persisted).
-  const [treatmentPlans, setTreatmentPlans] = useState(() => stored.treatmentPlans || mockTreatmentPlans);
-
-  // External lab cases (Sent → In Progress → Received → Fitted; persisted).
-  const [labCases, setLabCases] = useState(() => stored.labCases || mockLabCases);
-
-  // Patient recalls / reminders (email-only; persisted).
-  const [recalls, setRecalls] = useState(() => stored.recalls || mockRecalls);
-
-  // Patient documents (metadata only — no file bytes; persisted).
-  const [documents, setDocuments] = useState(() => stored.documents || mockDocuments);
-
-  // Clinic expenses (spending side of the ledger; persisted).
-  const [expenses, setExpenses] = useState(() => stored.expenses || mockExpenses);
-
-  // Insurance claims (Draft → Submitted → In Review → Approved/Denied → Paid; persisted).
-  const [claims, setClaims] = useState(() => stored.claims || mockClaims);
-
-  // Online booking requests (Pending → Confirmed/Declined; persisted).
-  const [bookingRequests, setBookingRequests] = useState(() => stored.bookingRequests || mockBookingRequests);
-
-  // Membership plans + patient enrollments (in-house plans; persisted).
-  const [membershipPlans, setMembershipPlans] = useState(() => stored.membershipPlans || mockMembershipPlans);
-  const [memberships, setMemberships] = useState(() => stored.memberships || mockMemberships);
-
-  // Digital form submissions (Pending → Completed/e-signed; persisted).
-  const [formSubmissions, setFormSubmissions] = useState(() => stored.formSubmissions || mockFormSubmissions);
-
-  // Periodontal charts: { [patientId]: { [toothNumber]: { depths:[6], bop } } } (persisted).
-  const [perioCharts, setPerioCharts] = useState(() => stored.perioCharts || mockPerioCharts);
-
-  // Audit log — append-only activity trail, capped (persisted).
-  const [auditLog, setAuditLog] = useState(() => stored.auditLog || mockAuditLog);
-
-  // Clinic locations (multi-branch). Staff carry an optional locationId; a
-  // missing locationId means the primary location (see primaryLocationId).
-  const [locations, setLocations] = useState(() => stored.locations || mockLocations);
-
-  // Marketing campaigns (email-only; Draft → Sent; persisted).
-  const [campaigns, setCampaigns] = useState(() => stored.campaigns || mockCampaigns);
-
-  // Imaging records (metadata only — no image bytes; persisted).
-  const [imagingRecords, setImagingRecords] = useState(() => stored.imagingRecords || mockImagingRecords);
-
-  // Referrals (Inbound/Outbound; Pending → Contacted → Scheduled → Completed; persisted).
-  const [referrals, setReferrals] = useState(() => stored.referrals || mockReferrals);
-
-  // Two-way patient messaging (WhatsApp/SMS; sends simulated until gateway; persisted).
-  const [conversations, setConversations] = useState(() => stored.conversations || mockConversations);
 
   useEffect(() => {
     try {
@@ -220,19 +256,15 @@ export const ClinicProvider = ({ children }) => {
     }
   }, [patients, appointments, treatments, invoices, payments, toothRecords, toothHistory, prescriptions, treatmentPlans, staff, labCases, recalls, documents, expenses, claims, bookingRequests, membershipPlans, memberships, formSubmissions, perioCharts, auditLog, locations, campaigns, imagingRecords, referrals, conversations]);
 
-  // Append an audit entry. User is read from the auth session at call time so
-  // entries carry whoever is signed in. Stable identity ([]) — safe in deps.
+  // Append an audit entry — locally for instant UI, and to the append-only
+  // audit_log table in live mode (server timestamps, no update/delete policy).
   const logAudit = useCallback((module, action, detail) => {
-    let user = 'Staff';
-    try {
-      const raw = window.localStorage.getItem('dental-auth') || window.sessionStorage.getItem('dental-auth');
-      user = raw ? (JSON.parse(raw)?.name || 'Staff') : 'Staff';
-    } catch { /* keep default */ }
-    setAuditLog((prev) => [
-      { id: uid('aud'), at: new Date().toISOString(), user, module, action, detail },
-      ...prev,
-    ].slice(0, MAX_HISTORY));
-  }, []);
+    const entry = { id: uid('aud'), at: new Date().toISOString(), user: authUser?.name || 'Staff', module, action, detail };
+    setAuditLog((prev) => [entry, ...prev].slice(0, MAX_HISTORY));
+    if (live) {
+      es.audit.add(entry).catch((e) => console.error('[live] audit:', e.message));
+    }
+  }, [live, authUser?.name]);
 
   const addPatient = useCallback(async (patientData) => {
     if (live) {
@@ -465,6 +497,13 @@ export const ClinicProvider = ({ children }) => {
       updatedAt: new Date().toISOString(),
     };
 
+    if (live) {
+      const prevStatus = toothRecords[patientId]?.[num]?.status || 'Healthy';
+      es.charting.upsertTooth(patientId, num, record).catch((e) => console.error('[live] upsertTooth:', e.message));
+      es.charting.addToothHistory({ patientId, toothNumber: num, prevStatus, newStatus: status, surfaces, notes })
+        .catch((e) => console.error('[live] toothHistory:', e.message));
+    }
+
     setToothRecords((prev) => ({
       ...prev,
       [patientId]: { ...(prev[patientId] || {}), [num]: record },
@@ -491,11 +530,18 @@ export const ClinicProvider = ({ children }) => {
 
     logAudit('Clinical', 'Tooth charted', `Tooth ${num} marked ${status}${surfaces ? ` (${surfaces})` : ''}`);
     return record;
-  }, [logAudit]);
+  }, [live, toothRecords, logAudit]);
 
   // Prescriptions: create + lifecycle. Patient/dentist names are resolved and
   // stored on the record so the row renders without re-joining on every render.
   const addPrescription = useCallback((data) => {
+    if (live) {
+      return es.prescriptions.create(data).then((created) => {
+        setPrescriptions((prev) => [created, ...prev]);
+        logAudit('Prescriptions', 'Prescription created', `${created.medication} ${created.dosage || ''} for ${created.patientName}`.trim());
+        return created;
+      }).catch((e) => { console.error('[live] addPrescription:', e.message); return null; });
+    }
     const patientObj = patients.find((p) => p.id === data.patientId);
     const dentistObj = dentists.find((d) => d.id === data.dentistId);
     const newPx = {
@@ -509,11 +555,17 @@ export const ClinicProvider = ({ children }) => {
     setPrescriptions((prev) => [newPx, ...prev]);
     logAudit('Prescriptions', 'Prescription created', `${newPx.medication} ${newPx.dosage || ''} for ${newPx.patientName}`.trim());
     return newPx;
-  }, [patients, dentists, logAudit]);
+  }, [live, patients, dentists, logAudit]);
 
   const updatePrescriptionStatus = useCallback((id, status) => {
     setPrescriptions((prev) => prev.map((px) => (px.id === id ? { ...px, status } : px)));
-  }, []);
+    if (live) {
+      es.prescriptions.updateStatus(id, status).catch((e) => {
+        console.error('[live] updatePrescriptionStatus:', e.message);
+        reloadLive('prescriptions');
+      });
+    }
+  }, [live, reloadLive]);
 
   // ── Treatment plans ───────────────────────────────────────────────────────
   // A plan groups several procedure items for a patient. Names are resolved up
@@ -521,6 +573,12 @@ export const ClinicProvider = ({ children }) => {
   // (bills the whole plan as one invoice) → In Progress → Completed (driven by
   // item completion).
   const addTreatmentPlan = useCallback((data) => {
+    if (live) {
+      return es.treatmentPlans.create(data, data.items || []).then((created) => {
+        setTreatmentPlans((prev) => [created, ...prev]);
+        return created;
+      }).catch((e) => { console.error('[live] addTreatmentPlan:', e.message); return null; });
+    }
     const patientObj = patients.find((p) => p.id === data.patientId);
     const dentistObj = dentists.find((d) => d.id === data.dentistId);
     const items = (data.items || []).map((it) => ({
@@ -544,7 +602,7 @@ export const ClinicProvider = ({ children }) => {
     };
     setTreatmentPlans((prev) => [newPlan, ...prev]);
     return newPlan;
-  }, [patients, dentists]);
+  }, [live, patients, dentists]);
 
   const updateTreatmentPlanStatus = useCallback((planId, status) => {
     const plan = treatmentPlans.find((p) => p.id === planId);
@@ -596,10 +654,29 @@ export const ClinicProvider = ({ children }) => {
     }
 
     setTreatmentPlans((prev) => prev.map((p) => (p.id === planId ? { ...p, status } : p)));
+    if (live) {
+      es.treatmentPlans.update(planId, { status }).catch((e) => {
+        console.error('[live] updatePlanStatus:', e.message);
+        reloadLive('treatmentPlans');
+      });
+    }
   }, [live, patients, reloadLive, treatmentPlans, logAudit]);
 
   // Toggle a plan item done/undone and derive the plan status from progress.
   const togglePlanItem = useCallback((planId, itemId) => {
+    if (live) {
+      // Persist the same derivation the local updater applies below.
+      const plan = treatmentPlans.find((p) => p.id === planId);
+      const item = plan?.items.find((it) => it.id === itemId);
+      if (plan && item) {
+        const nextDone = !item.done;
+        const doneCount = plan.items.filter((it) => (it.id === itemId ? nextDone : it.done)).length;
+        const nextStatus = plan.items.length > 0 && doneCount === plan.items.length
+          ? 'Completed' : doneCount > 0 ? 'In Progress' : plan.invoiceId ? 'Accepted' : 'Proposed';
+        es.treatmentPlans.setItemDone(itemId, nextDone).catch((e) => console.error('[live] setItemDone:', e.message));
+        es.treatmentPlans.update(planId, { status: nextStatus }).catch((e) => console.error('[live] plan status:', e.message));
+      }
+    }
     setTreatmentPlans((prev) => prev.map((plan) => {
       if (plan.id !== planId) return plan;
       const items = plan.items.map((it) => (it.id === itemId ? { ...it, done: !it.done } : it));
@@ -610,7 +687,7 @@ export const ClinicProvider = ({ children }) => {
       else status = plan.invoiceId ? 'Accepted' : 'Proposed';
       return { ...plan, items, status };
     }));
-  }, []);
+  }, [live, treatmentPlans]);
 
   // ── Staff / team ──────────────────────────────────────────────────────────
   const addStaff = useCallback((data) => {
@@ -653,6 +730,12 @@ export const ClinicProvider = ({ children }) => {
 
   // ── Lab work ──────────────────────────────────────────────────────────────
   const addLabCase = useCallback((data) => {
+    if (live) {
+      return es.labCases.create(data).then((created) => {
+        setLabCases((prev) => [created, ...prev]);
+        return created;
+      }).catch((e) => { console.error('[live] addLabCase:', e.message); return null; });
+    }
     const patientObj = patients.find((p) => p.id === data.patientId);
     const dentistObj = dentists.find((d) => d.id === data.dentistId);
     const newCase = {
@@ -673,19 +756,33 @@ export const ClinicProvider = ({ children }) => {
     };
     setLabCases((prev) => [newCase, ...prev]);
     return newCase;
-  }, [patients, dentists]);
+  }, [live, patients, dentists]);
 
   // Advance a case; stamp receivedDate the first time it reaches Received/Fitted.
   const updateLabCaseStatus = useCallback((id, status) => {
+    if (live) {
+      const c = labCases.find((x) => x.id === id);
+      const receivedDate = (status === 'Received' || status === 'Fitted') && !c?.receivedDate ? today() : c?.receivedDate ?? null;
+      es.labCases.update(id, { status, received_date: receivedDate }).catch((e) => {
+        console.error('[live] updateLabCaseStatus:', e.message);
+        reloadLive('labCases');
+      });
+    }
     setLabCases((prev) => prev.map((c) => {
       if (c.id !== id) return c;
       const receivedDate = (status === 'Received' || status === 'Fitted') && !c.receivedDate ? today() : c.receivedDate;
       return { ...c, status, receivedDate };
     }));
-  }, []);
+  }, [live, labCases, reloadLive]);
 
   // ── Recalls / reminders (email-only) ──────────────────────────────────────
   const addRecall = useCallback((data) => {
+    if (live) {
+      return es.recalls.create(data).then((created) => {
+        setRecalls((prev) => [created, ...prev]);
+        return created;
+      }).catch((e) => { console.error('[live] addRecall:', e.message); return null; });
+    }
     const patientObj = patients.find((p) => p.id === data.patientId);
     const newRecall = {
       id: uid('rec'),
@@ -700,21 +797,37 @@ export const ClinicProvider = ({ children }) => {
     };
     setRecalls((prev) => [newRecall, ...prev]);
     return newRecall;
-  }, [patients]);
+  }, [live, patients]);
 
-  // Simulated email reminder: stamp the send date and move Pending → Reminded.
+  // Simulated reminder send: stamp the date and move Pending → Reminded.
   const sendRecallReminder = useCallback((id) => {
+    if (live) {
+      const r = recalls.find((x) => x.id === id);
+      es.recalls.update(id, {
+        status: r?.status === 'Pending' ? 'Reminded' : r?.status,
+        last_reminder_at: today(),
+      }).catch((e) => { console.error('[live] sendRecallReminder:', e.message); reloadLive('recalls'); });
+    }
     setRecalls((prev) => prev.map((r) =>
       r.id === id ? { ...r, status: r.status === 'Pending' ? 'Reminded' : r.status, lastReminderAt: today() } : r
     ));
-  }, []);
+  }, [live, recalls, reloadLive]);
 
   const updateRecallStatus = useCallback((id, status) => {
     setRecalls((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
-  }, []);
+    if (live) {
+      es.recalls.update(id, { status }).catch((e) => { console.error('[live] updateRecallStatus:', e.message); reloadLive('recalls'); });
+    }
+  }, [live, reloadLive]);
 
   // ── Patient documents (metadata only) ─────────────────────────────────────
   const addDocument = useCallback((data) => {
+    if (live) {
+      return es.documents.create(data).then((created) => {
+        setDocuments((prev) => [created, ...prev]);
+        return created;
+      }).catch((e) => { console.error('[live] addDocument:', e.message); return null; });
+    }
     const patientObj = patients.find((p) => p.id === data.patientId);
     const newDoc = {
       id: uid('doc'),
@@ -730,14 +843,23 @@ export const ClinicProvider = ({ children }) => {
     };
     setDocuments((prev) => [newDoc, ...prev]);
     return newDoc;
-  }, [patients]);
+  }, [live, patients]);
 
   const deleteDocument = useCallback((id) => {
     setDocuments((prev) => prev.filter((d) => d.id !== id));
-  }, []);
+    if (live) {
+      es.documents.remove(id).catch((e) => { console.error('[live] deleteDocument:', e.message); reloadLive('documents'); });
+    }
+  }, [live, reloadLive]);
 
   // ── Clinic expenses ───────────────────────────────────────────────────────
   const addExpense = useCallback((data) => {
+    if (live) {
+      return es.expenses.create(data).then((created) => {
+        setExpenses((prev) => [created, ...prev]);
+        return created;
+      }).catch((e) => { console.error('[live] addExpense:', e.message); return null; });
+    }
     const newExpense = {
       id: uid('exp'),
       date: data.date || today(),
@@ -750,18 +872,31 @@ export const ClinicProvider = ({ children }) => {
     };
     setExpenses((prev) => [newExpense, ...prev]);
     return newExpense;
-  }, []);
+  }, [live]);
 
   const updateExpenseStatus = useCallback((id, status) => {
     setExpenses((prev) => prev.map((e) => (e.id === id ? { ...e, status } : e)));
-  }, []);
+    if (live) {
+      es.expenses.update(id, { status }).catch((e) => { console.error('[live] updateExpenseStatus:', e.message); reloadLive('expenses'); });
+    }
+  }, [live, reloadLive]);
 
   const deleteExpense = useCallback((id) => {
     setExpenses((prev) => prev.filter((e) => e.id !== id));
-  }, []);
+    if (live) {
+      es.expenses.remove(id).catch((e) => { console.error('[live] deleteExpense:', e.message); reloadLive('expenses'); });
+    }
+  }, [live, reloadLive]);
 
   // ── Insurance claims ──────────────────────────────────────────────────────
   const addClaim = useCallback((data) => {
+    if (live) {
+      return es.claims.create(data).then((created) => {
+        setClaims((prev) => [created, ...prev]);
+        logAudit('Insurance', 'Claim submitted', `${created.patientName} — ${created.payer}, Rs ${created.claimedAmount.toLocaleString()}`);
+        return created;
+      }).catch((e) => { console.error('[live] addClaim:', e.message); return null; });
+    }
     const patientObj = patients.find((p) => p.id === data.patientId);
     const newClaim = {
       id: uid('clm'),
@@ -780,11 +915,21 @@ export const ClinicProvider = ({ children }) => {
     setClaims((prev) => [newClaim, ...prev]);
     logAudit('Insurance', 'Claim submitted', `${newClaim.patientName} — ${newClaim.payer}, Rs ${newClaim.claimedAmount.toLocaleString()}`);
     return newClaim;
-  }, [patients, logAudit]);
+  }, [live, patients, logAudit]);
 
   // Advancing to Approved/Paid auto-fills the approved amount (full) if unset;
   // Denied zeroes it. Adjust manually later if partial.
   const updateClaimStatus = useCallback((id, status) => {
+    if (live) {
+      const c = claims.find((x) => x.id === id);
+      let approvedAmount = c?.approvedAmount ?? 0;
+      if ((status === 'Approved' || status === 'Paid') && !approvedAmount) approvedAmount = c?.claimedAmount ?? 0;
+      if (status === 'Denied') approvedAmount = 0;
+      es.claims.update(id, { status, approved_amount: approvedAmount }).catch((e) => {
+        console.error('[live] updateClaimStatus:', e.message);
+        reloadLive('claims');
+      });
+    }
     setClaims((prev) => prev.map((c) => {
       if (c.id !== id) return c;
       let approvedAmount = c.approvedAmount;
@@ -792,14 +937,23 @@ export const ClinicProvider = ({ children }) => {
       if (status === 'Denied') approvedAmount = 0;
       return { ...c, status, approvedAmount };
     }));
-  }, []);
+  }, [live, claims, reloadLive]);
 
   const deleteClaim = useCallback((id) => {
     setClaims((prev) => prev.filter((c) => c.id !== id));
-  }, []);
+    if (live) {
+      es.claims.remove(id).catch((e) => { console.error('[live] deleteClaim:', e.message); reloadLive('claims'); });
+    }
+  }, [live, reloadLive]);
 
   // ── Online booking requests ───────────────────────────────────────────────
   const addBookingRequest = useCallback((data) => {
+    if (live) {
+      return es.bookings.create(data).then((created) => {
+        setBookingRequests((prev) => [created, ...prev]);
+        return created;
+      }).catch((e) => { console.error('[live] addBookingRequest:', e.message); return null; });
+    }
     const newReq = {
       id: uid('bk'),
       patientName: data.patientName?.trim() || 'New Patient',
@@ -817,7 +971,7 @@ export const ClinicProvider = ({ children }) => {
     };
     setBookingRequests((prev) => [newReq, ...prev]);
     return newReq;
-  }, []);
+  }, [live]);
 
   // Confirming a request turns it into a real scheduled appointment. If it isn't
   // linked to an existing patient, a new patient record is created from it.
@@ -826,6 +980,35 @@ export const ClinicProvider = ({ children }) => {
   const confirmBookingRequest = useCallback((id, { dentistId, patientId } = {}) => {
     const req = bookingRequests.find((r) => r.id === id);
     if (!req) return;
+
+    if (live) {
+      // Real records all the way down: patient (if new) → appointment →
+      // booking marked Confirmed, then one consistent refetch.
+      return (async () => {
+        try {
+          let pid = patientId || req.patientId;
+          if (!pid) {
+            const createdPatient = await patientService.create({
+              name: req.patientName, phone: req.phone, email: req.email,
+              allergies: 'None', status: 'Active',
+            });
+            pid = createdPatient.id;
+          }
+          const appt = await appointmentService.create({
+            patientId: pid, dentistId: dentistId || null,
+            date: req.preferredDate, time: req.preferredTime, type: req.service,
+            notes: req.reason || 'Booked online', status: 'Scheduled',
+          });
+          await es.bookings.update(id, { status: 'Confirmed', patient_id: pid, appointment_id: appt.id });
+          await reloadLive('patients', 'appointments', 'bookings');
+          logAudit('Online Booking', 'Booking confirmed', `${appt.patientName} — ${req.service} on ${req.preferredDate} at ${req.preferredTime}`);
+          return appt.id;
+        } catch (e) {
+          console.error('[live] confirmBookingRequest:', e.message);
+          return null;
+        }
+      })();
+    }
 
     let pid = patientId || req.patientId;
     let pname = req.patientName;
@@ -854,14 +1037,23 @@ export const ClinicProvider = ({ children }) => {
     setBookingRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'Confirmed', appointmentId: apptId, patientId: pid } : r)));
     logAudit('Online Booking', 'Booking confirmed', `${pname} — ${req.service} on ${req.preferredDate} at ${req.preferredTime}`);
     return apptId;
-  }, [bookingRequests, patients, dentists, logAudit]);
+  }, [live, bookingRequests, patients, dentists, reloadLive, logAudit]);
 
   const declineBookingRequest = useCallback((id) => {
     setBookingRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status: 'Declined' } : r)));
-  }, []);
+    if (live) {
+      es.bookings.update(id, { status: 'Declined' }).catch((e) => { console.error('[live] declineBooking:', e.message); reloadLive('bookings'); });
+    }
+  }, [live, reloadLive]);
 
   // ── Memberships / in-house plans ──────────────────────────────────────────
   const addMembershipPlan = useCallback((data) => {
+    if (live) {
+      return es.memberships.createPlan(data).then((created) => {
+        setMembershipPlans((prev) => [...prev, created]);
+        return created;
+      }).catch((e) => { console.error('[live] addMembershipPlan:', e.message); return null; });
+    }
     const newPlan = {
       id: uid('plan'),
       name: data.name?.trim() || 'New Plan',
@@ -873,12 +1065,24 @@ export const ClinicProvider = ({ children }) => {
     };
     setMembershipPlans((prev) => [...prev, newPlan]);
     return newPlan;
-  }, []);
+  }, [live]);
 
   const enrollMembership = useCallback((data) => {
     const patientObj = patients.find((p) => p.id === data.patientId);
     const plan = membershipPlans.find((p) => p.id === data.planId);
     const start = data.startDate || today();
+
+    if (live) {
+      return es.memberships.enroll({
+        patientId: data.patientId, planId: data.planId, startDate: start,
+        renewalDate: addCycle(plan?.cycle || 'Annual', new Date(start)),
+        price: plan?.price || 0,
+      }).then((created) => {
+        setMemberships((prev) => [created, ...prev]);
+        logAudit('Memberships', 'Patient enrolled', `${created.patientName} — ${created.planName}`);
+        return created;
+      }).catch((e) => { console.error('[live] enrollMembership:', e.message); return null; });
+    }
     const newMembership = {
       id: uid('mem'),
       patientId: data.patientId,
@@ -894,26 +1098,45 @@ export const ClinicProvider = ({ children }) => {
     setMemberships((prev) => [newMembership, ...prev]);
     logAudit('Memberships', 'Patient enrolled', `${newMembership.patientName} — ${newMembership.planName}`);
     return newMembership;
-  }, [patients, membershipPlans, logAudit]);
+  }, [live, patients, membershipPlans, logAudit]);
 
   const updateMembershipStatus = useCallback((id, status) => {
     setMemberships((prev) => prev.map((m) => (m.id === id ? { ...m, status } : m)));
-  }, []);
+    if (live) {
+      es.memberships.update(id, { status }).catch((e) => { console.error('[live] updateMembershipStatus:', e.message); reloadLive('memberships'); });
+    }
+  }, [live, reloadLive]);
 
   // Renew: extend the renewal date by one cycle from the later of (now, current
   // renewal) and reactivate.
   const renewMembership = useCallback((id) => {
+    if (live) {
+      const m = memberships.find((x) => x.id === id);
+      if (m) {
+        const fromTime = Math.max(new Date(m.renewalDate || today()).getTime(), Date.now());
+        es.memberships.update(id, {
+          renewal_date: addCycle(m.cycle || 'Annual', new Date(fromTime)),
+          status: 'Active',
+        }).catch((e) => { console.error('[live] renewMembership:', e.message); reloadLive('memberships'); });
+      }
+    }
     setMemberships((prev) => prev.map((m) => {
       if (m.id !== id) return m;
       const fromTime = Math.max(new Date(m.renewalDate || today()).getTime(), Date.now());
       return { ...m, renewalDate: addCycle(m.cycle || 'Annual', new Date(fromTime)), status: 'Active' };
     }));
-  }, []);
+  }, [live, memberships, reloadLive]);
 
   // ── Digital forms / e-consent ─────────────────────────────────────────────
   // Templates are a read-only constant in the Forms page; the page passes the
   // resolved templateName/category in `data` so the context stays lean.
   const assignForm = useCallback((data) => {
+    if (live) {
+      return es.forms.create(data).then((created) => {
+        setFormSubmissions((prev) => [created, ...prev]);
+        return created;
+      }).catch((e) => { console.error('[live] assignForm:', e.message); return null; });
+    }
     const patientObj = patients.find((p) => p.id === data.patientId);
     const newSub = {
       id: uid('fs'),
@@ -930,26 +1153,37 @@ export const ClinicProvider = ({ children }) => {
     };
     setFormSubmissions((prev) => [newSub, ...prev]);
     return newSub;
-  }, [patients]);
+  }, [live, patients]);
 
   // Simulated e-signature: capture the typed signer name + date and complete.
   // Target resolved from closure (not inside the updater) so the audit entry
   // fires exactly once — updaters can be re-invoked by React.
   const completeForm = useCallback((id, signedBy) => {
     const target = formSubmissions.find((s) => s.id === id);
+    const signer = signedBy?.trim() || target?.patientName || 'Patient';
     setFormSubmissions((prev) => prev.map((s) =>
-      s.id === id ? { ...s, status: 'Completed', completedDate: today(), signedBy: signedBy?.trim() || s.patientName, signatureDate: today() } : s
+      s.id === id ? { ...s, status: 'Completed', completedDate: today(), signedBy: signer, signatureDate: today() } : s
     ));
-    if (target) logAudit('Forms', 'Form e-signed', `${target.templateName} signed by ${signedBy?.trim() || target.patientName}`);
-  }, [formSubmissions, logAudit]);
+    if (live) {
+      es.forms.update(id, { status: 'Completed', completed_date: today(), signed_by: signer, signature_date: today() })
+        .catch((e) => { console.error('[live] completeForm:', e.message); reloadLive('forms'); });
+    }
+    if (target) logAudit('Forms', 'Form e-signed', `${target.templateName} signed by ${signer}`);
+  }, [live, formSubmissions, reloadLive, logAudit]);
 
   const deleteFormSubmission = useCallback((id) => {
     setFormSubmissions((prev) => prev.filter((s) => s.id !== id));
-  }, []);
+    if (live) {
+      es.forms.remove(id).catch((e) => { console.error('[live] deleteForm:', e.message); reloadLive('forms'); });
+    }
+  }, [live, reloadLive]);
 
   // ── Perio charting ────────────────────────────────────────────────────────
   const updatePerioTooth = useCallback((patientId, toothNumber, data) => {
     const num = Number(toothNumber);
+    if (live) {
+      es.charting.upsertPerio(patientId, num, data).catch((e) => console.error('[live] upsertPerio:', e.message));
+    }
     setPerioCharts((prev) => ({
       ...prev,
       [patientId]: {
@@ -958,7 +1192,7 @@ export const ClinicProvider = ({ children }) => {
       },
     }));
     logAudit('Clinical', 'Perio recorded', `Tooth ${num} — depths ${( data.depths || []).join('/')}${data.bop ? ', BOP' : ''}`);
-  }, [logAudit]);
+  }, [live, logAudit]);
 
   // ── Locations (multi-branch) ──────────────────────────────────────────────
   // The primary location is the fallback home for any staff member without an
@@ -970,6 +1204,13 @@ export const ClinicProvider = ({ children }) => {
   );
 
   const addLocation = useCallback((data) => {
+    if (live) {
+      return es.locations.create(data).then((created) => {
+        setLocations((prev) => [...prev, created]);
+        logAudit('Locations', 'Location added', created.name);
+        return created;
+      }).catch((e) => { console.error('[live] addLocation:', e.message); return null; });
+    }
     const newLocation = {
       id: uid('loc'),
       name: data.name?.trim() || 'New Location',
@@ -986,11 +1227,14 @@ export const ClinicProvider = ({ children }) => {
     setLocations((prev) => [...prev, newLocation]);
     logAudit('Locations', 'Location added', newLocation.name);
     return newLocation;
-  }, [logAudit]);
+  }, [live, logAudit]);
 
   const updateLocationStatus = useCallback((id, status) => {
     setLocations((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
-  }, []);
+    if (live) {
+      es.locations.update(id, { status }).catch((e) => { console.error('[live] updateLocationStatus:', e.message); reloadLive('locations'); });
+    }
+  }, [live, reloadLive]);
 
   // Move a staff member to a branch (stored on the staff record itself so the
   // roster stays the single source of truth).
@@ -1006,6 +1250,12 @@ export const ClinicProvider = ({ children }) => {
 
   // ── Marketing campaigns ───────────────────────────────────────────────────
   const addCampaign = useCallback((data) => {
+    if (live) {
+      return es.campaigns.create(data).then((created) => {
+        setCampaigns((prev) => [created, ...prev]);
+        return created;
+      }).catch((e) => { console.error('[live] addCampaign:', e.message); return null; });
+    }
     const newCampaign = {
       id: uid('cmp'),
       name: data.name?.trim() || 'Untitled Campaign',
@@ -1020,7 +1270,7 @@ export const ClinicProvider = ({ children }) => {
     };
     setCampaigns((prev) => [newCampaign, ...prev]);
     return newCampaign;
-  }, []);
+  }, [live]);
 
   // Simulated email blast: the page computes the live audience size for the
   // campaign's segment and passes it in; we stamp it with the send date.
@@ -1029,15 +1279,29 @@ export const ClinicProvider = ({ children }) => {
     setCampaigns((prev) => prev.map((c) =>
       c.id === id ? { ...c, status: 'Sent', recipients: Number(recipients) || 0, sentAt: today() } : c
     ));
+    if (live) {
+      es.campaigns.update(id, { status: 'Sent', recipients: Number(recipients) || 0, sent_at: today() })
+        .catch((e) => { console.error('[live] sendCampaign:', e.message); reloadLive('campaigns'); });
+    }
     if (target) logAudit('Marketing', 'Campaign sent', `"${target.name}" to ${recipients} recipient${recipients === 1 ? '' : 's'} (${target.segment})`);
-  }, [campaigns, logAudit]);
+  }, [live, campaigns, reloadLive, logAudit]);
 
   const deleteCampaign = useCallback((id) => {
     setCampaigns((prev) => prev.filter((c) => c.id !== id));
-  }, []);
+    if (live) {
+      es.campaigns.remove(id).catch((e) => { console.error('[live] deleteCampaign:', e.message); reloadLive('campaigns'); });
+    }
+  }, [live, reloadLive]);
 
   // ── Imaging records (metadata only) ───────────────────────────────────────
   const addImagingRecord = useCallback((data) => {
+    if (live) {
+      return es.imaging.create(data).then((created) => {
+        setImagingRecords((prev) => [created, ...prev]);
+        logAudit('Imaging', 'Image recorded', `${created.type} for ${created.patientName} (tooth ${created.toothNumber})`);
+        return created;
+      }).catch((e) => { console.error('[live] addImagingRecord:', e.message); return null; });
+    }
     const patientObj = patients.find((p) => p.id === data.patientId);
     const newRecord = {
       id: uid('img'),
@@ -1052,16 +1316,30 @@ export const ClinicProvider = ({ children }) => {
     setImagingRecords((prev) => [newRecord, ...prev]);
     logAudit('Imaging', 'Image recorded', `${newRecord.type} for ${newRecord.patientName} (tooth ${newRecord.toothNumber})`);
     return newRecord;
-  }, [patients, logAudit]);
+  }, [live, patients, logAudit]);
 
   const deleteImagingRecord = useCallback((id) => {
     setImagingRecords((prev) => prev.filter((r) => r.id !== id));
-  }, []);
+    if (live) {
+      es.imaging.remove(id).catch((e) => { console.error('[live] deleteImaging:', e.message); reloadLive('imaging'); });
+    }
+  }, [live, reloadLive]);
 
   // ── Referrals ─────────────────────────────────────────────────────────────
   // Inbound referrals can arrive before the patient exists, so patientId is
   // optional — the free-text patientName is authoritative in that case.
   const addReferral = useCallback((data) => {
+    if (live) {
+      const patientObj = patients.find((p) => p.id === data.patientId);
+      return es.referrals.create({
+        ...data,
+        patientName: patientObj?.name || data.patientName?.trim() || 'Unknown',
+      }).then((created) => {
+        setReferrals((prev) => [created, ...prev]);
+        logAudit('Referrals', `${created.direction} referral created`, `${created.patientName} ↔ ${created.provider} (${created.specialty})`);
+        return created;
+      }).catch((e) => { console.error('[live] addReferral:', e.message); return null; });
+    }
     const patientObj = patients.find((p) => p.id === data.patientId);
     const newReferral = {
       id: uid('ref'),
@@ -1079,11 +1357,14 @@ export const ClinicProvider = ({ children }) => {
     setReferrals((prev) => [newReferral, ...prev]);
     logAudit('Referrals', `${newReferral.direction} referral created`, `${newReferral.patientName} ↔ ${newReferral.provider} (${newReferral.specialty})`);
     return newReferral;
-  }, [patients, logAudit]);
+  }, [live, patients, logAudit]);
 
   const updateReferralStatus = useCallback((id, status) => {
     setReferrals((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
-  }, []);
+    if (live) {
+      es.referrals.update(id, { status }).catch((e) => { console.error('[live] updateReferralStatus:', e.message); reloadLive('referrals'); });
+    }
+  }, [live, reloadLive]);
 
   const deleteReferral = useCallback((id) => {
     setReferrals((prev) => prev.filter((r) => r.id !== id));
@@ -1098,11 +1379,20 @@ export const ClinicProvider = ({ children }) => {
         ? { ...c, messages: [...c.messages, { id: uid('msg'), from: 'clinic', text: body, at: new Date().toISOString() }] }
         : c
     ));
-  }, []);
+    if (live) {
+      es.conversations.addMessage(conversationId, body).catch((e) => {
+        console.error('[live] sendMessage:', e.message);
+        reloadLive('conversations');
+      });
+    }
+  }, [live, reloadLive]);
 
   const markConversationRead = useCallback((conversationId) => {
     setConversations((prev) => prev.map((c) => (c.id === conversationId ? { ...c, unread: false } : c)));
-  }, []);
+    if (live) {
+      es.conversations.update(conversationId, { unread: false }).catch((e) => console.error('[live] markRead:', e.message));
+    }
+  }, [live]);
 
   // Start (or continue) a thread with a patient. If a conversation already
   // exists for that patient, the message is appended there instead of
@@ -1110,6 +1400,26 @@ export const ClinicProvider = ({ children }) => {
   const startConversation = useCallback(({ patientId, channel = 'WhatsApp', text }) => {
     const body = text?.trim();
     if (!patientId || !body) return null;
+    if (live) {
+      return (async () => {
+        try {
+          const existing = conversations.find((c) => c.patientId === patientId);
+          let convId = existing?.id;
+          if (!convId) {
+            const conv = await es.conversations.create({ patientId, channel });
+            convId = conv.id;
+          } else if (existing.channel !== channel) {
+            await es.conversations.update(convId, { channel });
+          }
+          await es.conversations.addMessage(convId, body);
+          await reloadLive('conversations');
+          return convId;
+        } catch (e) {
+          console.error('[live] startConversation:', e.message);
+          return null;
+        }
+      })();
+    }
     const existing = conversations.find((c) => c.patientId === patientId);
     const message = { id: uid('msg'), from: 'clinic', text: body, at: new Date().toISOString() };
     if (existing) {
@@ -1129,7 +1439,7 @@ export const ClinicProvider = ({ children }) => {
     };
     setConversations((prev) => [newConv, ...prev]);
     return newConv.id;
-  }, [conversations, patients]);
+  }, [live, conversations, patients, reloadLive]);
 
   const getTodayAppointments = useCallback(() => {
     const todayStr = today();
