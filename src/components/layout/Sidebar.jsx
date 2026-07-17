@@ -47,6 +47,7 @@ import {
   ExpandMore   as SectionChevron,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const W  = 256;   // expanded width  (px)
 const WC = 64;    // collapsed width (px)
@@ -127,6 +128,7 @@ const readSectionPrefs = () => {
 
 export default function Sidebar({ collapsed, onToggle, transition, isMobile = false, mobileOpen = false, onClose }) {
   const { user, signOut } = useAuth();
+  const { canView } = usePermissions();
   const location = useLocation();
 
   const [sectionPrefs, setSectionPrefs] = useState(readSectionPrefs);
@@ -263,9 +265,13 @@ export default function Sidebar({ collapsed, onToggle, transition, isMobile = fa
       <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', py: 1, pb: 2 }}>
         {SECTIONS.map((section) => {
           const expanded = isExpanded(section);
+          // Role gating: items the signed-in role can't open never render;
+          // a group with nothing visible disappears entirely.
+          const visibleItems = section.items.filter((i) => canView(i.path));
+          if (visibleItems.length === 0) return null;
           const items = (
             <List disablePadding sx={{ px: collapsed ? 0.75 : 1 }}>
-              {section.items.map(({ text, path, icon: Icon }) => (
+              {visibleItems.map(({ text, path, icon: Icon }) => (
                 <ListItem key={path} disablePadding sx={{ mb: 0.25 }}>
                   <Tooltip title={collapsed ? text : ''} placement="right" arrow>
                     <ListItemButton

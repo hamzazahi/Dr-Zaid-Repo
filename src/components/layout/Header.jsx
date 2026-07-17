@@ -19,6 +19,7 @@ import {
   Launch as PageIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
+import { usePermissions } from '../../hooks/usePermissions';
 import { useClinicData } from '../../hooks/useClinicData';
 import { colors } from '../../theme/theme';
 
@@ -63,6 +64,7 @@ const getTitle = (pathname) => {
 // ─── Global Search ──────────────────────────────────────────────────────────
 function GlobalSearch() {
   const navigate = useNavigate();
+  const { canView } = usePermissions();
   const { patients, appointments, invoices } = useClinicData();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -74,7 +76,7 @@ function GlobalSearch() {
     // Command-palette behaviour: typing a module name jumps straight to it
     // (same interaction Linear/Notion/Stripe ship on Cmd/Ctrl+K).
     ...Object.entries(PAGE_TITLES)
-      .filter(([, title]) => title.toLowerCase().includes(q))
+      .filter(([path, title]) => title.toLowerCase().includes(q) && canView(path))
       .slice(0, 3)
       .map(([path, title]) => ({ type: 'Page', label: title, sub: `Jump to ${title}`, path, icon: <PageIcon sx={{ fontSize: 15 }} /> })),
     ...patients

@@ -22,6 +22,7 @@ import {
   ListAlt as ListIcon,
 } from '@mui/icons-material';
 import { useClinicData } from '../hooks/useClinicData';
+import { usePermissions } from '../hooks/usePermissions';
 import { useNotification } from '../hooks/useNotification';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { TREATMENT_COSTS, TREATMENT_TYPES, TOOTH_NUMBERS } from '../utils/constants';
@@ -55,6 +56,8 @@ function ProcedurePill({ type }) {
 
 export default function Treatments() {
   const { patients, treatments, addTreatment } = useClinicData();
+  const { canEdit } = usePermissions();
+  const editable = canEdit('/treatments');
   const { notify } = useNotification();
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState('');
@@ -104,6 +107,15 @@ export default function Treatments() {
         ))}
       </Grid>
 
+      {!editable && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 2, py: 1.25, borderRadius: '10px', bgcolor: '#F1F5F9', border: '1px solid #E2E8F0' }}>
+          <Typography variant="body2" sx={{ fontSize: '0.82rem', fontWeight: 600, color: '#475569' }}>
+            View only — treatments are logged by the doctor. You can still look up any record below.
+          </Typography>
+        </Box>
+      )}
+
+      {editable && (
       <Card sx={{ borderRadius: '12px' }}>
         <Box sx={{ px: 2.5, py: 2, borderBottom: `1px solid ${colors.border}` }}>
           <Typography variant="subtitle2" fontWeight={700}>Log New Treatment</Typography>
@@ -144,6 +156,7 @@ export default function Treatments() {
           </Box>
         </Box>
       </Card>
+      )}
 
       <Card sx={{ borderRadius: '12px', overflow: 'hidden' }}>
         <Box sx={{ px: 2.5, py: 2, borderBottom: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

@@ -32,6 +32,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useClinicData } from '../hooks/useClinicData';
+import { usePermissions } from '../hooks/usePermissions';
 import { useNotification } from '../hooks/useNotification';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { TREATMENT_TYPES, TREATMENT_COSTS, TOOTH_NUMBERS } from '../utils/constants';
@@ -61,6 +62,8 @@ const EMPTY_ITEM = () => ({ procedure: 'Filling', toothNumber: '11', cost: TREAT
 
 export default function TreatmentPlans() {
   const { patients, dentists, treatmentPlans, addTreatmentPlan, updateTreatmentPlanStatus, togglePlanItem } = useClinicData();
+  const { canEdit } = usePermissions();
+  const editable = canEdit('/treatment-plans');
   const { notify } = useNotification();
   const navigate = useNavigate();
 
@@ -130,9 +133,15 @@ export default function TreatmentPlans() {
           <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', color: colors.textPrimary, letterSpacing: '-0.02em' }}>Treatment Plans</Typography>
           <Typography variant="body2" sx={{ color: colors.textSecondary, mt: 0.25 }}>Build multi-visit plans, accept &amp; bill them, and track procedure progress.</Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon sx={{ fontSize: 18 }} />} onClick={() => setOpenDialog(true)} sx={{ borderRadius: '8px', fontWeight: 700 }}>
-          New Plan
-        </Button>
+        {editable ? (
+          <Button variant="contained" startIcon={<AddIcon sx={{ fontSize: 18 }} />} onClick={() => setOpenDialog(true)} sx={{ borderRadius: '8px', fontWeight: 700 }}>
+            New Plan
+          </Button>
+        ) : (
+          <Box sx={{ px: 1.5, py: 0.75, borderRadius: '8px', bgcolor: '#F1F5F9', border: '1px solid #E2E8F0' }}>
+            <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>View only — plans are managed by the doctor</Typography>
+          </Box>
+        )}
       </Box>
 
       {/* Stat cards */}
@@ -205,7 +214,7 @@ export default function TreatmentPlans() {
 
                   {/* Actions */}
                   <Stack direction="row" gap={1} alignItems="center">
-                    {plan.status === 'Proposed' && (
+                    {plan.status === 'Proposed' && editable && (
                       <Button size="small" variant="contained" startIcon={<ReceiptIcon sx={{ fontSize: 15 }} />} onClick={() => handleAccept(plan)} sx={{ fontWeight: 700, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
                         Accept &amp; Bill
                       </Button>

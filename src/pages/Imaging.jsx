@@ -35,6 +35,7 @@ import {
   BrokenImage as NoImageIcon,
 } from '@mui/icons-material';
 import { useClinicData } from '../hooks/useClinicData';
+import { usePermissions } from '../hooks/usePermissions';
 import { useNotification } from '../hooks/useNotification';
 import { formatDate } from '../utils/helpers';
 import { TOOTH_NUMBERS } from '../utils/constants';
@@ -78,6 +79,8 @@ const DATE_INPUT_SX = {
 
 export default function Imaging() {
   const { patients, dentists, imagingRecords, addImagingRecord, deleteImagingRecord } = useClinicData();
+  const { canEdit } = usePermissions();
+  const editable = canEdit('/imaging');
   const { notify } = useNotification();
 
   const [openDialog, setOpenDialog] = useState(false);
@@ -140,9 +143,15 @@ export default function Imaging() {
           <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', color: colors.textPrimary, letterSpacing: '-0.02em' }}>Imaging</Typography>
           <Typography variant="body2" sx={{ color: colors.textSecondary, mt: 0.25 }}>Track X-rays, scans and clinical photos per patient and tooth.</Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon sx={{ fontSize: 18 }} />} onClick={() => setOpenDialog(true)} sx={{ borderRadius: '8px', fontWeight: 700 }}>
-          New Image Record
-        </Button>
+        {editable ? (
+          <Button variant="contained" startIcon={<AddIcon sx={{ fontSize: 18 }} />} onClick={() => setOpenDialog(true)} sx={{ borderRadius: '8px', fontWeight: 700 }}>
+            New Image Record
+          </Button>
+        ) : (
+          <Box sx={{ px: 1.5, py: 0.75, borderRadius: '8px', bgcolor: '#F1F5F9', border: '1px solid #E2E8F0' }}>
+            <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>View only — imaging is captured by clinicians</Typography>
+          </Box>
+        )}
       </Box>
 
       {/* Metadata-only notice (matches Documents) */}

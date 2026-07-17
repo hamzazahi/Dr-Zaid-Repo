@@ -26,6 +26,7 @@ import {
   CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
 import { useClinicData } from '../hooks/useClinicData';
+import { usePermissions } from '../hooks/usePermissions';
 import { useNotification } from '../hooks/useNotification';
 import { formatDate } from '../utils/helpers';
 import { colors } from '../theme/theme';
@@ -46,6 +47,8 @@ function StatusPill({ status }) {
 
 export default function Prescriptions() {
   const { patients, dentists, prescriptions, addPrescription, updatePrescriptionStatus } = useClinicData();
+  const { canEdit } = usePermissions();
+  const editable = canEdit('/prescriptions');
   const { notify } = useNotification();
   const [openDialog, setOpenDialog] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -90,9 +93,15 @@ export default function Prescriptions() {
           <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', color: colors.textPrimary, letterSpacing: '-0.02em' }}>Prescription Management</Typography>
           <Typography variant="body2" sx={{ color: colors.textSecondary, mt: 0.25 }}>Track and manage all patient prescriptions.</Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon sx={{ fontSize: 18 }} />} onClick={() => setOpenDialog(true)} sx={{ borderRadius: '8px', fontWeight: 700 }}>
-          New Prescription
-        </Button>
+        {editable ? (
+          <Button variant="contained" startIcon={<AddIcon sx={{ fontSize: 18 }} />} onClick={() => setOpenDialog(true)} sx={{ borderRadius: '8px', fontWeight: 700 }}>
+            New Prescription
+          </Button>
+        ) : (
+          <Box sx={{ px: 1.5, py: 0.75, borderRadius: '8px', bgcolor: '#F1F5F9', border: '1px solid #E2E8F0' }}>
+            <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>View only — prescribed by the doctor</Typography>
+          </Box>
+        )}
       </Box>
 
       <Grid container spacing={2}>

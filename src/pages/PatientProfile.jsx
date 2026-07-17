@@ -36,6 +36,7 @@ import {
   Home as HomeIcon,
 } from '@mui/icons-material';
 import { useClinicData } from '../hooks/useClinicData';
+import { usePermissions } from '../hooks/usePermissions';
 import { useNotification } from '../hooks/useNotification';
 import { formatCurrency, formatDate, calculateAge } from '../utils/helpers';
 import { PAYMENT_METHODS, TREATMENT_COSTS, TREATMENT_TYPES, TOOTH_NUMBERS } from '../utils/constants';
@@ -78,6 +79,7 @@ const PatientProfile = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { patients, appointments, treatments, invoices, prescriptions, documents, addPayment, addTreatment } = useClinicData();
+  const { canEdit } = usePermissions();
   const { notify } = useNotification();
 
   const [activeTab, setActiveTab] = useState(location.state?.tab ?? 0);
@@ -173,9 +175,11 @@ const PatientProfile = () => {
               <Card sx={{ borderRadius: '10px', bgcolor: patientOutstanding > 0 ? colors.errorBg : colors.successBg, border: `1px solid ${patientOutstanding > 0 ? colors.errorBorder : colors.successBorder}`, px: 2.5, py: 1.5, minWidth: 180 }}>
                 <Typography variant="caption" sx={{ color: colors.textSecondary, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.65rem' }}>Outstanding Balance</Typography>
                 <Typography sx={{ fontWeight: 800, fontSize: '1.5rem', color: patientOutstanding > 0 ? colors.error : colors.success, letterSpacing: '-0.02em' }}>{formatCurrency(patientOutstanding)}</Typography>
-                <Button size="small" variant="contained" startIcon={<LocalHospitalIcon sx={{ fontSize: 14 }} />} onClick={() => setOpenTreatmentModal(true)} sx={{ mt: 1, bgcolor: '#0D9488', '&:hover': { bgcolor: '#0B7A6F' }, fontWeight: 700, fontSize: '0.75rem', py: 0.5 }}>
-                  Log Treatment
-                </Button>
+                {canEdit('/treatments') && (
+                  <Button size="small" variant="contained" startIcon={<LocalHospitalIcon sx={{ fontSize: 14 }} />} onClick={() => setOpenTreatmentModal(true)} sx={{ mt: 1, bgcolor: '#0D9488', '&:hover': { bgcolor: '#0B7A6F' }, fontWeight: 700, fontSize: '0.75rem', py: 0.5 }}>
+                    Log Treatment
+                  </Button>
+                )}
               </Card>
             </Grid>
           </Grid>

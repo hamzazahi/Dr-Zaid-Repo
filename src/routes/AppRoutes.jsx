@@ -1,6 +1,16 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Box, Grid, Skeleton } from '@mui/material';
+import { usePermissions } from '../hooks/usePermissions';
+
+// Route guard for doctor-only screens: a role without view access is sent
+// back to the dashboard (the database would refuse the data anyway — this
+// keeps the UI honest).
+function RequireAccess({ path, children }) {
+  const { canView } = usePermissions();
+  if (!canView(path)) return <Navigate to="/" replace />;
+  return children;
+}
 
 // Route-level code splitting: each page becomes its own chunk and is only
 // fetched when its route is visited, keeping the initial bundle small.
@@ -69,7 +79,7 @@ export default function AppRoutes() {
         <Route path="/online-booking" element={<OnlineBooking />} />
         <Route path="/billing" element={<Billing />} />
         <Route path="/payments" element={<Payments />} />
-        <Route path="/expenses" element={<Expenses />} />
+        <Route path="/expenses" element={<RequireAccess path="/expenses"><Expenses /></RequireAccess>} />
         <Route path="/insurance" element={<Insurance />} />
         <Route path="/memberships" element={<Memberships />} />
         <Route path="/prescriptions" element={<Prescriptions />} />
@@ -83,11 +93,11 @@ export default function AppRoutes() {
         <Route path="/marketing" element={<Marketing />} />
         <Route path="/messages" element={<Messages />} />
         <Route path="/assistant" element={<Assistant />} />
-        <Route path="/locations" element={<Locations />} />
+        <Route path="/locations" element={<RequireAccess path="/locations"><Locations /></RequireAccess>} />
         <Route path="/reports" element={<Reports />} />
-        <Route path="/staff" element={<Staff />} />
-        <Route path="/audit-log" element={<AuditLog />} />
-        <Route path="/settings" element={<Settings />} />
+        <Route path="/staff" element={<RequireAccess path="/staff"><Staff /></RequireAccess>} />
+        <Route path="/audit-log" element={<RequireAccess path="/audit-log"><AuditLog /></RequireAccess>} />
+        <Route path="/settings" element={<RequireAccess path="/settings"><Settings /></RequireAccess>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
