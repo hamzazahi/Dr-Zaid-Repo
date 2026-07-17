@@ -210,7 +210,7 @@ export default function Header({ onMenuClick }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { invoices } = useClinicData();
+  const { invoices, dataLive } = useClinicData();
 
   const [notifAnchor, setNotifAnchor] = useState(null);
   const [profileAnchor, setProfileAnchor] = useState(null);
@@ -264,6 +264,25 @@ export default function Header({ onMenuClick }) {
 
         {/* Right actions */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto', flexShrink: 0 }}>
+          {/* Data-mode indicator: LIVE = records save to the Supabase cloud
+              database; DEMO = this browser only. Kills any ambiguity about
+              where a just-created record went. */}
+          <Tooltip title={dataLive
+            ? 'Live — connected to Supabase, records save to the cloud database'
+            : 'Demo mode — data stays in this browser only. Restart the dev server after adding .env to go live.'}>
+            <Box sx={{
+              display: { xs: 'none', sm: 'inline-flex' }, alignItems: 'center', gap: 0.6,
+              px: 1.1, py: 0.4, mr: 0.5, borderRadius: '999px',
+              bgcolor: dataLive ? '#ECFDF5' : '#FFFBEB',
+              border: `1px solid ${dataLive ? '#A7F3D0' : '#FDE68A'}`,
+            }}>
+              <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: dataLive ? '#10B981' : '#F59E0B' }} />
+              <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: dataLive ? '#065F46' : '#92400E', letterSpacing: '0.03em' }}>
+                {dataLive ? 'LIVE' : 'DEMO'}
+              </Typography>
+            </Box>
+          </Tooltip>
+
           {/* Notification bell */}
           <Tooltip title={overdue.length ? `${overdue.length} overdue invoices` : 'All clear'}>
             <IconButton
