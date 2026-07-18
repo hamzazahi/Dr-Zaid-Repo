@@ -16,9 +16,12 @@ from this repo **in order** (paste contents, Run):
 3. `supabase/seed.sql` — development data
 4. `supabase/migrations/0003_realtime.sql` — realtime on the clinical core
 5. `supabase/migrations/0004_realtime_rest.sql` — realtime on everything else
+6. `supabase/migrations/0005_storage.sql` — file storage buckets (Documents + Imaging uploads)
 
 (3 and 4 enable cross-device live sync; the app works without them, but two
-open front-desk screens won't update each other until they're run.)
+open front-desk screens won't update each other until they're run.
+6 enables real file upload/preview on the Documents and Imaging pages —
+without it those pages still work but save metadata-only records.)
 
 **Verify the state machine:** Table Editor → `invoices` — you should see
 INV-2026-001 `Partially Paid` (6000/12000), INV-2026-002 `Paid`,

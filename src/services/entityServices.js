@@ -92,13 +92,15 @@ const recalls = {
 const docFrom = (r) => ({
   id: r.id, patientId: r.patient_id, patientName: r.patients?.name ?? 'Unknown',
   name: r.name, category: r.category ?? 'Other', fileType: r.file_type ?? 'FILE',
-  size: Number(r.size) || 0, uploadedDate: r.uploaded_date, uploadedBy: r.uploaded_by ?? 'Staff', notes: r.notes ?? '',
+  size: Number(r.size) || 0, uploadedDate: r.uploaded_date, uploadedBy: r.uploaded_by ?? 'Staff',
+  notes: r.notes ?? '', storagePath: r.storage_path ?? null,
 });
 const documents = {
   list: async () => (await q(supabase.from('documents').select(`*, ${P_NAME}`).order('uploaded_date', { ascending: false }))).map(docFrom),
   create: async (d) => docFrom(await q(supabase.from('documents').insert({
     patient_id: d.patientId, name: d.name?.trim() || 'Untitled', category: d.category ?? 'Other',
-    file_type: d.fileType ?? 'FILE', size: Number(d.size) || 0, uploaded_by: d.uploadedBy?.trim() || 'Staff', notes: d.notes?.trim() || null,
+    file_type: d.fileType ?? 'FILE', size: Number(d.size) || 0, uploaded_by: d.uploadedBy?.trim() || 'Staff',
+    notes: d.notes?.trim() || null, storage_path: d.storagePath ?? null,
   }).select(`*, ${P_NAME}`).single())),
   remove: (id) => q(supabase.from('documents').delete().eq('id', id)),
 };
@@ -230,13 +232,15 @@ const referrals = {
 // ── Imaging ──────────────────────────────────────────────────────────────────
 const imagingFrom = (r) => ({
   id: r.id, patientId: r.patient_id, patientName: r.patients?.name ?? 'Unknown',
-  type: r.type, toothNumber: r.tooth_number ?? 'All', date: r.date, takenBy: r.taken_by ?? 'Staff', notes: r.notes ?? '',
+  type: r.type, toothNumber: r.tooth_number ?? 'All', date: r.date, takenBy: r.taken_by ?? 'Staff',
+  notes: r.notes ?? '', storagePath: r.storage_path ?? null,
 });
 const imaging = {
   list: async () => (await q(supabase.from('imaging_records').select(`*, ${P_NAME}`).order('date', { ascending: false }))).map(imagingFrom),
   create: async (d) => imagingFrom(await q(supabase.from('imaging_records').insert({
     patient_id: d.patientId, type: d.type ?? 'Periapical X-Ray', tooth_number: d.toothNumber ?? 'All',
     date: d.date || undefined, taken_by: d.takenBy?.trim() || 'Staff', notes: d.notes?.trim() || null,
+    storage_path: d.storagePath ?? null,
   }).select(`*, ${P_NAME}`).single())),
   remove: (id) => q(supabase.from('imaging_records').delete().eq('id', id)),
 };

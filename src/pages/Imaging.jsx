@@ -36,6 +36,7 @@ import {
 } from '@mui/icons-material';
 import { useClinicData } from '../hooks/useClinicData';
 import { usePermissions } from '../hooks/usePermissions';
+import { storageService } from '../services/storageService';
 import { useNotification } from '../hooks/useNotification';
 import { formatDate } from '../utils/helpers';
 import { TOOTH_NUMBERS } from '../utils/constants';
@@ -78,9 +79,11 @@ const DATE_INPUT_SX = {
 };
 
 export default function Imaging() {
-  const { patients, dentists, imagingRecords, addImagingRecord, deleteImagingRecord } = useClinicData();
+  const { patients, dentists, imagingRecords, addImagingRecord, deleteImagingRecord, dataLive } = useClinicData();
   const { canEdit } = usePermissions();
   const editable = canEdit('/imaging');
+  const [pickedFile, setPickedFile] = useState(null);
+  const [viewUrl, setViewUrl] = useState(null);
   const { notify } = useNotification();
 
   const [openDialog, setOpenDialog] = useState(false);
@@ -113,15 +116,36 @@ export default function Imaging() {
     if (formError) setFormError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.patientId) { setFormError('Please select a patient.'); return; }
     if (!form.takenBy) { setFormError('Please select who captured the image.'); return; }
-    const rec = addImagingRecord(form);
-    setOpenDialog(false);
-    setForm(EMPTY_FORM);
-    setFormError('');
-    notify(`${rec.type} recorded for ${rec.patientName}.`, 'success');
+    try {
+      let storagePath = null;
+      if (dataLive && pickedFile) {
+        storagePath = await storageService.upload('imaging', form.patientId, pickedFile);
+      }
+      const rec = await addImagingRecord({ ...form, storagePath });
+      setOpenDialog(false);
+      setForm(EMPTY_FORM);
+      setPickedFile(null);
+      setFormError('');
+      notify(`${rec?.type || form.type} ${storagePath ? 'uploaded' : 'recorded'} for ${rec?.patientName || 'patient'}.`, 'success');
+    } catch (err) {
+      console.error('Imaging upload failed:', err);
+      setFormError(`Upload failed: ${err?.message || 'unknown error'}. If this says "Bucket not found", run supabase/migrations/0005_storage.sql.`);
+    }
+  };
+
+  // Open the detail dialog; fetch a signed URL when the record has a file.
+  const openView = (record) => {
+    setViewRecord(record);
+    setViewUrl(null);
+    if (record.storagePath) {
+      storageService.signedUrl('imaging', record.storagePath)
+        .then(setViewUrl)
+        .catch((err) => console.error('Signed URL failed:', err.message));
+    }
   };
 
   const handleDelete = (r) => {
@@ -154,11 +178,13 @@ export default function Imaging() {
         )}
       </Box>
 
-      {/* Metadata-only notice (matches Documents) */}
+      {/* Storage mode notice (matches Documents) */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 2, py: 1.25, borderRadius: '10px', bgcolor: '#EAF2FB', border: '1px solid #C3DCF3' }}>
         <InfoIcon sx={{ fontSize: 18, color: colors.primary }} />
         <Typography variant="body2" sx={{ color: '#0A3254', fontSize: '0.82rem' }}>
-          Records store image <strong>metadata only</strong> — actual image files will be attached once cloud storage is connected (backend phase).
+          {dataLive
+            ? <>Attach the image file when recording — it is stored in <strong>secure cloud storage</strong> and previews in the record detail.</>
+            : <>Demo mode stores image <strong>metadata only</strong> — connect Supabase to attach and preview real files.</>}
         </Typography>
       </Box>
 
@@ -240,7 +266,7 @@ export default function Imaging() {
                     <TableCell align="right">
                       <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
                         <Tooltip title="View details">
-                          <IconButton size="small" onClick={() => setViewRecord(r)} sx={{ color: colors.primary }}>
+                          <IconButton size="small" onClick={() => openView(r)} sx={{ color: colors.primary }}>
                             <ViewIcon sx={{ fontSize: 17 }} />
                           </IconButton>
                         </Tooltip>
@@ -268,11 +294,20 @@ export default function Imaging() {
           </Typography>
         </DialogTitle>
         <DialogContent sx={{ p: 3 }}>
-          {/* Image placeholder — bytes are not stored in the frontend-only build */}
-          <Box sx={{ height: 220, borderRadius: '10px', bgcolor: '#0A1628', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 2 }}>
-            <NoImageIcon sx={{ fontSize: 42, color: 'rgba(255,255,255,0.25)' }} />
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>Image preview available after cloud storage is connected</Typography>
-          </Box>
+          {/* Real preview when the record has an uploaded file; placeholder otherwise */}
+          {viewUrl ? (
+            <Box sx={{ borderRadius: '10px', overflow: 'hidden', bgcolor: '#0A1628', mb: 2, textAlign: 'center' }}>
+              <Box component="img" src={viewUrl} alt={`${viewRecord?.type} for ${viewRecord?.patientName}`}
+                sx={{ maxWidth: '100%', maxHeight: 340, objectFit: 'contain' }} />
+            </Box>
+          ) : (
+            <Box sx={{ height: 220, borderRadius: '10px', bgcolor: '#0A1628', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 2 }}>
+              <NoImageIcon sx={{ fontSize: 42, color: 'rgba(255,255,255,0.25)' }} />
+              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>
+                {viewRecord?.storagePath ? 'Loading image…' : 'No image file attached to this record'}
+              </Typography>
+            </Box>
+          )}
           <Grid container spacing={1.5}>
             <Grid item xs={6}>
               <Typography variant="caption" sx={{ color: colors.textSecondary, fontWeight: 600, textTransform: 'uppercase', fontSize: '0.65rem' }}>Captured By</Typography>
@@ -294,7 +329,7 @@ export default function Imaging() {
       </Dialog>
 
       {/* New record dialog */}
-      <Dialog open={openDialog} onClose={() => { setOpenDialog(false); setFormError(''); }} maxWidth="sm" fullWidth>
+      <Dialog open={openDialog} onClose={() => { setOpenDialog(false); setFormError(''); setPickedFile(null); }} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700, borderBottom: `1px solid ${colors.border}` }}>
           New Imaging Record
           <Typography variant="caption" sx={{ display: 'block', color: colors.textSecondary, fontWeight: 400, mt: 0.25 }}>Fields marked * are required.</Typography>
@@ -329,12 +364,19 @@ export default function Imaging() {
                 <Box component="input" type="date" name="date" value={form.date} onChange={handleChange} sx={DATE_INPUT_SX} />
               </Grid>
               <Grid item xs={12}>
+                <Button component="label" variant="outlined" fullWidth
+                  sx={{ textTransform: 'none', fontWeight: 600, justifyContent: 'flex-start', color: pickedFile ? colors.primary : colors.textSecondary, borderColor: '#DFE4EC', py: 1.25 }}>
+                  {pickedFile ? `Attached: ${pickedFile.name}` : 'Attach image file (optional — X-ray, scan, photo)'}
+                  <input type="file" hidden accept="image/*,.pdf" onChange={(e) => { setPickedFile(e.target.files?.[0] || null); setFormError(''); }} />
+                </Button>
+              </Grid>
+              <Grid item xs={12}>
                 <TextField label="Clinical Notes" name="notes" value={form.notes} onChange={handleChange} fullWidth multiline rows={2} placeholder="Findings, exposure details…" />
               </Grid>
             </Grid>
           </DialogContent>
           <DialogActions sx={{ p: 2, borderTop: `1px solid ${colors.border}` }}>
-            <Button onClick={() => { setOpenDialog(false); setFormError(''); }} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
+            <Button onClick={() => { setOpenDialog(false); setFormError(''); setPickedFile(null); }} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
             <Button type="submit" variant="contained" sx={{ fontWeight: 700 }}>Save Record</Button>
           </DialogActions>
         </form>

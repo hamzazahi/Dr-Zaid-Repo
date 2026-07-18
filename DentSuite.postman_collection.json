@@ -1,0 +1,734 @@
+{
+  "info": {
+    "name": "DentSuite API (Supabase)",
+    "description": "All DentSuite backend endpoints. SETUP: 1) set the `anon_key` collection variable (copy VITE_SUPABASE_ANON_KEY from .env), 2) run 'Auth > Sign in (doctor)' — it auto-saves the JWT into `access_token` for every other request. Full docs: API.md in the repo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://bipkrvxwfrqurawltqem.supabase.co" },
+    { "key": "anon_key", "value": "PASTE_VITE_SUPABASE_ANON_KEY_FROM_.env" },
+    { "key": "access_token", "value": "" },
+    { "key": "patient_id", "value": "30000000-0000-0000-0000-000000000001" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Sign in (doctor) — run me first",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.access_token) { pm.collectionVariables.set('access_token', j.access_token); console.log('access_token saved'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/auth/v1/token?grant_type=password",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"email\": \"admin@drzaiddental.com\", \"password\": \"Test@123\" }",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Sign in (receptionist) — for RLS tests",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "if (j.access_token) { pm.collectionVariables.set('access_token', j.access_token); console.log('access_token saved (receptionist)'); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/auth/v1/token?grant_type=password",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"email\": \"reception@drzaiddental.com\", \"password\": \"Test@123\" }",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "My profile (role check)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/profiles?select=*"
+          }
+        },
+        {
+          "name": "Sign out",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/auth/v1/logout"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Patients",
+      "item": [
+        {
+          "name": "List patients",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/patients?select=*&order=created_at.desc"
+          }
+        },
+        {
+          "name": "Search by name (ilike)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/patients?name=ilike.*ali*&select=id,name,phone,status"
+          }
+        },
+        {
+          "name": "Get one by id",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/patients?id=eq.{{patient_id}}"
+          }
+        },
+        {
+          "name": "Create patient",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Prefer", "value": "return=representation" }
+            ],
+            "url": "{{base_url}}/rest/v1/patients",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"name\": \"Postman Test Patient\", \"gender\": \"Male\", \"dob\": \"1995-05-10\", \"phone\": \"0300-0000000\", \"email\": \"postman@test.pk\", \"allergies\": \"None\" }",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Update patient (paste id)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Prefer", "value": "return=representation" }
+            ],
+            "url": "{{base_url}}/rest/v1/patients?id=eq.PASTE_ID_HERE",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"phone\": \"0301-9999999\" }",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Delete patient (paste id)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Prefer", "value": "return=representation" }
+            ],
+            "url": "{{base_url}}/rest/v1/patients?id=eq.PASTE_ID_HERE"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Appointments",
+      "item": [
+        {
+          "name": "List with patient + dentist names (join)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/appointments?select=*,patients(name),staff(name)&order=date.desc"
+          }
+        },
+        {
+          "name": "Create appointment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Prefer", "value": "return=representation" }
+            ],
+            "url": "{{base_url}}/rest/v1/appointments",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"patient_id\": \"{{patient_id}}\", \"date\": \"2026-07-25\", \"time\": \"10:30 AM\", \"type\": \"Check-up\", \"notes\": \"Created from Postman\" }",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Update status (paste id)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Prefer", "value": "return=representation" }
+            ],
+            "url": "{{base_url}}/rest/v1/appointments?id=eq.PASTE_ID_HERE",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"status\": \"Completed\" }",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Billing (trigger demo)",
+      "item": [
+        {
+          "name": "1 · List invoices (note an id + patient_id)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/invoices?select=*,patients(name)&order=date.desc"
+          }
+        },
+        {
+          "name": "2 · Add payment (watch status recalc)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Prefer", "value": "return=representation" }
+            ],
+            "url": "{{base_url}}/rest/v1/payments",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"invoice_id\": \"PASTE_INVOICE_ID\", \"patient_id\": \"PASTE_ITS_PATIENT_ID\", \"amount\": 500, \"method\": \"Cash\" }",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "3 · Re-check invoice (status changed by DB)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/invoices?id=eq.PASTE_INVOICE_ID&select=invoice_number,total_amount,paid_amount,balance_due,status"
+          }
+        },
+        {
+          "name": "4 · Overpayment — expect 400 refusal",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/rest/v1/payments",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"invoice_id\": \"PASTE_INVOICE_ID\", \"patient_id\": \"PASTE_ITS_PATIENT_ID\", \"amount\": 999999, \"method\": \"Cash\" }",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Create invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Prefer", "value": "return=representation" }
+            ],
+            "url": "{{base_url}}/rest/v1/invoices",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"patient_id\": \"{{patient_id}}\", \"invoice_number\": \"INV-PM-001\", \"total_amount\": 3000, \"due_date\": \"2026-08-01\" }",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Payments of an invoice (paste id)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/payments?invoice_id=eq.PASTE_INVOICE_ID&order=date.desc"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reporting (RPC)",
+      "item": [
+        {
+          "name": "period_summary — monthly 2026",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/rest/v1/rpc/period_summary",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"granularity\": \"month\", \"start_date\": \"2026-01-01\", \"end_date\": \"2026-12-31\" }",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "period_summary — daily, July",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/rest/v1/rpc/period_summary",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"granularity\": \"day\", \"start_date\": \"2026-07-01\", \"end_date\": \"2026-07-31\" }",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clinical",
+      "item": [
+        {
+          "name": "Treatments (with names)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/treatments?select=*,patients(name),staff(name)&order=date.desc"
+          }
+        },
+        {
+          "name": "Create prescription (doctor only — 403 as receptionist)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Prefer", "value": "return=representation" }
+            ],
+            "url": "{{base_url}}/rest/v1/prescriptions",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"patient_id\": \"{{patient_id}}\", \"medication\": \"Amoxicillin 500mg\", \"dosage\": \"1 capsule\", \"frequency\": \"3x daily\", \"duration\": \"5 days\" }",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Treatment plans (nested items join)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/treatment_plans?select=*,plan_items(*),patients(name)"
+          }
+        },
+        {
+          "name": "Tooth chart upsert",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Prefer", "value": "resolution=merge-duplicates,return=representation" }
+            ],
+            "url": "{{base_url}}/rest/v1/tooth_records?on_conflict=patient_id,tooth_number",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"patient_id\": \"{{patient_id}}\", \"tooth_number\": 36, \"status\": \"filled\", \"surfaces\": \"O\", \"notes\": \"Postman upsert\" }",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Perio upsert (depths array + BOP)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Prefer", "value": "resolution=merge-duplicates,return=representation" }
+            ],
+            "url": "{{base_url}}/rest/v1/perio_entries?on_conflict=patient_id,tooth_number",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"patient_id\": \"{{patient_id}}\", \"tooth_number\": 36, \"depths\": [2,3,2,3,4,3], \"bop\": true }",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Imaging records",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/imaging_records?select=*,patients(name)&order=date.desc"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Engagement",
+      "item": [
+        {
+          "name": "Recalls",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/recalls?select=*,patients(name)&order=due_date.asc"
+          }
+        },
+        {
+          "name": "Create recall",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Prefer", "value": "return=representation" }
+            ],
+            "url": "{{base_url}}/rest/v1/recalls",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"patient_id\": \"{{patient_id}}\", \"type\": \"6-month cleaning\", \"due_date\": \"2026-09-01\", \"channel\": \"WhatsApp\" }",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Booking requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/booking_requests?order=submitted_date.desc"
+          }
+        },
+        {
+          "name": "Conversations + messages (nested)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/conversations?select=*,messages(*),patients(name)"
+          }
+        },
+        {
+          "name": "Referrals",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/referrals?order=date.desc"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Finance & Admin",
+      "item": [
+        {
+          "name": "Expenses (doctor only — [] as receptionist)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/expenses?order=date.desc"
+          }
+        },
+        {
+          "name": "Create expense (doctor only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Prefer", "value": "return=representation" }
+            ],
+            "url": "{{base_url}}/rest/v1/expenses",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"category\": \"Supplies\", \"vendor\": \"Postman Vendor\", \"description\": \"Test expense\", \"amount\": 1500, \"method\": \"Cash\", \"status\": \"Paid\" }",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Claims",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/claims?select=*,patients(name)&order=submitted_date.desc"
+          }
+        },
+        {
+          "name": "Membership plans + enrollments",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/memberships?select=*,membership_plans(name,cycle,price),patients(name)"
+          }
+        },
+        {
+          "name": "Documents (metadata)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/documents?select=*,patients(name)&order=uploaded_date.desc"
+          }
+        },
+        {
+          "name": "Inventory",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/inventory?order=name.asc"
+          }
+        },
+        {
+          "name": "Audit log (doctor read; append-only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/audit_log?order=at.desc&limit=25"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Storage (files)",
+      "item": [
+        {
+          "name": "Upload to documents (pick a file in Body)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "image/png" }
+            ],
+            "url": "{{base_url}}/storage/v1/object/documents/{{patient_id}}/postman-test.png",
+            "body": { "mode": "file", "file": { "src": "" } }
+          }
+        },
+        {
+          "name": "Signed URL (1 hour)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/storage/v1/object/sign/documents/{{patient_id}}/postman-test.png",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"expiresIn\": 3600 }",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "List bucket folder",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/storage/v1/object/list/documents",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"prefix\": \"{{patient_id}}\", \"limit\": 100 }",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "Delete file",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/storage/v1/object/documents/{{patient_id}}/postman-test.png"
+          }
+        },
+        {
+          "name": "Upload to imaging (403 as receptionist — by design)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "image/png" }
+            ],
+            "url": "{{base_url}}/storage/v1/object/imaging/{{patient_id}}/postman-xray.png",
+            "body": { "mode": "file", "file": { "src": "" } }
+          }
+        }
+      ]
+    },
+    {
+      "name": "RLS demos (sign in as receptionist first)",
+      "item": [
+        {
+          "name": "Expenses → 200 but [] (hidden)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/expenses"
+          }
+        },
+        {
+          "name": "Insert prescription → 403 code 42501",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/rest/v1/prescriptions",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"patient_id\": \"{{patient_id}}\", \"medication\": \"Should be refused\" }",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "No token at all → every table returns []",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "apikey", "value": "{{anon_key}}" },
+              { "key": "Authorization", "value": "Bearer {{anon_key}}" }
+            ],
+            "url": "{{base_url}}/rest/v1/patients"
+          }
+        }
+      ]
+    }
+  ]
+}

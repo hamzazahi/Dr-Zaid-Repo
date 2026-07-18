@@ -37,6 +37,7 @@ import { useClinicData } from '../hooks/useClinicData';
 import { useNotification } from '../hooks/useNotification';
 import { formatDate } from '../utils/helpers';
 import ConfirmDialog from '../components/common/ConfirmDialog';
+import { storageService } from '../services/storageService';
 import { colors } from '../theme/theme';
 
 const CATEGORIES = ['X-Ray', 'Scan/CBCT', 'Consent Form', 'Lab Report', 'Insurance', 'Clinical Photo', 'Prescription', 'Other'];
@@ -92,7 +93,7 @@ function FileTypeBadge({ type, category }) {
 const EMPTY_FORM = { patientId: '', name: '', category: 'X-Ray', fileType: '', size: 0, uploadedBy: '', notes: '' };
 
 export default function Documents() {
-  const { patients, documents, addDocument, deleteDocument } = useClinicData();
+  const { patients, documents, addDocument, deleteDocument, dataLive } = useClinicData();
   const { notify } = useNotification();
   const fileRef = useRef(null);
 
@@ -122,23 +123,47 @@ export default function Documents() {
     if (formError) setFormError('');
   };
 
+  // Keep the real File object so live mode can upload the bytes to storage.
+  const [pickedFile, setPickedFile] = useState(null);
+
   const handleFilePick = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setPickedFile(file);
     setForm((prev) => ({ ...prev, name: file.name, size: file.size, fileType: extType(file.name) }));
     setFormError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.patientId) { setFormError('Please select a patient.'); return; }
     if (!form.name.trim()) { setFormError('Choose a file or enter a document name.'); return; }
     const patient = patients.find((p) => p.id === form.patientId);
-    addDocument({ ...form, fileType: form.fileType || extType(form.name) });
-    setOpenDialog(false);
-    setForm(EMPTY_FORM);
-    setFormError('');
-    notify(`Document added to ${patient?.name}'s records.`, 'success');
+    try {
+      let storagePath = null;
+      if (dataLive && pickedFile) {
+        storagePath = await storageService.upload('documents', form.patientId, pickedFile);
+      }
+      await addDocument({ ...form, fileType: form.fileType || extType(form.name), storagePath });
+      setOpenDialog(false);
+      setForm(EMPTY_FORM);
+      setPickedFile(null);
+      setFormError('');
+      notify(`Document ${storagePath ? 'uploaded' : 'added'} to ${patient?.name}'s records.`, 'success');
+    } catch (err) {
+      console.error('Document upload failed:', err);
+      setFormError(`Upload failed: ${err?.message || 'unknown error'}. If this says "Bucket not found", run supabase/migrations/0005_storage.sql.`);
+    }
+  };
+
+  const handleOpenFile = async (doc) => {
+    try {
+      const url = await storageService.signedUrl('documents', doc.storagePath);
+      window.open(url, '_blank', 'noopener');
+    } catch (err) {
+      console.error('Open file failed:', err);
+      notify('Could not open the file — please try again.', 'error');
+    }
   };
 
   const [confirmTarget, setConfirmTarget] = useState(null);
@@ -248,9 +273,15 @@ export default function Documents() {
                     <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{formatDate(doc.uploadedDate)}</Typography></TableCell>
                     <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem' }}>{doc.uploadedBy}</Typography></TableCell>
                     <TableCell align="right">
-                      <Tooltip title="Preview (not available in demo)">
-                        <IconButton size="small" onClick={() => notify('File preview is not available in this demo build.', 'info')}><ViewIcon sx={{ fontSize: 18, color: colors.textSecondary }} /></IconButton>
-                      </Tooltip>
+                      {doc.storagePath ? (
+                        <Tooltip title="Open / download file">
+                          <IconButton size="small" onClick={() => handleOpenFile(doc)}><ViewIcon sx={{ fontSize: 18, color: colors.primary }} /></IconButton>
+                        </Tooltip>
+                      ) : (
+                        <Tooltip title="No file attached (metadata-only record)">
+                          <IconButton size="small" onClick={() => notify('This record has no attached file.', 'info')}><ViewIcon sx={{ fontSize: 18, color: colors.textSecondary }} /></IconButton>
+                        </Tooltip>
+                      )}
                       <Tooltip title="Delete">
                         <IconButton size="small" onClick={() => setConfirmTarget(doc)}><DeleteIcon sx={{ fontSize: 18, color: colors.error }} /></IconButton>
                       </Tooltip>
@@ -264,7 +295,7 @@ export default function Documents() {
       </Card>
 
       {/* Add document dialog */}
-      <Dialog open={openDialog} onClose={() => { setOpenDialog(false); setFormError(''); }} maxWidth="sm" fullWidth>
+      <Dialog open={openDialog} onClose={() => { setOpenDialog(false); setFormError(''); setPickedFile(null); }} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700, borderBottom: `1px solid ${colors.border}` }}>
           Add Document
           <Typography variant="caption" sx={{ display: 'block', color: colors.textSecondary, fontWeight: 400, mt: 0.25 }}>Fields marked * are required.</Typography>
@@ -313,7 +344,7 @@ export default function Documents() {
             </Grid>
           </DialogContent>
           <DialogActions sx={{ p: 2, borderTop: `1px solid ${colors.border}` }}>
-            <Button onClick={() => { setOpenDialog(false); setFormError(''); }} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
+            <Button onClick={() => { setOpenDialog(false); setFormError(''); setPickedFile(null); }} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
             <Button type="submit" variant="contained" sx={{ fontWeight: 700 }}>Add Document</Button>
           </DialogActions>
         </form>
