@@ -7,6 +7,16 @@ export const formatCurrency = (amount) => {
   }).format(amount);
 };
 
+// A short, human-friendly patient reference for display. Database ids are long
+// UUIDs (live) or `pat-…` strings (demo) — neither is meaningful to staff, so
+// we show a compact code derived from the id (stable per patient, for reference
+// only — patients are looked up by name/phone, never by this code).
+export const patientRef = (id) => {
+  if (!id) return '—';
+  const tail = String(id).replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase();
+  return `P-${tail}`;
+};
+
 export const formatDate = (dateString) => {
   if (!dateString) return '';
   const date = new Date(dateString);

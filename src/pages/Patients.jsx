@@ -23,15 +23,20 @@ import {
   Grid,
   Chip,
   FormHelperText,
+  IconButton,
+  Tooltip,
+  Stack,
 } from '@mui/material';
 
 import { useClinicData } from '../hooks/useClinicData';
 import { useNotification } from '../hooks/useNotification';
-import { calculateAge, formatDate } from '../utils/helpers';
+import { usePermissions } from '../hooks/usePermissions';
+import { calculateAge, formatDate, patientRef } from '../utils/helpers';
 import { BLOOD_GROUPS, PATIENT_STATUSES } from '../utils/constants';
 import StatusBadge from '../components/common/StatusBadge';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 import { colors } from '../theme/theme';
-import { Search as SearchIcon, Add as AddIcon, FilterList as FilterListIcon, Person as PersonIcon } from '@mui/icons-material';
+import { Search as SearchIcon, Add as AddIcon, FilterList as FilterListIcon, Person as PersonIcon, DeleteOutline as DeleteIcon } from '@mui/icons-material';
 
 const EMPTY_FORM = {
   name: '',
@@ -46,8 +51,9 @@ const EMPTY_FORM = {
 };
 
 const Patients = () => {
-  const { patients, addPatient } = useClinicData();
+  const { patients, addPatient, deletePatient } = useClinicData();
   const { notify } = useNotification();
+  const { isDoctor } = usePermissions();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -56,6 +62,12 @@ const Patients = () => {
   const [openModal, setOpenModal] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [formErrors, setFormErrors] = useState({});
+  const [confirmTarget, setConfirmTarget] = useState(null);
+
+  const handleDelete = (patient) => {
+    deletePatient(patient.id);
+    notify(`Patient "${patient.name}" and all their records were deleted.`, 'success');
+  };
 
   // Open the register dialog once when navigated here with that intent.
   // Done in render (keyed off location.key) rather than an effect to avoid
@@ -197,7 +209,7 @@ const Patients = () => {
               filteredPatients.map((patient) => (
                 <TableRow key={patient.id} hover>
                   <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: colors.textSecondary }}>
-                    {patient.id}
+                    {patientRef(patient.id)}
                   </TableCell>
                   <TableCell>
                     <Typography
@@ -226,14 +238,30 @@ const Patients = () => {
                   </TableCell>
                   <TableCell><StatusBadge status={patient.status} /></TableCell>
                   <TableCell align="right">
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={() => navigate(`/patients/${patient.id}`)}
-                      sx={{ textTransform: 'none' }}
-                    >
-                      View Profile
-                    </Button>
+                    <Stack direction="row" spacing={0.5} justifyContent="flex-end" alignItems="center">
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => navigate(`/patients/${patient.id}`)}
+                        sx={{ textTransform: 'none' }}
+                      >
+                        View Profile
+                      </Button>
+                      {/* Deleting a patient cascades to every record they own, so
+                          it's limited to the doctor/owner role. */}
+                      {isDoctor && (
+                        <Tooltip title="Delete patient">
+                          <IconButton
+                            size="small"
+                            aria-label={`Delete ${patient.name}`}
+                            onClick={() => setConfirmTarget(patient)}
+                            sx={{ color: colors.textLight, '&:hover': { color: colors.error, bgcolor: '#FEF2F2' } }}
+                          >
+                            <DeleteIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))
@@ -343,6 +371,17 @@ const Patients = () => {
           </DialogActions>
         </form>
       </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(confirmTarget)}
+        title="Delete this patient?"
+        message={confirmTarget
+          ? `"${confirmTarget.name}" and all of their records — appointments, invoices, treatments, prescriptions and more — will be permanently deleted. This cannot be undone.`
+          : ''}
+        confirmLabel="Delete patient"
+        onConfirm={() => handleDelete(confirmTarget)}
+        onClose={() => setConfirmTarget(null)}
+      />
     </Box>
   );
 };

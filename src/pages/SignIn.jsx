@@ -3,10 +3,6 @@ import { Box, ButtonBase, Stack, Typography } from '@mui/material';
 import {
   Visibility,
   VisibilityOff,
-  CalendarMonth as ScheduleIcon,
-  MedicalServices as ClinicalIcon,
-  ReceiptLong as BillingIcon,
-  Insights as ReportsIcon,
   KeyboardCapslock as CapsIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
@@ -35,18 +31,109 @@ const KEYFRAMES = `
   @keyframes si-fadeUp { from { opacity:0; transform:translateY(14px) } to { opacity:1; transform:translateY(0) } }
   @keyframes si-fadeIn { from { opacity:0 } to { opacity:1 } }
   @keyframes si-spin   { to { transform:rotate(360deg) } }
+  @keyframes si-float  { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-9px) } }
   @keyframes si-shake  {
     10%,90% { transform:translateX(-1px) } 20%,80% { transform:translateX(2px) }
     30%,50%,70% { transform:translateX(-5px) } 40%,60% { transform:translateX(5px) }
   }
 `;
 
-const FEATURES = [
-  { icon: <ScheduleIcon sx={{ fontSize: 19 }} />, title: 'Front Desk', desc: 'Scheduling, recalls, online booking' },
-  { icon: <ClinicalIcon sx={{ fontSize: 19 }} />, title: 'Clinical', desc: 'Patient records, imaging, prescriptions' },
-  { icon: <BillingIcon sx={{ fontSize: 19 }} />, title: 'Billing', desc: 'Invoices, insurance, payments' },
-  { icon: <ReportsIcon sx={{ fontSize: 19 }} />, title: 'Insights', desc: 'Reports and analytics' },
+// Mini dashboard "product preview" — a self-contained mock of the real app,
+// rendered as a floating light-themed window on the dark brand panel. Pure
+// CSS/SVG (no image assets), so it stays crisp at any size.
+const PREVIEW_STATS = [
+  { l: 'Patients', v: '24', t: '+12%' },
+  { l: 'Revenue', v: '₨84.5K', t: '+8%' },
+  { l: 'Collected', v: '92%', t: '+3%' },
 ];
+const PREVIEW_INVOICES = [
+  { n: 'Muhammad Ali', i: 'MA', s: 'Paid', bg: '#ECFDF5', c: '#047857' },
+  { n: 'Ayesha Siddiqua', i: 'AS', s: 'Partial', bg: '#FFFBEB', c: '#B45309' },
+  { n: 'Omar Farooq', i: 'OF', s: 'Unpaid', bg: '#FEF2F2', c: '#B91C1C' },
+];
+
+function ProductPreview() {
+  return (
+    <Box sx={{ position: 'relative', width: '100%', maxWidth: 540, animation: 'si-fadeUp .5s ease-out .2s both' }}>
+      <Box aria-hidden="true" sx={{ position: 'absolute', inset: '-10% -6%', background: 'radial-gradient(58% 58% at 50% 42%, rgba(59,130,246,0.28), transparent 72%)', filter: 'blur(22px)', pointerEvents: 'none' }} />
+      <Box sx={{
+        position: 'relative', borderRadius: '16px', overflow: 'hidden', bgcolor: '#FFFFFF',
+        border: '1px solid rgba(255,255,255,0.14)',
+        boxShadow: '0 34px 64px -22px rgba(0,0,0,0.62), 0 0 0 1px rgba(255,255,255,0.04)',
+        animation: 'si-float 6.5s ease-in-out infinite',
+      }}>
+        {/* window chrome */}
+        <Box sx={{ display: 'flex', alignItems: 'center', px: 1.75, py: 1.15, borderBottom: '1px solid #EEF2F6' }}>
+          <Stack direction="row" spacing={0.6}>
+            {['#F87171', '#FBBF24', '#34D399'].map((c) => <Box key={c} sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: c }} />)}
+          </Stack>
+          <Typography sx={{ ml: 1.25, fontSize: 11, fontWeight: 600, color: '#94A3B8' }}>DentSuite — Dashboard</Typography>
+          <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5, px: 0.9, py: 0.3, borderRadius: '999px', bgcolor: '#ECFDF5', border: '1px solid #A7F3D0' }}>
+            <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#10B981' }} />
+            <Typography sx={{ fontSize: 9, fontWeight: 800, color: '#047857', letterSpacing: '0.04em' }}>LIVE</Typography>
+          </Box>
+        </Box>
+        {/* body */}
+        <Box sx={{ display: 'flex' }}>
+          {/* sidebar rail */}
+          <Box sx={{ width: 46, bgcolor: '#0F172A', display: 'flex', flexDirection: 'column', alignItems: 'center', py: 1.5, gap: 0.9 }}>
+            <Box sx={{ width: 26, height: 26, borderRadius: '8px', background: 'linear-gradient(180deg,#3B82F6,#2563EB)', mb: 0.75 }} />
+            {[0, 1, 2, 3, 4].map((n) => (
+              <Box key={n} sx={{
+                width: 26, height: 26, borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                bgcolor: n === 0 ? 'rgba(59,130,246,0.22)' : 'transparent',
+                border: n === 0 ? '1px solid rgba(59,130,246,0.5)' : '1px solid transparent',
+              }}>
+                <Box sx={{ width: 12, height: 12, borderRadius: '4px', bgcolor: n === 0 ? '#93C5FD' : 'rgba(148,163,184,0.4)' }} />
+              </Box>
+            ))}
+          </Box>
+          {/* main */}
+          <Box sx={{ flex: 1, bgcolor: '#F8FAFC', p: 1.5, display: 'flex', flexDirection: 'column', gap: 1.1 }}>
+            <Box>
+              <Typography sx={{ fontSize: 12.5, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.01em' }}>Good morning, Dr. Zahid</Typography>
+              <Typography sx={{ fontSize: 9, color: '#94A3B8' }}>Here&apos;s what&apos;s happening at your clinic today.</Typography>
+            </Box>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0.75 }}>
+              {PREVIEW_STATS.map((s) => (
+                <Box key={s.l} sx={{ bgcolor: '#fff', border: '1px solid #EEF2F6', borderRadius: '8px', p: '8px 9px' }}>
+                  <Typography sx={{ fontSize: 7.5, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.l}</Typography>
+                  <Typography sx={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A', lineHeight: 1.25 }}>{s.v}</Typography>
+                  <Typography sx={{ fontSize: 7.5, fontWeight: 700, color: '#10B981' }}>▲ {s.t}</Typography>
+                </Box>
+              ))}
+            </Box>
+            <Box sx={{ bgcolor: '#fff', border: '1px solid #EEF2F6', borderRadius: '8px', p: '9px 10px' }}>
+              <Typography sx={{ fontSize: 8.5, fontWeight: 700, color: '#64748B', mb: 0.4 }}>Revenue · This week</Typography>
+              <Box component="svg" width="100%" height="58" viewBox="0 0 240 58" preserveAspectRatio="none" sx={{ display: 'block' }}>
+                <defs>
+                  <linearGradient id="pv-area" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#2563EB" stopOpacity="0.34" />
+                    <stop offset="100%" stopColor="#2563EB" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <path d="M0,46 L40,38 L80,42 L120,24 L160,28 L200,13 L240,19 L240,58 L0,58 Z" fill="url(#pv-area)" />
+                <path d="M0,46 L40,38 L80,42 L120,24 L160,28 L200,13 L240,19" fill="none" stroke="#2563EB" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+              </Box>
+            </Box>
+            <Box sx={{ bgcolor: '#fff', border: '1px solid #EEF2F6', borderRadius: '8px', p: '9px 10px', display: 'flex', flexDirection: 'column', gap: 0.7 }}>
+              <Typography sx={{ fontSize: 8.5, fontWeight: 700, color: '#64748B', mb: 0.2 }}>Recent invoices</Typography>
+              {PREVIEW_INVOICES.map((r) => (
+                <Box key={r.n} sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                  <Box sx={{ width: 17, height: 17, borderRadius: '50%', bgcolor: '#E0E7FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 800, color: '#3730A3' }}>{r.i}</Box>
+                  <Typography sx={{ fontSize: 9.5, fontWeight: 600, color: '#334155', flex: 1 }}>{r.n}</Typography>
+                  <Box sx={{ px: 0.75, py: 0.25, borderRadius: '999px', bgcolor: r.bg }}>
+                    <Typography sx={{ fontSize: 7.5, fontWeight: 800, color: r.c }}>{r.s}</Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
+  );
+}
 
 function Logo({ size = 40, glow = false }) {
   return (
@@ -198,7 +285,7 @@ export default function SignIn() {
           display: { xs: 'none', md: 'flex' },
           width: { md: '40%', lg: '45%' },
           flexDirection: 'column',
-          p: { md: '48px 48px', lg: '64px 72px' },
+          p: { md: '36px 44px', lg: '44px 64px' },
           position: 'relative', overflow: 'hidden',
           background: 'linear-gradient(165deg, #0F172A 0%, #16233D 48%, #0C1425 100%)',
         }}>
@@ -223,51 +310,24 @@ export default function SignIn() {
           </Stack>
 
           {/* hero — vertically centered */}
-          <Box sx={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', py: 6 }}>
+          <Box sx={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', py: 2 }}>
             <Typography component="h1" sx={{
-              color: '#fff', fontWeight: 700, maxWidth: 480,
-              fontSize: { md: '2.1rem', lg: '2.6rem' }, lineHeight: 1.22, letterSpacing: '-0.03em', mb: 2.5,
+              color: '#fff', fontWeight: 700, maxWidth: 460,
+              fontSize: { md: '1.8rem', lg: '2.2rem' }, lineHeight: 1.2, letterSpacing: '-0.03em', mb: 1.5,
               animation: 'si-fadeUp .45s ease-out .05s both',
             }}>
               Everything your dental practice needs in one platform.
             </Typography>
             <Typography sx={{
-              color: 'rgba(203,213,225,0.75)', maxWidth: 480,
-              fontSize: { md: '0.98rem', lg: '1.05rem' }, lineHeight: 1.75, mb: 5,
+              color: 'rgba(203,213,225,0.75)', maxWidth: 460,
+              fontSize: { md: '0.92rem', lg: '0.98rem' }, lineHeight: 1.65, mb: { md: 2.5, lg: 3 },
               animation: 'si-fadeUp .45s ease-out .12s both',
             }}>
               Appointments, clinical records, billing and reporting — connected in a single workspace built for modern clinics.
             </Typography>
 
-            {/* feature cards — glass, 2×2 */}
-            <Box sx={{
-              display: 'grid', gridTemplateColumns: { md: '1fr', lg: '1fr 1fr' }, gap: '14px', maxWidth: 520,
-              animation: 'si-fadeUp .45s ease-out .2s both',
-            }}>
-              {FEATURES.map(({ icon, title, desc }) => (
-                <Box key={title} sx={{
-                  display: 'flex', alignItems: 'flex-start', gap: 1.5,
-                  p: '14px 16px', borderRadius: '14px',
-                  bgcolor: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  backdropFilter: 'blur(8px)',
-                  transition: 'transform .25s ease-out, background .25s ease-out, border-color .25s ease-out',
-                  '&:hover': { transform: 'translateY(-3px)', bgcolor: 'rgba(255,255,255,0.07)', borderColor: 'rgba(255,255,255,0.16)' },
-                }}>
-                  <Box sx={{
-                    width: 38, height: 38, borderRadius: '10px', flexShrink: 0,
-                    bgcolor: 'rgba(37,99,235,0.18)', border: '1px solid rgba(59,130,246,0.28)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#93C5FD',
-                  }}>
-                    {icon}
-                  </Box>
-                  <Box>
-                    <Typography sx={{ color: '#F1F5F9', fontSize: '0.85rem', fontWeight: 700, lineHeight: 1.3 }}>{title}</Typography>
-                    <Typography sx={{ color: 'rgba(148,163,184,0.85)', fontSize: '0.78rem', lineHeight: 1.5, mt: '3px' }}>{desc}</Typography>
-                  </Box>
-                </Box>
-              ))}
-            </Box>
+            {/* live product preview */}
+            <ProductPreview />
           </Box>
 
           {/* footer */}

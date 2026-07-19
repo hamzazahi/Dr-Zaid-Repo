@@ -298,6 +298,24 @@ export const ClinicProvider = ({ children }) => {
     }
   }, [live, reloadLive]);
 
+  // Deleting a patient cascades to all their records (the DB enforces this via
+  // ON DELETE CASCADE). We mirror the visible cascade locally so no orphaned
+  // rows linger on screen, then persist.
+  const deletePatient = useCallback((patientId) => {
+    const target = patients.find((p) => p.id === patientId);
+    setPatients((prev) => prev.filter((p) => p.id !== patientId));
+    setAppointments((prev) => prev.filter((a) => a.patientId !== patientId));
+    setInvoices((prev) => prev.filter((i) => i.patientId !== patientId));
+    setPayments((prev) => prev.filter((pm) => pm.patientId !== patientId));
+    if (live) {
+      patientService.remove(patientId).catch((e) => {
+        console.error('[live] deletePatient:', e.message);
+        reloadLive('patients', 'appointments', 'invoices', 'payments');
+      });
+    }
+    if (target) logAudit('Patients', 'Patient deleted', target.name);
+  }, [live, patients, reloadLive, logAudit]);
+
   const addAppointment = useCallback(async (apptData) => {
     if (live) {
       const created = await appointmentService.create(apptData);
@@ -1562,6 +1580,7 @@ export const ClinicProvider = ({ children }) => {
       startConversation,
       addPatient,
       updatePatient,
+      deletePatient,
       addAppointment,
       updateAppointmentStatus,
       assignDentist,
@@ -1590,7 +1609,7 @@ export const ClinicProvider = ({ children }) => {
       imagingRecords, addImagingRecord, deleteImagingRecord,
       referrals, addReferral, updateReferralStatus, deleteReferral,
       conversations, sendMessage, markConversationRead, startConversation,
-      addPatient, updatePatient,
+      addPatient, updatePatient, deletePatient,
       addAppointment, updateAppointmentStatus, assignDentist, addTreatment,
       addPayment, getTodayAppointments, getTodayMetrics,
     ]
