@@ -36,6 +36,9 @@ const KEYFRAMES = `
     10%,90% { transform:translateX(-1px) } 20%,80% { transform:translateX(2px) }
     30%,50%,70% { transform:translateX(-5px) } 40%,60% { transform:translateX(5px) }
   }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+  }
 `;
 
 // Mini dashboard "product preview" — a self-contained mock of the real app,
@@ -160,7 +163,7 @@ function Field({ id, label, type, value, onChange, onBlur, onKeyEvent, error, au
 
   return (
     <Box>
-      <Box component="label" htmlFor={id} sx={{ display: 'block', fontSize: '14px', fontWeight: 600, color: C.text, mb: '7px' }}>
+      <Box component="label" htmlFor={id} sx={{ display: 'block', fontSize: '13.5px', fontWeight: 600, color: C.text, mb: '6px' }}>
         {label}
       </Box>
       <Box sx={{ position: 'relative' }}>
@@ -178,9 +181,9 @@ function Field({ id, label, type, value, onChange, onBlur, onKeyEvent, error, au
           aria-invalid={showError || undefined}
           aria-describedby={showError ? `${id}-error` : undefined}
           style={{
-            width: '100%', boxSizing: 'border-box', height: 50,
-            padding: `0 ${endAdornment ? 48 : 16}px 0 16px`,
-            fontSize: '15px', fontFamily: 'inherit', fontWeight: 500,
+            width: '100%', boxSizing: 'border-box', height: 46,
+            padding: `0 ${endAdornment ? 44 : 14}px 0 14px`,
+            fontSize: '14.5px', fontFamily: 'inherit', fontWeight: 500,
             color: C.text, background: focused ? '#fff' : C.inputBg,
             border: `1.5px solid ${borderColor}`, borderRadius: '10px',
             outline: 'none',
@@ -280,12 +283,12 @@ export default function SignIn() {
 
       <Box sx={{ minHeight: '100vh', display: 'flex', fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif' }}>
 
-        {/* ══ LEFT — brand panel (desktop 45%, tablet 40%, hidden on mobile) ══ */}
+        {/* ══ LEFT — brand panel (~55% desktop / 52% tablet, hidden on mobile) ══ */}
         <Box sx={{
           display: { xs: 'none', md: 'flex' },
-          width: { md: '40%', lg: '45%' },
+          width: { md: '52%', lg: '55%' },
           flexDirection: 'column',
-          p: { md: '36px 44px', lg: '44px 64px' },
+          p: { md: '36px 44px', lg: '44px 60px' },
           position: 'relative', overflow: 'hidden',
           background: 'linear-gradient(165deg, #0F172A 0%, #16233D 48%, #0C1425 100%)',
         }}>
@@ -336,20 +339,21 @@ export default function SignIn() {
           </Typography>
         </Box>
 
-        {/* ══ RIGHT — authentication card ══ */}
+        {/* ══ RIGHT — auth column: card centered in the free space, copyright pinned ══ */}
         <Box sx={{
-          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          bgcolor: C.bg, p: { xs: '32px 16px', sm: '48px 40px' },
+          flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column',
+          bgcolor: C.bg, px: { xs: 2.5, sm: 4 }, py: { xs: 3, sm: 4 },
         }}>
+          <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
           <Box
             component="form"
             onSubmit={handleSubmit}
             noValidate
             onAnimationEnd={() => setShaking(false)}
             sx={{
-              width: '100%', maxWidth: 430,
-              bgcolor: C.card, borderRadius: '18px', border: `1px solid ${C.border}`,
-              p: { xs: '28px 22px', sm: '40px 38px' },
+              width: '100%', maxWidth: 416,
+              bgcolor: C.card, borderRadius: '16px', border: `1px solid ${C.border}`,
+              p: { xs: '26px 22px', sm: '36px 36px' },
               boxShadow: '0 1px 2px rgba(15,23,42,0.04), 0 12px 32px -16px rgba(15,23,42,0.14)',
               animation: shaking ? 'si-shake .4s ease-out' : 'si-fadeUp .45s ease-out both',
             }}
@@ -360,10 +364,10 @@ export default function SignIn() {
               <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', letterSpacing: '-0.02em', color: C.text }}>DentSuite</Typography>
             </Stack>
 
-            <Typography component="h2" sx={{ fontWeight: 700, fontSize: { xs: '1.6rem', sm: '1.9rem' }, letterSpacing: '-0.03em', color: C.text, lineHeight: 1.2, mb: 1 }}>
+            <Typography component="h2" sx={{ fontWeight: 700, fontSize: { xs: '1.55rem', sm: '1.8rem' }, letterSpacing: '-0.03em', color: C.text, lineHeight: 1.2, mb: 0.75 }}>
               Welcome Back
             </Typography>
-            <Typography sx={{ color: C.textSecondary, fontSize: '0.92rem', mb: 4 }}>
+            <Typography sx={{ color: C.textSecondary, fontSize: '0.9rem', mb: 3.25 }}>
               Sign in to your clinic workspace.
             </Typography>
 
@@ -383,7 +387,7 @@ export default function SignIn() {
               </Box>
             )}
 
-            <Stack spacing={1}>
+            <Stack spacing={1.25}>
               <Field id="email" label="Email" type="email" autoComplete="email" placeholder="you@clinic.com"
                 value={email} error={emailError}
                 onChange={(e) => { setEmail(e.target.value); clearBanners(); }} onBlur={() => setEmailTouched(true)} />
@@ -400,7 +404,7 @@ export default function SignIn() {
                 } />
             </Stack>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 0.5, mb: 3.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1, mb: 3 }}>
               <Box component="label" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, cursor: 'pointer', userSelect: 'none' }}>
                 <Box
                   role="checkbox"
@@ -450,8 +454,9 @@ export default function SignIn() {
               ) : 'Sign in'}
             </ButtonBase>
           </Box>
+          </Box>
 
-          <Typography sx={{ mt: 3.5, fontSize: '0.74rem', color: C.textFaint, textAlign: 'center' }}>
+          <Typography sx={{ mt: 2.5, fontSize: '0.74rem', color: C.textFaint, textAlign: 'center', flexShrink: 0 }}>
             © {year} DentSuite. All rights reserved.
           </Typography>
         </Box>
