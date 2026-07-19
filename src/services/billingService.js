@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 
-// Billing — invoices and payments.
+// Billing - invoices and payments.
 //
 // The state machine (paid_amount / balance_due / status) lives in Postgres
 // triggers: this service ONLY inserts payments and reads invoices back.

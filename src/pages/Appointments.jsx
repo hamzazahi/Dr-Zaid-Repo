@@ -118,7 +118,7 @@ const Appointments = () => {
       notify(`Appointment booked for ${added.patientName} on ${formatDate(added.date)}.`, 'success');
     } catch (err) {
       console.error('Book appointment failed:', err);
-      setFormError('Could not save the appointment — please try again.');
+      setFormError('Could not save the appointment - please try again.');
     }
   };
 
@@ -235,7 +235,7 @@ const Appointments = () => {
                       </Box>
                     </TableCell>
                     <TableCell sx={{ color: 'text.secondary', maxWidth: 220, fontSize: '0.8rem' }}>
-                      {appt.notes || '—'}
+                      {appt.notes || '-'}
                     </TableCell>
                     <TableCell align="right">
                       <Button
@@ -319,7 +319,7 @@ const Appointments = () => {
                       {dayAppts.map((appt) => (
                         <Box
                           key={appt.id}
-                          title={`${appt.time} — ${appt.patientName} (${appt.type})`}
+                          title={`${appt.time} - ${appt.patientName} (${appt.type})`}
                           onClick={() => navigate(`/patients/${appt.patientId}`)}
                           sx={{
                             fontSize: '0.62rem',
@@ -374,7 +374,7 @@ const Appointments = () => {
               onChange={handleInputChange}
               fullWidth
             >
-              {dentists.map((d) => <MenuItem key={d.id} value={d.id}>{d.name} — {d.specialty}</MenuItem>)}
+              {dentists.map((d) => <MenuItem key={d.id} value={d.id}>{d.name} - {d.specialty}</MenuItem>)}
             </TextField>
             <TextField
               label="Date"

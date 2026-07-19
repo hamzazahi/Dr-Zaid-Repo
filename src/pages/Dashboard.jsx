@@ -297,7 +297,7 @@ export default function Dashboard() {
     return buckets;
   }, [appointments]);
 
-  // sparkline generator — uses different phase offsets so each card looks unique
+  // sparkline generator - uses different phase offsets so each card looks unique
   const spark = (base, v = 0.3, phase = 0) =>
     Array.from({ length: 9 }, (_, i) => ({
       v: Math.max(1, Math.round(base * (0.7 + 0.3 * Math.abs(Math.sin((i + phase) * 0.75)) + v * Math.sin((i + phase) * 1.4))))
@@ -355,7 +355,7 @@ export default function Dashboard() {
             Here's what needs your attention today.
           </Typography>
         </Box>
-        {/* Quick actions — the receptionist's daily workflows, one click away */}
+        {/* Quick actions - the receptionist's daily workflows, one click away */}
         <Stack direction="row" gap={1.25} flexWrap="wrap">
           <Button
             variant="outlined"
@@ -475,7 +475,7 @@ export default function Dashboard() {
             <Box sx={{ mt: 1.5, pt: 1.5, borderTop: `1px solid ${colors.borderLight}`, display: 'flex', gap: 3, flexWrap: 'wrap' }}>
               {[
                 { label: '6-Month Total', val: formatCurrency(revTrend.reduce((s, r) => s + r.revenue, 0)) },
-                { label: 'Peak Month',    val: revTrend.reduce((max, r) => r.revenue > max.revenue ? r : max, revTrend[0])?.month || '—' },
+                { label: 'Peak Month',    val: revTrend.reduce((max, r) => r.revenue > max.revenue ? r : max, revTrend[0])?.month || '-' },
                 { label: 'Avg / Month',   val: formatCurrency(Math.round(revTrend.reduce((s, r) => s + r.revenue, 0) / 6)) },
               ].map(({ label, val }) => (
                 <Box key={label}>
@@ -487,7 +487,7 @@ export default function Dashboard() {
           </Card>
         </Grid>
 
-        {/* Procedure mix — donut */}
+        {/* Procedure mix - donut */}
         <Grid item xs={12} lg={4}>
           <Card sx={{ borderRadius: '14px', border: `1px solid ${colors.border}`, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', p: '20px 24px', height: '100%' }}>
             <SectionHead title="Procedure Mix" sub="All-time distribution"/>
@@ -554,7 +554,7 @@ export default function Dashboard() {
               <Box sx={{ py: 7, textAlign: 'center' }}>
                 <Typography sx={{ fontSize: '2rem', mb: 1 }}>📅</Typography>
                 <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', mb: 0.25 }}>No appointments today</Typography>
-                <Typography sx={{ fontSize: '0.78rem', color: colors.textSecondary }}>Schedule is clear — enjoy the quiet.</Typography>
+                <Typography sx={{ fontSize: '0.78rem', color: colors.textSecondary }}>Schedule is clear - enjoy the quiet.</Typography>
               </Box>
             ) : (
               <Box sx={{ overflowX: 'auto' }}>
@@ -670,7 +670,7 @@ export default function Dashboard() {
                 <strong style={{ color: colors.textPrimary }}>
                   {apptTrend.reduce((max, b) => b.count > max.count ? b : max, apptTrend[0])?.month}
                 </strong>
-                {' '}was the busiest month — {apptTrend.reduce((max, b) => b.count > max.count ? b : max, apptTrend[0])?.count} appointments.
+                {' '}was the busiest month - {apptTrend.reduce((max, b) => b.count > max.count ? b : max, apptTrend[0])?.count} appointments.
               </Typography>
             </Box>
           </Card>

@@ -84,7 +84,7 @@ export default function Treatments() {
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       <Box>
         <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', color: colors.textPrimary, letterSpacing: '-0.02em' }}>Treatment Cases</Typography>
-        <Typography variant="body2" sx={{ color: colors.textSecondary, mt: 0.25 }}>Record procedures — invoices are generated automatically.</Typography>
+        <Typography variant="body2" sx={{ color: colors.textSecondary, mt: 0.25 }}>Record procedures - invoices are generated automatically.</Typography>
       </Box>
 
       <Grid container spacing={2}>
@@ -110,7 +110,7 @@ export default function Treatments() {
       {!editable && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 2, py: 1.25, borderRadius: '10px', bgcolor: '#F1F5F9', border: '1px solid #E2E8F0' }}>
           <Typography variant="body2" sx={{ fontSize: '0.82rem', fontWeight: 600, color: '#475569' }}>
-            View only — treatments are logged by the doctor. You can still look up any record below.
+            View only - treatments are logged by the doctor. You can still look up any record below.
           </Typography>
         </Box>
       )}
@@ -206,8 +206,8 @@ export default function Treatments() {
                     <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{formatDate(t.date)}</Typography></TableCell>
                     <TableCell><ProcedurePill type={t.type} /></TableCell>
                     <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', fontWeight: 600 }}>{t.toothNumber === 'All' ? 'All Teeth' : `#${t.toothNumber}`}</Typography></TableCell>
-                    <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{t.dentistName || '—'}</Typography></TableCell>
-                    <TableCell sx={{ maxWidth: 300 }}><Typography variant="body2" sx={{ fontSize: '0.8rem', color: colors.textSecondary }} noWrap>{t.notes || '—'}</Typography></TableCell>
+                    <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{t.dentistName || '-'}</Typography></TableCell>
+                    <TableCell sx={{ maxWidth: 300 }}><Typography variant="body2" sx={{ fontSize: '0.8rem', color: colors.textSecondary }} noWrap>{t.notes || '-'}</Typography></TableCell>
                     <TableCell align="right"><Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: '#0D9488' }}>{formatCurrency(t.cost)}</Typography></TableCell>
                   </TableRow>
                 ))

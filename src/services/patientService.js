@@ -1,6 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
-// PATTERN FILE — the reference for every entity service (Phase 3).
+// PATTERN FILE - the reference for every entity service (Phase 3).
 //
 // Each service exposes the same verbs the ClinicContext handlers need
 // (list / create / update / remove) and translates between the frontend's
@@ -8,7 +8,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 // stays the single consumer; pages never import services directly.
 //
 // While Supabase is unconfigured (.env missing) the context keeps using its
-// local data layer — check `isSupabaseConfigured` before switching a module.
+// local data layer - check `isSupabaseConfigured` before switching a module.
 
 const toRow = (p) => ({
   name: p.name,

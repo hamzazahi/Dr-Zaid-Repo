@@ -19,7 +19,7 @@ export const storageService = {
     return path;
   },
 
-  // Signed URL valid for one hour — enough for viewing/downloading.
+  // Signed URL valid for one hour - enough for viewing/downloading.
   async signedUrl(bucket, path) {
     const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
     if (error) throw error;

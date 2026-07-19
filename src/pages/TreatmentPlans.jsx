@@ -116,7 +116,7 @@ export default function TreatmentPlans() {
 
   const handleAccept = (plan) => {
     updateTreatmentPlanStatus(plan.id, 'Accepted');
-    notify(`Plan accepted — invoice generated for ${plan.patientName}.`, 'success');
+    notify(`Plan accepted - invoice generated for ${plan.patientName}.`, 'success');
   };
 
   const statCards = [
@@ -139,7 +139,7 @@ export default function TreatmentPlans() {
           </Button>
         ) : (
           <Box sx={{ px: 1.5, py: 0.75, borderRadius: '8px', bgcolor: '#F1F5F9', border: '1px solid #E2E8F0' }}>
-            <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>View only — plans are managed by the doctor</Typography>
+            <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>View only - plans are managed by the doctor</Typography>
           </Box>
         )}
       </Box>
@@ -310,7 +310,7 @@ export default function TreatmentPlans() {
                   </TextField>
                   <TextField select label="Tooth" value={it.toothNumber} onChange={(e) => updateItem(idx, 'toothNumber', e.target.value)} sx={{ width: 110 }} size="small">
                     <MenuItem value="All">All</MenuItem>
-                    <MenuItem value="—">—</MenuItem>
+                    <MenuItem value="-">-</MenuItem>
                     {TOOTH_NUMBERS.map((n) => <MenuItem key={n} value={n}>#{n}</MenuItem>)}
                   </TextField>
                   <TextField label="Fee (PKR)" type="number" value={it.cost} onChange={(e) => updateItem(idx, 'cost', e.target.value)} sx={{ width: 130 }} size="small" inputProps={{ min: 0 }} />

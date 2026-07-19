@@ -106,7 +106,7 @@ export default function Payments() {
                   <TableCell>{formatDate(p.date)}</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>{p.patientName}</TableCell>
                   <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: colors.textSecondary }}>
-                    {p.invoiceNumber || invoiceNumberById[p.invoiceId] || '—'}
+                    {p.invoiceNumber || invoiceNumberById[p.invoiceId] || '-'}
                   </TableCell>
                   <TableCell>
                     <Chip label={p.method} size="small" variant="outlined" sx={{ fontWeight: 600 }} />

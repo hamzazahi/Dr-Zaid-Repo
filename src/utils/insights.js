@@ -1,4 +1,4 @@
-// DentIQ — the practice-intelligence engine.
+// DentIQ - the practice-intelligence engine.
 //
 // Pure functions over clinic data: no network, no side effects. Today the
 // intelligence is deterministic rules (transparent and explainable); in the
@@ -88,7 +88,7 @@ export const buildInsights = (data) => {
     insights.push({
       id: 'overdue-recalls', severity: 'warning', category: 'Recalls',
       title: `${overdueRecalls.length} recall${overdueRecalls.length > 1 ? 's are' : ' is'} overdue`,
-      detail: `${overdueRecalls.map((r) => r.patientName).slice(0, 3).join(', ')}${overdueRecalls.length > 3 ? '…' : ''} — overdue patients drift to other clinics if not re-engaged.`,
+      detail: `${overdueRecalls.map((r) => r.patientName).slice(0, 3).join(', ')}${overdueRecalls.length > 3 ? '…' : ''} - overdue patients drift to other clinics if not re-engaged.`,
       action: { label: 'Open Recalls', path: '/recalls' },
     });
   }
@@ -119,7 +119,7 @@ export const buildInsights = (data) => {
     insights.push({
       id: 'late-lab', severity: 'warning', category: 'Clinical',
       title: `${lateLab.length} lab case${lateLab.length > 1 ? 's' : ''} past due`,
-      detail: `${lateLab.map((c) => `${c.caseType} for ${c.patientName} (${c.labName})`).slice(0, 2).join('; ')}${lateLab.length > 2 ? '…' : ''} — chase the lab before the fitting appointment slips.`,
+      detail: `${lateLab.map((c) => `${c.caseType} for ${c.patientName} (${c.labName})`).slice(0, 2).join('; ')}${lateLab.length > 2 ? '…' : ''} - chase the lab before the fitting appointment slips.`,
       action: { label: 'Open Lab Work', path: '/lab-work' },
     });
   }
@@ -131,7 +131,7 @@ export const buildInsights = (data) => {
     insights.push({
       id: 'aging-claims', severity: 'warning', category: 'Revenue',
       title: `${rs(value)} stuck in claims older than 14 days`,
-      detail: `${agingClaims.length} claim${agingClaims.length > 1 ? 's' : ''} awaiting payer response — follow up to keep the revenue cycle moving.`,
+      detail: `${agingClaims.length} claim${agingClaims.length > 1 ? 's' : ''} awaiting payer response - follow up to keep the revenue cycle moving.`,
       action: { label: 'Open Insurance', path: '/insurance' },
     });
   }
@@ -142,7 +142,7 @@ export const buildInsights = (data) => {
     insights.push({
       id: 'renewals', severity: 'info', category: 'Revenue',
       title: `${renewing.length} membership${renewing.length > 1 ? 's' : ''} renew within 30 days`,
-      detail: `${renewing.map((m) => `${m.patientName} (${m.planName})`).slice(0, 3).join(', ')} — a renewal nudge now protects recurring revenue.`,
+      detail: `${renewing.map((m) => `${m.patientName} (${m.planName})`).slice(0, 3).join(', ')} - a renewal nudge now protects recurring revenue.`,
       action: { label: 'Open Memberships', path: '/memberships' },
     });
   }
@@ -153,7 +153,7 @@ export const buildInsights = (data) => {
     insights.push({
       id: 'stale-forms', severity: 'info', category: 'Compliance',
       title: `${staleForms.length} form${staleForms.length > 1 ? 's' : ''} unsigned for 3+ days`,
-      detail: `${staleForms.map((f) => `${f.templateName} (${f.patientName})`).slice(0, 2).join('; ')}${staleForms.length > 2 ? '…' : ''} — consent gaps block treatment.`,
+      detail: `${staleForms.map((f) => `${f.templateName} (${f.patientName})`).slice(0, 2).join('; ')}${staleForms.length > 2 ? '…' : ''} - consent gaps block treatment.`,
       action: { label: 'Open Forms', path: '/forms' },
     });
   }
@@ -187,8 +187,8 @@ export const buildInsights = (data) => {
       id: 'collection-rate', severity: rate < 70 ? 'warning' : 'positive', category: 'Revenue',
       title: `Collection rate is ${rate}%`,
       detail: rate < 70
-        ? `${rs(billed - collected)} of billed work is uncollected — payment links and front-desk collection at checkout lift this fastest.`
-        : `${rs(collected)} collected of ${rs(billed)} billed. Healthy — industry benchmark is ~90%+.`,
+        ? `${rs(billed - collected)} of billed work is uncollected - payment links and front-desk collection at checkout lift this fastest.`
+        : `${rs(collected)} collected of ${rs(billed)} billed. Healthy - industry benchmark is ~90%+.`,
       action: { label: 'Open Billing', path: '/billing' },
     });
   }
@@ -206,7 +206,7 @@ export const buildInsights = (data) => {
   return insights;
 };
 
-// ── Ask DentIQ — deterministic Q&A over clinic data ──────────────────────────
+// ── Ask DentIQ - deterministic Q&A over clinic data ──────────────────────────
 // Intent-matched answers (transparent, always correct for the data it reads).
 // The same signature can later route to an LLM with clinic-data context.
 export const answerQuestion = (query, data) => {
@@ -232,7 +232,7 @@ export const answerQuestion = (query, data) => {
     const total = open.reduce((s, i) => s + i.balanceDue, 0);
     const top = [...open].sort((a, b) => b.balanceDue - a.balanceDue).slice(0, 3)
       .map((i) => `${i.patientName} ${rs(i.balanceDue)}`).join(' · ');
-    return { text: open.length ? `Outstanding: ${rs(total)} across ${open.length} invoices. Top: ${top}.` : 'No outstanding balances — everything is collected. 🎉', action: { label: 'Open Billing', path: '/billing' } };
+    return { text: open.length ? `Outstanding: ${rs(total)} across ${open.length} invoices. Top: ${top}.` : 'No outstanding balances - everything is collected. 🎉', action: { label: 'Open Billing', path: '/billing' } };
   }
 
   if (/appointment|schedule|visit/.test(q)) {
@@ -263,7 +263,7 @@ export const answerQuestion = (query, data) => {
 
   if (/how many patient|patient count|patients do/.test(q)) {
     const active = patients.filter((p) => p.status === 'Active').length;
-    return { text: `${patients.length} registered patients — ${active} active, ${patients.filter((p) => p.status === 'Pending Payment').length} with pending payments.`, action: { label: 'Open Patients', path: '/patients' } };
+    return { text: `${patients.length} registered patients - ${active} active, ${patients.filter((p) => p.status === 'Pending Payment').length} with pending payments.`, action: { label: 'Open Patients', path: '/patients' } };
   }
 
   return {

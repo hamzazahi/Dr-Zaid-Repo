@@ -244,10 +244,10 @@ export default function Recalls() {
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontSize: '0.82rem', fontWeight: overdue ? 700 : 400, color: overdue ? colors.error : colors.textSecondary }}>
-                          {r.dueDate ? formatDate(r.dueDate) : '—'}{overdue ? ' · overdue' : ''}
+                          {r.dueDate ? formatDate(r.dueDate) : '-'}{overdue ? ' · overdue' : ''}
                         </Typography>
                       </TableCell>
-                      <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{r.lastReminderAt ? formatDate(r.lastReminderAt) : '—'}</Typography></TableCell>
+                      <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{r.lastReminderAt ? formatDate(r.lastReminderAt) : '-'}</Typography></TableCell>
                       <TableCell><StatusPill status={r.status} /></TableCell>
                       <TableCell align="right">
                         <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>

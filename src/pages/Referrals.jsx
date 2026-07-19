@@ -269,13 +269,13 @@ export default function Referrals() {
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <TextField select label="Direction" name="direction" value={form.direction} onChange={handleChange} fullWidth>
-                  <MenuItem value="Outbound">Outbound — we refer out</MenuItem>
-                  <MenuItem value="Inbound">Inbound — referred to us</MenuItem>
+                  <MenuItem value="Outbound">Outbound - we refer out</MenuItem>
+                  <MenuItem value="Inbound">Inbound - referred to us</MenuItem>
                 </TextField>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField select label="Patient" name="patientId" value={form.patientId} onChange={handleChange} fullWidth required>
-                  {form.direction === 'Inbound' && <MenuItem value={NOT_REGISTERED}>— Not registered yet —</MenuItem>}
+                  {form.direction === 'Inbound' && <MenuItem value={NOT_REGISTERED}>- Not registered yet -</MenuItem>}
                   {patients.map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
                 </TextField>
               </Grid>

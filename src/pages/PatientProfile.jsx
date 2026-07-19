@@ -48,7 +48,7 @@ const AVATAR_COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626', '#
 const avatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
 
 const formatSize = (bytes) => {
-  if (!bytes) return '—';
+  if (!bytes) return '-';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1048576) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / 1048576).toFixed(1)} MB`;
@@ -68,7 +68,7 @@ function InfoRow({ icon, label, value }) {
       <Box sx={{ color: colors.textLight, display: 'flex', mt: '2px', flexShrink: 0 }}>{icon}</Box>
       <Box>
         <Typography variant="caption" sx={{ color: colors.textSecondary, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>{label}</Typography>
-        <Typography variant="body2" sx={{ fontWeight: 500, mt: 0.25 }}>{value || '—'}</Typography>
+        <Typography variant="body2" sx={{ fontWeight: 500, mt: 0.25 }}>{value || '-'}</Typography>
       </Box>
     </Box>
   );
@@ -266,7 +266,7 @@ const PatientProfile = () => {
                             <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: colors.primary }}>{appt.type}</Typography>
                           </Box>
                         </TableCell>
-                        <TableCell sx={{ maxWidth: 260 }}><Typography variant="body2" sx={{ fontSize: '0.8rem', color: colors.textSecondary }} noWrap>{appt.notes || '—'}</Typography></TableCell>
+                        <TableCell sx={{ maxWidth: 260 }}><Typography variant="body2" sx={{ fontSize: '0.8rem', color: colors.textSecondary }} noWrap>{appt.notes || '-'}</Typography></TableCell>
                         <TableCell><StatusBadge status={appt.status} /></TableCell>
                       </TableRow>
                     ))}
@@ -319,7 +319,7 @@ const PatientProfile = () => {
                             </Box>
                           </TableCell>
                           <TableCell><Typography variant="body2" fontWeight={700}>{t.toothNumber === 'All' ? 'All Teeth' : `#${t.toothNumber}`}</Typography></TableCell>
-                          <TableCell sx={{ maxWidth: 300 }}><Typography variant="body2" sx={{ fontSize: '0.8rem', color: colors.textSecondary }} noWrap>{t.notes || '—'}</Typography></TableCell>
+                          <TableCell sx={{ maxWidth: 300 }}><Typography variant="body2" sx={{ fontSize: '0.8rem', color: colors.textSecondary }} noWrap>{t.notes || '-'}</Typography></TableCell>
                           <TableCell align="right"><Typography sx={{ fontWeight: 700, color: '#0D9488' }}>{formatCurrency(t.cost)}</Typography></TableCell>
                         </TableRow>
                       ))}
@@ -415,7 +415,7 @@ const PatientProfile = () => {
                         <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{formatDate(px.date)}</Typography></TableCell>
                         <TableCell><Typography variant="body2" fontWeight={700} sx={{ color: colors.primary }}>{px.medication}</Typography></TableCell>
                         <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem' }}>{px.dosage}</Typography></TableCell>
-                        <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{px.frequency || '—'}</Typography></TableCell>
+                        <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{px.frequency || '-'}</Typography></TableCell>
                         <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem' }}>{px.doctorName}</Typography></TableCell>
                         <TableCell>
                           <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: '5px', px: '8px', py: '3px', borderRadius: '6px', bgcolor: px.status === 'active' ? '#EFF6FF' : '#F0FDF4' }}>

@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 
-// Treatments (clinical) — RLS: both roles read, only the doctor writes.
+// Treatments (clinical) - RLS: both roles read, only the doctor writes.
 
 const JOIN = '*, patients(name)';
 

@@ -173,7 +173,7 @@ export default function Imaging() {
           </Button>
         ) : (
           <Box sx={{ px: 1.5, py: 0.75, borderRadius: '8px', bgcolor: '#F1F5F9', border: '1px solid #E2E8F0' }}>
-            <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>View only — imaging is captured by clinicians</Typography>
+            <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>View only - imaging is captured by clinicians</Typography>
           </Box>
         )}
       </Box>
@@ -183,8 +183,8 @@ export default function Imaging() {
         <InfoIcon sx={{ fontSize: 18, color: colors.primary }} />
         <Typography variant="body2" sx={{ color: '#0A3254', fontSize: '0.82rem' }}>
           {dataLive
-            ? <>Attach the image file when recording — it is stored in <strong>secure cloud storage</strong> and previews in the record detail.</>
-            : <>Demo mode stores image <strong>metadata only</strong> — connect Supabase to attach and preview real files.</>}
+            ? <>Attach the image file when recording - it is stored in <strong>secure cloud storage</strong> and previews in the record detail.</>
+            : <>Demo mode stores image <strong>metadata only</strong> - connect Supabase to attach and preview real files.</>}
         </Typography>
       </Box>
 
@@ -262,7 +262,7 @@ export default function Imaging() {
                     <TableCell><Typography variant="body2" fontWeight={700} sx={{ fontSize: '0.82rem' }}>{r.toothNumber === 'All' ? 'Full Mouth' : `#${r.toothNumber}`}</Typography></TableCell>
                     <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{formatDate(r.date)}</Typography></TableCell>
                     <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem' }}>{r.takenBy}</Typography></TableCell>
-                    <TableCell sx={{ maxWidth: 220 }}><Typography variant="body2" sx={{ fontSize: '0.8rem', color: colors.textSecondary }} noWrap>{r.notes || '—'}</Typography></TableCell>
+                    <TableCell sx={{ maxWidth: 220 }}><Typography variant="body2" sx={{ fontSize: '0.8rem', color: colors.textSecondary }} noWrap>{r.notes || '-'}</Typography></TableCell>
                     <TableCell align="right">
                       <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
                         <Tooltip title="View details">
@@ -319,7 +319,7 @@ export default function Imaging() {
             </Grid>
             <Grid item xs={12}>
               <Typography variant="caption" sx={{ color: colors.textSecondary, fontWeight: 600, textTransform: 'uppercase', fontSize: '0.65rem' }}>Clinical Notes</Typography>
-              <Typography variant="body2">{viewRecord?.notes || '—'}</Typography>
+              <Typography variant="body2">{viewRecord?.notes || '-'}</Typography>
             </Grid>
           </Grid>
         </DialogContent>
@@ -366,7 +366,7 @@ export default function Imaging() {
               <Grid item xs={12}>
                 <Button component="label" variant="outlined" fullWidth
                   sx={{ textTransform: 'none', fontWeight: 600, justifyContent: 'flex-start', color: pickedFile ? colors.primary : colors.textSecondary, borderColor: '#DFE4EC', py: 1.25 }}>
-                  {pickedFile ? `Attached: ${pickedFile.name}` : 'Attach image file (optional — X-ray, scan, photo)'}
+                  {pickedFile ? `Attached: ${pickedFile.name}` : 'Attach image file (optional - X-ray, scan, photo)'}
                   <input type="file" hidden accept="image/*,.pdf" onChange={(e) => { setPickedFile(e.target.files?.[0] || null); setFormError(''); }} />
                 </Button>
               </Grid>

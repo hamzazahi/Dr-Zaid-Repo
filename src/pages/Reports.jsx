@@ -74,7 +74,7 @@ const DATE_INPUT_SX = {
 const FILTER_LABEL_SX = { fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#6B7280' };
 
 // Format as local YYYY-MM-DD. (toISOString() would convert to UTC and shift the
-// date back a day for timezones ahead of UTC, e.g. PKT — breaking preset ranges.)
+// date back a day for timezones ahead of UTC, e.g. PKT - breaking preset ranges.)
 const toDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 const calcPreset = (preset) => {
@@ -160,7 +160,7 @@ export default function Reports() {
     }
   };
 
-  // Native <input type="date"> emits YYYY-MM-DD directly — same format as state.
+  // Native <input type="date"> emits YYYY-MM-DD directly - same format as state.
   const handleStartChange = (e) => {
     if (e.target.value) { setStartDate(e.target.value); setPreset('custom'); }
   };
@@ -290,7 +290,7 @@ export default function Reports() {
       th, td { border: 1px solid #E5E7EB; padding: 8px; } .num { text-align: right; }
       .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
       @media print { body { margin: 18mm; } button { display: none; } }</style></head>
-      <body><header><h1>Dr Zaid Dental — Clinic Performance Report</h1>
+      <body><header><h1>Dr Zaid Dental - Clinic Performance Report</h1>
       <div class="muted">Generated ${escapeHtml(generatedAt)} · Period: ${escapeHtml(subtitleText)}</div></header>
       <section class="grid">
         <div class="card"><div class="label">Patients</div><div class="value">${patients.length}</div></div>
@@ -340,7 +340,7 @@ export default function Reports() {
     }, 350);
   };
 
-  // Reliable file download (Blob + anchor) — always downloads, no pop-up needed.
+  // Reliable file download (Blob + anchor) - always downloads, no pop-up needed.
   const csvEscape = (v) => {
     const s = String(v ?? '');
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -348,7 +348,7 @@ export default function Reports() {
 
   const downloadCsvReport = () => {
     const rows = [
-      ['Dr Zaid Dental — Clinic Performance Report'],
+      ['Dr Zaid Dental - Clinic Performance Report'],
       ['Generated', new Date().toLocaleString()],
       ['Period', `${startDate} to ${endDate}`],
       [],
@@ -387,7 +387,7 @@ export default function Reports() {
       {/* ── Header ── */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
 
-        {/* Left — title */}
+        {/* Left - title */}
         <Box sx={{ flexShrink: 0 }}>
           <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', color: colors.textPrimary, letterSpacing: '-0.02em', lineHeight: 1.2 }}>
             Analytics & Reports
@@ -397,7 +397,7 @@ export default function Reports() {
           </Typography>
         </Box>
 
-        {/* Right — exports */}
+        {/* Right - exports */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
           <Button
             variant="outlined"
@@ -458,7 +458,7 @@ export default function Reports() {
               sx={{ ...DATE_INPUT_SX, height: 38, px: '12px', fontSize: '0.85rem', minWidth: 160 }} />
           </Box>
 
-          {/* Today shortcut — for daily activity */}
+          {/* Today shortcut - for daily activity */}
           <Button
             variant="text"
             onClick={() => { const d = calcPreset('today'); setStartDate(d.start); setEndDate(d.end); setPreset('today'); }}

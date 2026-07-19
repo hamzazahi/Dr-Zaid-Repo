@@ -231,7 +231,7 @@ export default function LabWork() {
                       <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{formatDate(c.sentDate)}</Typography></TableCell>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontSize: '0.82rem', fontWeight: overdue ? 700 : 400, color: overdue ? colors.error : colors.textSecondary }}>
-                          {c.dueDate ? formatDate(c.dueDate) : '—'}{overdue ? ' · overdue' : ''}
+                          {c.dueDate ? formatDate(c.dueDate) : '-'}{overdue ? ' · overdue' : ''}
                         </Typography>
                       </TableCell>
                       <TableCell align="right"><Typography variant="body2" fontWeight={600}>{formatCurrency(c.cost)}</Typography></TableCell>
@@ -286,7 +286,7 @@ export default function LabWork() {
               <Grid item xs={12} sm={6}>
                 <TextField select label="Tooth" name="toothNumber" value={form.toothNumber} onChange={handleChange} fullWidth>
                   <MenuItem value="All">All Teeth</MenuItem>
-                  <MenuItem value="—">—</MenuItem>
+                  <MenuItem value="-">-</MenuItem>
                   {TOOTH_NUMBERS.map((n) => <MenuItem key={n} value={n}>#{n}</MenuItem>)}
                 </TextField>
               </Grid>

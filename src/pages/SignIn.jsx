@@ -7,7 +7,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 
-// ── Design tokens (per spec — Stripe/Clerk/Linear-grade palette) ─────────────
+// ── Design tokens (per spec - Stripe/Clerk/Linear-grade palette) ─────────────
 const C = {
   bg: '#F8FAFC',
   primary: '#2563EB',
@@ -41,7 +41,7 @@ const KEYFRAMES = `
   }
 `;
 
-// Mini dashboard "product preview" — a self-contained mock of the real app,
+// Mini dashboard "product preview" - a self-contained mock of the real app,
 // rendered as a floating light-themed window on the dark brand panel. Pure
 // CSS/SVG (no image assets), so it stays crisp at any size.
 const PREVIEW_STATS = [
@@ -70,7 +70,7 @@ function ProductPreview() {
           <Stack direction="row" spacing={0.6}>
             {['#F87171', '#FBBF24', '#34D399'].map((c) => <Box key={c} sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: c }} />)}
           </Stack>
-          <Typography sx={{ ml: 1.25, fontSize: 11, fontWeight: 600, color: '#94A3B8' }}>DentSuite — Dashboard</Typography>
+          <Typography sx={{ ml: 1.25, fontSize: 11, fontWeight: 600, color: '#94A3B8' }}>DentSuite - Dashboard</Typography>
           <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5, px: 0.9, py: 0.3, borderRadius: '999px', bgcolor: '#ECFDF5', border: '1px solid #A7F3D0' }}>
             <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#10B981' }} />
             <Typography sx={{ fontSize: 9, fontWeight: 800, color: '#047857', letterSpacing: '0.04em' }}>LIVE</Typography>
@@ -212,7 +212,7 @@ export default function SignIn() {
   const { signIn } = useAuth();
 
   // Remember-email: initialise from the last "remembered" sign-in (lazy
-  // initialisers — no effect needed, no cascading render).
+  // initialisers - no effect needed, no cascading render).
   const [email, setEmail] = useState(() => {
     try { return window.localStorage.getItem(REMEMBER_EMAIL_KEY) || ''; } catch { return ''; }
   });
@@ -283,7 +283,7 @@ export default function SignIn() {
 
       <Box sx={{ minHeight: '100vh', display: 'flex', fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif' }}>
 
-        {/* ══ LEFT — brand panel (~55% desktop / 52% tablet, hidden on mobile) ══ */}
+        {/* ══ LEFT - brand panel (~55% desktop / 52% tablet, hidden on mobile) ══ */}
         <Box sx={{
           display: { xs: 'none', md: 'flex' },
           width: { md: '52%', lg: '55%' },
@@ -306,13 +306,13 @@ export default function SignIn() {
           {/* ambient radial glows */}
           <Box aria-hidden="true" sx={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'radial-gradient(46% 38% at 12% 8%, rgba(37,99,235,0.22), transparent 70%), radial-gradient(50% 40% at 90% 95%, rgba(37,99,235,0.10), transparent 70%)' }} />
 
-          {/* logo — top */}
+          {/* logo - top */}
           <Stack direction="row" alignItems="center" spacing={1.5} sx={{ position: 'relative', animation: 'si-fadeIn .4s ease-out both' }}>
             <Logo size={42} glow />
             <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '1.15rem', letterSpacing: '-0.02em' }}>DentSuite</Typography>
           </Stack>
 
-          {/* hero — vertically centered */}
+          {/* hero - vertically centered */}
           <Box sx={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', py: 2 }}>
             <Typography component="h1" sx={{
               color: '#fff', fontWeight: 700, maxWidth: 460,
@@ -326,7 +326,7 @@ export default function SignIn() {
               fontSize: { md: '0.92rem', lg: '0.98rem' }, lineHeight: 1.65, mb: { md: 2.5, lg: 3 },
               animation: 'si-fadeUp .45s ease-out .12s both',
             }}>
-              Appointments, clinical records, billing and reporting — connected in a single workspace built for modern clinics.
+              Appointments, clinical records, billing and reporting - connected in a single workspace built for modern clinics.
             </Typography>
 
             {/* live product preview */}
@@ -339,7 +339,7 @@ export default function SignIn() {
           </Typography>
         </Box>
 
-        {/* ══ RIGHT — auth column: card centered in the free space, copyright pinned ══ */}
+        {/* ══ RIGHT - auth column: card centered in the free space, copyright pinned ══ */}
         <Box sx={{
           flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column',
           bgcolor: C.bg, px: { xs: 2.5, sm: 4 }, py: { xs: 3, sm: 4 },

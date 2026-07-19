@@ -4,7 +4,7 @@
 // chosen granularity (daily / weekly / monthly / quarterly). Every entity is
 // bucketed by its own date, so a single period row reflects the appointments
 // booked, the revenue collected, the amount billed and the outstanding dues
-// for that span — plus a full-vs-partial-vs-unpaid invoice breakdown.
+// for that span - plus a full-vs-partial-vs-unpaid invoice breakdown.
 
 import { computeInvoiceStatus, INVOICE_STATUS } from './billing.js';
 

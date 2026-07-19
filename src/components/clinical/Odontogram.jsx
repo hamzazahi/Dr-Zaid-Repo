@@ -257,8 +257,8 @@ export default function Odontogram({ patientId }) {
                     <TableCell><Typography variant="body2" fontWeight={700}>#{h.toothNumber}</Typography></TableCell>
                     <TableCell><Typography variant="body2" sx={{ fontSize: '0.78rem', color: statusColor(h.prevStatus) }}>{statusLabel(h.prevStatus)}</Typography></TableCell>
                     <TableCell><Typography variant="body2" sx={{ fontSize: '0.78rem', fontWeight: 700, color: statusColor(h.newStatus) }}>{statusLabel(h.newStatus)}</Typography></TableCell>
-                    <TableCell><Typography variant="body2" sx={{ fontSize: '0.78rem', fontWeight: 700, color: colors.primary }}>{h.surfaces || '—'}</Typography></TableCell>
-                    <TableCell sx={{ maxWidth: 240 }}><Typography variant="body2" sx={{ fontSize: '0.78rem', color: colors.textSecondary }} noWrap>{h.notes || '—'}</Typography></TableCell>
+                    <TableCell><Typography variant="body2" sx={{ fontSize: '0.78rem', fontWeight: 700, color: colors.primary }}>{h.surfaces || '-'}</Typography></TableCell>
+                    <TableCell sx={{ maxWidth: 240 }}><Typography variant="body2" sx={{ fontSize: '0.78rem', color: colors.textSecondary }} noWrap>{h.notes || '-'}</Typography></TableCell>
                   </TableRow>
                 ))}
               </TableBody>

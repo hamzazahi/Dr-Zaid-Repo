@@ -225,15 +225,15 @@ export default function Insurance() {
                         </Avatar>
                         <Box>
                           <Typography variant="body2" fontWeight={700} sx={{ fontSize: '0.84rem' }}>{c.patientName}</Typography>
-                          <Typography variant="caption" sx={{ color: colors.textSecondary }} noWrap>{c.procedures || '—'}</Typography>
+                          <Typography variant="caption" sx={{ color: colors.textSecondary }} noWrap>{c.procedures || '-'}</Typography>
                         </Box>
                       </Box>
                     </TableCell>
                     <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem' }}>{c.payer}</Typography></TableCell>
-                    <TableCell><Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.78rem', color: colors.textSecondary }}>{c.policyNumber || '—'}</Typography></TableCell>
+                    <TableCell><Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.78rem', color: colors.textSecondary }}>{c.policyNumber || '-'}</Typography></TableCell>
                     <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{formatDate(c.serviceDate)}</Typography></TableCell>
                     <TableCell align="right"><Typography variant="body2" fontWeight={600}>{formatCurrency(c.claimedAmount)}</Typography></TableCell>
-                    <TableCell align="right"><Typography sx={{ fontWeight: 700, color: c.approvedAmount > 0 ? colors.success : colors.textLight }}>{c.approvedAmount > 0 ? formatCurrency(c.approvedAmount) : '—'}</Typography></TableCell>
+                    <TableCell align="right"><Typography sx={{ fontWeight: 700, color: c.approvedAmount > 0 ? colors.success : colors.textLight }}>{c.approvedAmount > 0 ? formatCurrency(c.approvedAmount) : '-'}</Typography></TableCell>
                     <TableCell><StatusPill status={c.status} /></TableCell>
                     <TableCell align="right">
                       <IconButton size="small" aria-label="Open actions menu" onClick={(e) => openMenu(e, c)}><MoreIcon sx={{ fontSize: 18 }} /></IconButton>

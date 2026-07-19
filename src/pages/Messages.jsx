@@ -232,7 +232,7 @@ export default function Messages() {
       <Dialog open={openDialog} onClose={() => { setOpenDialog(false); setFormError(''); }} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700, borderBottom: `1px solid ${colors.border}` }}>
           New Message
-          <Typography variant="caption" sx={{ display: 'block', color: colors.textSecondary, fontWeight: 400, mt: 0.25 }}>Starts a thread — or continues the existing one for that patient.</Typography>
+          <Typography variant="caption" sx={{ display: 'block', color: colors.textSecondary, fontWeight: 400, mt: 0.25 }}>Starts a thread - or continues the existing one for that patient.</Typography>
         </DialogTitle>
         <form onSubmit={handleStart} noValidate>
           <DialogContent sx={{ p: 3 }}>

@@ -136,7 +136,7 @@ export default function Memberships() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', color: colors.textPrimary, letterSpacing: '-0.02em' }}>Memberships</Typography>
-          <Typography variant="body2" sx={{ color: colors.textSecondary, mt: 0.25 }}>In-house membership plans — recurring revenue and patient loyalty.</Typography>
+          <Typography variant="body2" sx={{ color: colors.textSecondary, mt: 0.25 }}>In-house membership plans - recurring revenue and patient loyalty.</Typography>
         </Box>
         <Stack direction="row" spacing={1.5}>
           <Button variant="outlined" startIcon={<AddIcon sx={{ fontSize: 18 }} />} onClick={() => { setError(''); setOpenPlan(true); }} sx={{ borderRadius: '8px', fontWeight: 700 }}>New Plan</Button>
@@ -278,7 +278,7 @@ export default function Memberships() {
               {patients.map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
             </TextField>
             <TextField select label="Plan" value={enroll.planId} onChange={(e) => { setEnroll((p) => ({ ...p, planId: e.target.value })); setError(''); }} fullWidth required>
-              {membershipPlans.map((p) => <MenuItem key={p.id} value={p.id}>{p.name} — {formatCurrency(p.price)}/{p.cycle === 'Annual' ? 'yr' : 'mo'}</MenuItem>)}
+              {membershipPlans.map((p) => <MenuItem key={p.id} value={p.id}>{p.name} - {formatCurrency(p.price)}/{p.cycle === 'Annual' ? 'yr' : 'mo'}</MenuItem>)}
             </TextField>
             <Box>
               <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: colors.textSecondary, mb: 0.5 }}>Start Date</Typography>

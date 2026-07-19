@@ -1,7 +1,7 @@
 // Centralised billing state machine.
 //
 // Every invoice has exactly one of three statuses, derived purely from
-// (totalAmount, paidAmount). Status is NEVER set by hand anywhere else —
+// (totalAmount, paidAmount). Status is NEVER set by hand anywhere else -
 // always run an invoice through `recalcInvoice` so the balance, status and
 // payment percentage stay in lock‑step. This is the single source of truth
 // for the Unpaid → Partially Paid → Fully Paid lifecycle.

@@ -41,7 +41,7 @@ export default function Billing() {
 
   const stats = useMemo(() => summariseInvoices(invoices), [invoices]);
 
-  // Inline "collect payment" dialog state — lets you mark a payment as
+  // Inline "collect payment" dialog state - lets you mark a payment as
   // partial or full right from the invoice list; status updates instantly.
   const [payInvoice, setPayInvoice] = useState(null);
   const [payAmount, setPayAmount] = useState('');
@@ -57,7 +57,7 @@ export default function Billing() {
 
   const closeCollect = () => setPayInvoice(null);
 
-  // "Pay by link" — generates a shareable payment URL per invoice. The link
+  // "Pay by link" - generates a shareable payment URL per invoice. The link
   // itself activates once the payment gateway (JazzCash/Easypaisa/card) is
   // connected in the backend phase; copying and WhatsApp sharing work now.
   const [linkInvoice, setLinkInvoice] = useState(null);
@@ -70,7 +70,7 @@ export default function Billing() {
       await navigator.clipboard.writeText(paymentLink);
       notify('Payment link copied to clipboard.', 'success');
     } catch {
-      notify('Could not copy — select and copy the link manually.', 'warning');
+      notify('Could not copy - select and copy the link manually.', 'warning');
     }
   };
 
@@ -93,7 +93,7 @@ export default function Billing() {
     }
     addPayment({ invoiceId: payInvoice.id, patientId: payInvoice.patientId, patientName: payInvoice.patientName, amount, method: payMethod });
     const fullyPaid = amount >= payInvoice.balanceDue;
-    notify(`${formatCurrency(amount)} collected — invoice marked ${fullyPaid ? 'Fully Paid' : 'Partially Paid'}.`, 'success');
+    notify(`${formatCurrency(amount)} collected - invoice marked ${fullyPaid ? 'Fully Paid' : 'Partially Paid'}.`, 'success');
     closeCollect();
   };
 

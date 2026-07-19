@@ -46,7 +46,7 @@ export default function Assistant() {
   const insights = useMemo(() => buildInsights(data), [data]);
 
   const [thread, setThread] = useState([
-    { from: 'bot', text: "Hi! I'm DentIQ — I watch your clinic data and answer questions instantly. Ask me anything below, or tap a suggestion." },
+    { from: 'bot', text: "Hi! I'm DentIQ - I watch your clinic data and answer questions instantly. Ask me anything below, or tap a suggestion." },
   ]);
   const [draft, setDraft] = useState('');
   const threadEndRef = useRef(null);
@@ -82,7 +82,7 @@ export default function Assistant() {
             <Chip label="Beta" size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: '#F5F3FF', color: '#6D28D9' }} />
           </Box>
           <Typography variant="body2" sx={{ color: colors.textSecondary, mt: 0.5 }}>
-            Practice intelligence computed live from your clinic data — every insight is explainable and actionable.
+            Practice intelligence computed live from your clinic data - every insight is explainable and actionable.
           </Typography>
         </Box>
       </Box>
@@ -91,7 +91,7 @@ export default function Assistant() {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 2, py: 1.25, borderRadius: '10px', bgcolor: '#F5F3FF', border: '1px solid #DDD6FE' }}>
         <BoltIcon sx={{ fontSize: 18, color: '#6D28D9' }} />
         <Typography variant="body2" sx={{ color: '#4C1D95', fontSize: '0.82rem' }}>
-          DentIQ runs <strong>on-device</strong> — your data never leaves the browser. Cloud AI (X-ray analysis, smart replies) arrives with the backend phase.
+          DentIQ runs <strong>on-device</strong> - your data never leaves the browser. Cloud AI (X-ray analysis, smart replies) arrives with the backend phase.
         </Typography>
       </Box>
 

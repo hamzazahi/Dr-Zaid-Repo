@@ -135,7 +135,7 @@ export default function Forms() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', color: colors.textPrimary, letterSpacing: '-0.02em' }}>Forms &amp; e-Consent</Typography>
-          <Typography variant="body2" sx={{ color: colors.textSecondary, mt: 0.25 }}>Send intake questionnaires and consent forms — patients complete and e-sign them.</Typography>
+          <Typography variant="body2" sx={{ color: colors.textSecondary, mt: 0.25 }}>Send intake questionnaires and consent forms - patients complete and e-sign them.</Typography>
         </Box>
         <Button variant="contained" startIcon={<AddIcon sx={{ fontSize: 18 }} />} onClick={() => { setError(''); setOpenSend(true); }} sx={{ borderRadius: '8px', fontWeight: 700 }}>
           Send Form
@@ -304,7 +304,7 @@ export default function Forms() {
             <TextField value={signature} onChange={(e) => setSignature(e.target.value)} fullWidth size="small" placeholder="Full name"
               sx={{ mt: 0.5, '& input': { fontFamily: 'cursive', fontStyle: 'italic', fontSize: '1.05rem' } }} />
           </Box>
-          <Typography variant="caption" sx={{ color: colors.textLight }}>By signing, the patient agrees to the terms of this form. (Simulated e-signature — dated today.)</Typography>
+          <Typography variant="caption" sx={{ color: colors.textLight }}>By signing, the patient agrees to the terms of this form. (Simulated e-signature - dated today.)</Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2, borderTop: `1px solid ${colors.border}` }}>
           <Button onClick={() => setSignSub(null)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>

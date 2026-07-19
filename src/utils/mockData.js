@@ -589,7 +589,7 @@ export const mockTreatmentPlans = [
     createdDate: getRelativeDateString(-2),
     invoiceId: null,
     items: [
-      { id: 'pli-4', procedure: 'Consultation', toothNumber: '—', cost: 1500, done: false },
+      { id: 'pli-4', procedure: 'Consultation', toothNumber: '-', cost: 1500, done: false },
       { id: 'pli-5', procedure: 'Whitening', toothNumber: 'All', cost: 8000, done: false },
       { id: 'pli-6', procedure: 'Filling', toothNumber: '21', cost: 5000, done: false },
     ],
@@ -612,8 +612,8 @@ export const mockStaff = [
 // Sent → In Progress → Received → Fitted. lab-3 is intentionally overdue.
 export const mockLabCases = [
   { id: 'lab-1', patientId: 'pat-1', patientName: 'Muhammad Ali', dentistId: 'dentist-1', dentistName: 'Dr. Hamza Zahid', labName: 'Apex Dental Lab', caseType: 'Crown', toothNumber: '36', status: 'In Progress', cost: 9000, sentDate: getRelativeDateString(-6), dueDate: getRelativeDateString(2), receivedDate: null, notes: 'Shade A2, porcelain-fused-to-metal.' },
-  { id: 'lab-2', patientId: 'pat-3', patientName: 'Fatima Zahra', dentistId: 'dentist-2', dentistName: 'Dr. Sarah Ahmed', labName: 'SmileCraft Prosthetics', caseType: 'Aligner', toothNumber: 'All', status: 'Sent', cost: 35000, sentDate: getRelativeDateString(-1), dueDate: getRelativeDateString(12), receivedDate: null, notes: 'Full-arch clear aligners — first set.' },
-  { id: 'lab-3', patientId: 'pat-2', patientName: 'Omar Farooq', dentistId: 'dentist-3', dentistName: 'Dr. Ayesha Khan', labName: 'Apex Dental Lab', caseType: 'Bridge', toothNumber: '45', status: 'Sent', cost: 18000, sentDate: getRelativeDateString(-10), dueDate: getRelativeDateString(-2), receivedDate: null, notes: '3-unit bridge — chase the lab.' },
+  { id: 'lab-2', patientId: 'pat-3', patientName: 'Fatima Zahra', dentistId: 'dentist-2', dentistName: 'Dr. Sarah Ahmed', labName: 'SmileCraft Prosthetics', caseType: 'Aligner', toothNumber: 'All', status: 'Sent', cost: 35000, sentDate: getRelativeDateString(-1), dueDate: getRelativeDateString(12), receivedDate: null, notes: 'Full-arch clear aligners - first set.' },
+  { id: 'lab-3', patientId: 'pat-2', patientName: 'Omar Farooq', dentistId: 'dentist-3', dentistName: 'Dr. Ayesha Khan', labName: 'Apex Dental Lab', caseType: 'Bridge', toothNumber: '45', status: 'Sent', cost: 18000, sentDate: getRelativeDateString(-10), dueDate: getRelativeDateString(-2), receivedDate: null, notes: '3-unit bridge - chase the lab.' },
   { id: 'lab-4', patientId: 'pat-1', patientName: 'Muhammad Ali', dentistId: 'dentist-1', dentistName: 'Dr. Hamza Zahid', labName: 'PrecisionCeramics', caseType: 'Veneer', toothNumber: '11', status: 'Fitted', cost: 12000, sentDate: getRelativeDateString(-20), dueDate: getRelativeDateString(-12), receivedDate: getRelativeDateString(-13), notes: 'E-max veneer, fitted successfully.' },
 ];
 
@@ -635,7 +635,7 @@ export const mockDocuments = [
   { id: 'doc-4', patientId: 'pat-2', patientName: 'Omar Farooq', name: 'Insurance Card.png', category: 'Insurance', fileType: 'PNG', size: 512000, uploadedDate: getRelativeDateString(-8), uploadedBy: 'Reception', notes: '' },
 ];
 
-// Clinic expenses (the spending side — separate from patient payments/income).
+// Clinic expenses (the spending side - separate from patient payments/income).
 export const mockExpenses = [
   { id: 'exp-1', date: getRelativeDateString(-2), category: 'Supplies', vendor: 'Dental Supplies Plus', description: 'Composite & consumables restock', amount: 42000, method: 'Bank Transfer', status: 'Paid' },
   { id: 'exp-2', date: getRelativeDateString(-5), category: 'Lab Fees', vendor: 'Apex Dental Lab', description: 'Crown & bridge cases', amount: 27000, method: 'Bank Transfer', status: 'Paid' },
@@ -649,7 +649,7 @@ export const mockClaims = [
   { id: 'clm-1', patientId: 'pat-3', patientName: 'Fatima Zahra', payer: 'Jubilee Health', policyNumber: 'JH-882140', serviceDate: getRelativeDateString(-12), submittedDate: getRelativeDateString(-10), procedures: 'Root canal + crown (tooth 36)', claimedAmount: 40000, approvedAmount: 32000, status: 'Approved', notes: '80% coverage approved.' },
   { id: 'clm-2', patientId: 'pat-2', patientName: 'Omar Farooq', payer: 'EFU Health', policyNumber: 'EFU-553201', serviceDate: getRelativeDateString(-6), submittedDate: getRelativeDateString(-5), procedures: 'Scaling & filling', claimedAmount: 9000, approvedAmount: 0, status: 'In Review', notes: '' },
   { id: 'clm-3', patientId: 'pat-1', patientName: 'Muhammad Ali', payer: 'State Life Insurance', policyNumber: 'SL-100923', serviceDate: getRelativeDateString(-3), submittedDate: getRelativeDateString(-2), procedures: 'Consultation + X-ray', claimedAmount: 3500, approvedAmount: 0, status: 'Submitted', notes: '' },
-  { id: 'clm-4', patientId: 'pat-2', patientName: 'Omar Farooq', payer: 'Adamjee Insurance', policyNumber: 'ADJ-771500', serviceDate: getRelativeDateString(-25), submittedDate: getRelativeDateString(-22), procedures: 'Whitening (cosmetic)', claimedAmount: 8000, approvedAmount: 0, status: 'Denied', notes: 'Cosmetic — not covered.' },
+  { id: 'clm-4', patientId: 'pat-2', patientName: 'Omar Farooq', payer: 'Adamjee Insurance', policyNumber: 'ADJ-771500', serviceDate: getRelativeDateString(-25), submittedDate: getRelativeDateString(-22), procedures: 'Whitening (cosmetic)', claimedAmount: 8000, approvedAmount: 0, status: 'Denied', notes: 'Cosmetic - not covered.' },
 ];
 
 // Online booking requests (submitted via the public booking page). Confirming
@@ -678,8 +678,8 @@ export const mockMemberships = [
 export const mockFormTemplates = [
   { id: 'ft-1', name: 'New Patient Intake', category: 'Intake', description: 'Personal details, contact & insurance info', fields: 12 },
   { id: 'ft-2', name: 'Medical History', category: 'Intake', description: 'Conditions, medications & allergies', fields: 18 },
-  { id: 'ft-3', name: 'Consent — Extraction', category: 'Consent', description: 'Informed consent for tooth extraction', fields: 5 },
-  { id: 'ft-4', name: 'Consent — Root Canal', category: 'Consent', description: 'Informed consent for endodontic treatment', fields: 5 },
+  { id: 'ft-3', name: 'Consent - Extraction', category: 'Consent', description: 'Informed consent for tooth extraction', fields: 5 },
+  { id: 'ft-4', name: 'Consent - Root Canal', category: 'Consent', description: 'Informed consent for endodontic treatment', fields: 5 },
   { id: 'ft-5', name: 'Financial Agreement', category: 'Financial', description: 'Payment terms & responsibility', fields: 6 },
   { id: 'ft-6', name: 'Health Screening', category: 'Screening', description: 'Pre-visit health screening questionnaire', fields: 8 },
 ];
@@ -687,16 +687,16 @@ export const mockFormTemplates = [
 // Form submissions (assigned to patients). Pending → Completed (e-signed).
 export const mockFormSubmissions = [
   { id: 'fs-1', patientId: 'pat-1', patientName: 'Muhammad Ali', templateId: 'ft-2', templateName: 'Medical History', category: 'Intake', status: 'Completed', sentDate: getRelativeDateString(-16), completedDate: getRelativeDateString(-15), signedBy: 'Muhammad Ali', signatureDate: getRelativeDateString(-15) },
-  { id: 'fs-2', patientId: 'pat-1', patientName: 'Muhammad Ali', templateId: 'ft-4', templateName: 'Consent — Root Canal', category: 'Consent', status: 'Completed', sentDate: getRelativeDateString(-15), completedDate: getRelativeDateString(-15), signedBy: 'Muhammad Ali', signatureDate: getRelativeDateString(-15) },
+  { id: 'fs-2', patientId: 'pat-1', patientName: 'Muhammad Ali', templateId: 'ft-4', templateName: 'Consent - Root Canal', category: 'Consent', status: 'Completed', sentDate: getRelativeDateString(-15), completedDate: getRelativeDateString(-15), signedBy: 'Muhammad Ali', signatureDate: getRelativeDateString(-15) },
   { id: 'fs-3', patientId: 'pat-3', patientName: 'Fatima Zahra', templateId: 'ft-1', templateName: 'New Patient Intake', category: 'Intake', status: 'Pending', sentDate: getRelativeDateString(-1), completedDate: null, signedBy: null, signatureDate: null },
-  { id: 'fs-4', patientId: 'pat-2', patientName: 'Omar Farooq', templateId: 'ft-3', templateName: 'Consent — Extraction', category: 'Consent', status: 'Pending', sentDate: getRelativeDateString(0), completedDate: null, signedBy: null, signatureDate: null },
+  { id: 'fs-4', patientId: 'pat-2', patientName: 'Omar Farooq', templateId: 'ft-3', templateName: 'Consent - Extraction', category: 'Consent', status: 'Pending', sentDate: getRelativeDateString(0), completedDate: null, signedBy: null, signatureDate: null },
 ];
 
-// Audit log — append-only activity trail (compliance). Newest first.
+// Audit log - append-only activity trail (compliance). Newest first.
 export const mockAuditLog = [
   { id: 'aud-1', at: `${getRelativeDateString(0)}T09:12:00`, user: 'Dr. Hamza Zahid', module: 'Billing', action: 'Payment recorded', detail: 'Rs 5,000 received from Bilal Khan (Bank Transfer)' },
-  { id: 'aud-2', at: `${getRelativeDateString(-1)}T16:40:00`, user: 'Reception', module: 'Appointments', action: 'Appointment scheduled', detail: 'Muhammad Ali — Scaling with Dr. Hamza Zahid' },
-  { id: 'aud-3', at: `${getRelativeDateString(-1)}T11:05:00`, user: 'Dr. Sarah Ahmed', module: 'Clinical', action: 'Tooth charted', detail: 'Fatima Zahra — tooth 21 marked Filled' },
+  { id: 'aud-2', at: `${getRelativeDateString(-1)}T16:40:00`, user: 'Reception', module: 'Appointments', action: 'Appointment scheduled', detail: 'Muhammad Ali - Scaling with Dr. Hamza Zahid' },
+  { id: 'aud-3', at: `${getRelativeDateString(-1)}T11:05:00`, user: 'Dr. Sarah Ahmed', module: 'Clinical', action: 'Tooth charted', detail: 'Fatima Zahra - tooth 21 marked Filled' },
   { id: 'aud-4', at: `${getRelativeDateString(-2)}T14:22:00`, user: 'Dr. Hamza Zahid', module: 'Prescriptions', action: 'Prescription created', detail: 'Amoxicillin 500mg for Muhammad Ali' },
 ];
 
@@ -715,22 +715,22 @@ export const mockPerioCharts = {
 // Clinic locations (multi-branch). loc-1 is the primary site; staff without a
 // locationId are treated as belonging to the primary location by default.
 export const mockLocations = [
-  { id: 'loc-1', name: 'Main Clinic — Gulshan', address: 'Plot 45-C, Block 5, Gulshan-e-Iqbal, Karachi', phone: '+92 21 3482 0011', email: 'gulshan@dentsuite.com', manager: 'Dr. Hamza Zahid', chairs: 4, openHours: 'Mon–Sat · 9 AM – 8 PM', status: 'Active', color: '#0F4C81', isPrimary: true },
+  { id: 'loc-1', name: 'Main Clinic - Gulshan', address: 'Plot 45-C, Block 5, Gulshan-e-Iqbal, Karachi', phone: '+92 21 3482 0011', email: 'gulshan@dentsuite.com', manager: 'Dr. Hamza Zahid', chairs: 4, openHours: 'Mon–Sat · 9 AM – 8 PM', status: 'Active', color: '#0F4C81', isPrimary: true },
   { id: 'loc-2', name: 'DHA Branch', address: '12th Commercial Street, DHA Phase 6, Karachi', phone: '+92 21 3584 7722', email: 'dha@dentsuite.com', manager: 'Dr. Sarah Ahmed', chairs: 2, openHours: 'Mon–Fri · 10 AM – 7 PM', status: 'Active', color: '#0D9488', isPrimary: false },
 ];
 
 // Marketing campaigns (email-only, matching Recalls). Lifecycle: Draft → Sent.
 // `recipients` is stamped at send time from the live audience segment size.
 export const mockCampaigns = [
-  { id: 'cmp-1', name: 'Whitening Month Offer', channel: 'Email', segment: 'All Patients', subject: '20% off teeth whitening this month ✨', body: 'Brighten your smile — book a whitening session this month and save 20%.', status: 'Sent', recipients: 10, createdDate: getRelativeDateString(-20), sentAt: getRelativeDateString(-18) },
+  { id: 'cmp-1', name: 'Whitening Month Offer', channel: 'Email', segment: 'All Patients', subject: '20% off teeth whitening this month ✨', body: 'Brighten your smile - book a whitening session this month and save 20%.', status: 'Sent', recipients: 10, createdDate: getRelativeDateString(-20), sentAt: getRelativeDateString(-18) },
   { id: 'cmp-2', name: 'Overdue Check-up Nudge', channel: 'Email', segment: 'Overdue Recalls', subject: 'Your dental check-up is overdue', body: 'Our records show your recall visit is overdue. Reply or call us to book a slot.', status: 'Sent', recipients: 2, createdDate: getRelativeDateString(-6), sentAt: getRelativeDateString(-5) },
-  { id: 'cmp-3', name: 'Membership Plan Launch', channel: 'Email', segment: 'Active Patients', subject: 'Save up to 25% with DentSuite Care Plans', body: 'Introducing in-house membership plans — cleanings, exams and X-rays bundled at a flat yearly price.', status: 'Draft', recipients: 0, createdDate: getRelativeDateString(-1), sentAt: null },
+  { id: 'cmp-3', name: 'Membership Plan Launch', channel: 'Email', segment: 'Active Patients', subject: 'Save up to 25% with DentSuite Care Plans', body: 'Introducing in-house membership plans - cleanings, exams and X-rays bundled at a flat yearly price.', status: 'Draft', recipients: 0, createdDate: getRelativeDateString(-1), sentAt: null },
 ];
 
-// Imaging records (X-rays, scans, photos). Frontend-only: METADATA only — the
+// Imaging records (X-rays, scans, photos). Frontend-only: METADATA only - the
 // actual image bytes are not stored (mirrors the Documents module).
 export const mockImagingRecords = [
-  { id: 'img-1', patientId: 'pat-1', patientName: 'Muhammad Ali', type: 'Periapical X-Ray', toothNumber: '36', date: getRelativeDateString(-15), takenBy: 'Dr. Hamza Zahid', notes: 'Pre-RCT — periapical radiolucency at mesial root.' },
+  { id: 'img-1', patientId: 'pat-1', patientName: 'Muhammad Ali', type: 'Periapical X-Ray', toothNumber: '36', date: getRelativeDateString(-15), takenBy: 'Dr. Hamza Zahid', notes: 'Pre-RCT - periapical radiolucency at mesial root.' },
   { id: 'img-2', patientId: 'pat-1', patientName: 'Muhammad Ali', type: 'Panoramic (OPG)', toothNumber: 'All', date: getRelativeDateString(-15), takenBy: 'Dr. Hamza Zahid', notes: 'Baseline panoramic radiograph.' },
   { id: 'img-3', patientId: 'pat-8', patientName: 'Fatima Zahra', type: 'CBCT Scan', toothNumber: 'All', date: getRelativeDateString(-4), takenBy: 'Dr. Sarah Ahmed', notes: '3D volume for endodontic assessment.' },
   { id: 'img-4', patientId: 'pat-4', patientName: 'Omar Farooq', type: 'Bitewing X-Ray', toothNumber: '45', date: getRelativeDateString(-8), takenBy: 'Dr. Ayesha Khan', notes: 'Interproximal caries check.' },
@@ -768,8 +768,8 @@ export const mockConversations = [
 // Completed (or Cancelled). Inbound referrals may arrive before the patient is
 // registered, so patientId can be null with just a name.
 export const mockReferrals = [
-  { id: 'ref-1', direction: 'Outbound', patientId: 'pat-8', patientName: 'Fatima Zahra', provider: 'Dr. Kamran Qureshi', practice: 'Karachi Maxillofacial Centre', specialty: 'Oral & Maxillofacial Surgery', reason: 'Impacted #38 — surgical extraction under GA.', date: getRelativeDateString(-7), status: 'Scheduled', notes: 'Surgery booked at KMC next week; report to follow.' },
-  { id: 'ref-2', direction: 'Inbound', patientId: 'pat-5', patientName: 'Bilal Khan', provider: 'Dr. Naila Farhat', practice: 'City Family Clinic', specialty: 'General Practice', reason: 'Persistent gum bleeding — periodontal evaluation.', date: getRelativeDateString(-3), status: 'Contacted', notes: '' },
-  { id: 'ref-3', direction: 'Outbound', patientId: 'pat-1', patientName: 'Muhammad Ali', provider: 'Dr. Adeel Mirza', practice: 'OrthoSmile Clinic', specialty: 'Orthodontics', reason: 'Lower anterior crowding — aligner assessment.', date: getRelativeDateString(-30), status: 'Completed', notes: 'Specialist report received; patient deferred treatment.' },
-  { id: 'ref-4', direction: 'Inbound', patientId: null, patientName: 'Areeba Shah', provider: 'Dr. Salman Tariq', practice: 'Wellness GP Clinic', specialty: 'General Practice', reason: 'Suspected dental abscess, upper right quadrant.', date: getRelativeDateString(0), status: 'Pending', notes: 'New patient — register on arrival.' },
+  { id: 'ref-1', direction: 'Outbound', patientId: 'pat-8', patientName: 'Fatima Zahra', provider: 'Dr. Kamran Qureshi', practice: 'Karachi Maxillofacial Centre', specialty: 'Oral & Maxillofacial Surgery', reason: 'Impacted #38 - surgical extraction under GA.', date: getRelativeDateString(-7), status: 'Scheduled', notes: 'Surgery booked at KMC next week; report to follow.' },
+  { id: 'ref-2', direction: 'Inbound', patientId: 'pat-5', patientName: 'Bilal Khan', provider: 'Dr. Naila Farhat', practice: 'City Family Clinic', specialty: 'General Practice', reason: 'Persistent gum bleeding - periodontal evaluation.', date: getRelativeDateString(-3), status: 'Contacted', notes: '' },
+  { id: 'ref-3', direction: 'Outbound', patientId: 'pat-1', patientName: 'Muhammad Ali', provider: 'Dr. Adeel Mirza', practice: 'OrthoSmile Clinic', specialty: 'Orthodontics', reason: 'Lower anterior crowding - aligner assessment.', date: getRelativeDateString(-30), status: 'Completed', notes: 'Specialist report received; patient deferred treatment.' },
+  { id: 'ref-4', direction: 'Inbound', patientId: null, patientName: 'Areeba Shah', provider: 'Dr. Salman Tariq', practice: 'Wellness GP Clinic', specialty: 'General Practice', reason: 'Suspected dental abscess, upper right quadrant.', date: getRelativeDateString(0), status: 'Pending', notes: 'New patient - register on arrival.' },
 ];

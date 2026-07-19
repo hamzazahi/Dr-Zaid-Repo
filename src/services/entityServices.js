@@ -35,7 +35,7 @@ const planFrom = (r) => ({
   id: r.id, patientId: r.patient_id, patientName: r.patients?.name ?? 'Unknown',
   dentistId: r.dentist_id ?? null, dentistName: r.staff?.name ?? 'Unassigned',
   title: r.title, status: r.status, createdDate: r.created_date, invoiceId: r.invoice_id ?? null,
-  items: (r.plan_items ?? []).map((it) => ({ id: it.id, procedure: it.procedure, toothNumber: it.tooth_number ?? '—', cost: Number(it.cost) || 0, done: it.done })),
+  items: (r.plan_items ?? []).map((it) => ({ id: it.id, procedure: it.procedure, toothNumber: it.tooth_number ?? '-', cost: Number(it.cost) || 0, done: it.done })),
 });
 const treatmentPlans = {
   list: async () => (await q(supabase.from('treatment_plans').select(`*, ${P_NAME}, ${S_NAME}, plan_items(*)`).order('created_at', { ascending: false }))).map(planFrom),
@@ -45,7 +45,7 @@ const treatmentPlans = {
     }).select().single());
     if (items.length) {
       await q(supabase.from('plan_items').insert(items.map((it) => ({
-        plan_id: plan.id, procedure: it.procedure, tooth_number: it.toothNumber || '—', cost: Number(it.cost) || 0,
+        plan_id: plan.id, procedure: it.procedure, tooth_number: it.toothNumber || '-', cost: Number(it.cost) || 0,
       }))).select());
     }
     const full = await q(supabase.from('treatment_plans').select(`*, ${P_NAME}, ${S_NAME}, plan_items(*)`).eq('id', plan.id).single());
@@ -59,7 +59,7 @@ const treatmentPlans = {
 const labFrom = (r) => ({
   id: r.id, patientId: r.patient_id, patientName: r.patients?.name ?? 'Unknown',
   dentistId: r.dentist_id ?? null, dentistName: r.staff?.name ?? 'Unassigned',
-  labName: r.lab_name, caseType: r.case_type ?? '', toothNumber: r.tooth_number ?? '—',
+  labName: r.lab_name, caseType: r.case_type ?? '', toothNumber: r.tooth_number ?? '-',
   status: r.status, cost: Number(r.cost) || 0, sentDate: r.sent_date, dueDate: r.due_date ?? '',
   receivedDate: r.received_date, notes: r.notes ?? '',
 });

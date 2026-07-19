@@ -6,7 +6,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 //
 // LIVE mode (Supabase configured): real email/password auth. The user's role
 // (doctor | receptionist) comes from the `profiles` table and drives both the
-// UI gating and — via RLS — what the database itself will allow.
+// UI gating and - via RLS - what the database itself will allow.
 //
 // DEMO mode (no .env): the original in-browser accounts, so the app still
 // runs standalone for development and demos.
@@ -44,7 +44,7 @@ const clearDemoStored = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => (isSupabaseConfigured ? null : readDemoStored()));
-  // Live mode restores the session asynchronously — gate the first paint.
+  // Live mode restores the session asynchronously - gate the first paint.
   const [initializing, setInitializing] = useState(isSupabaseConfigured);
 
   useEffect(() => {
@@ -113,7 +113,7 @@ export const AuthProvider = ({ children }) => {
           : error.message,
       };
     }
-    // A login without a staff profile has no role — refuse it with guidance
+    // A login without a staff profile has no role - refuse it with guidance
     // rather than guessing permissions.
     const { data: prof } = await supabase
       .from('profiles')

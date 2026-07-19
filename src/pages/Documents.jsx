@@ -57,7 +57,7 @@ const CAT_CFG = {
 };
 
 const formatSize = (bytes) => {
-  if (!bytes) return '—';
+  if (!bytes) return '-';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1048576) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / 1048576).toFixed(1)} MB`;
@@ -162,7 +162,7 @@ export default function Documents() {
       window.open(url, '_blank', 'noopener');
     } catch (err) {
       console.error('Open file failed:', err);
-      notify('Could not open the file — please try again.', 'error');
+      notify('Could not open the file - please try again.', 'error');
     }
   };
 

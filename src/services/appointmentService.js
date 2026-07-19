@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 
-// Appointments — joined to patients/staff so the UI keeps receiving the flat
+// Appointments - joined to patients/staff so the UI keeps receiving the flat
 // { patientName, dentistName } shape it has always rendered.
 
 const JOIN = '*, patients(name), staff(name)';

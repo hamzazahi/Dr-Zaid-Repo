@@ -1,4 +1,4 @@
-// Dental charting (odontogram) domain logic — pure, UI-agnostic.
+// Dental charting (odontogram) domain logic - pure, UI-agnostic.
 // Uses the Universal Numbering System (teeth 1–32) to stay consistent with
 // `TOOTH_NUMBERS` and the `toothNumber` field already used on treatments.
 

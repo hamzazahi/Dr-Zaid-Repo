@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // Single Supabase client for the whole app.
 //
-// Reads config from Vite env (.env — see .env.example). Until the env vars
+// Reads config from Vite env (.env - see .env.example). Until the env vars
 // are set, `supabase` is null and `isSupabaseConfigured` is false: the app
 // keeps running on the local (mock/localStorage) data layer, so the backend
 // can be adopted module-by-module without ever breaking the frontend.

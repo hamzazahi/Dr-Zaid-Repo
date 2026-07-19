@@ -8,7 +8,7 @@ import ErrorBoundary from './components/common/ErrorBoundary';
 export default function App() {
   const { isAuthenticated, initializing } = useAuth();
 
-  // Live auth restores the session asynchronously on load — show a quiet
+  // Live auth restores the session asynchronously on load - show a quiet
   // branded splash instead of flashing the sign-in page at returning users.
   if (initializing) {
     return (

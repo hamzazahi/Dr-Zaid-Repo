@@ -239,10 +239,10 @@ export default function Marketing() {
                     </TableCell>
                     <TableCell><StatusPill status={c.status} /></TableCell>
                     <TableCell>
-                      <Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{c.sentAt ? formatDate(c.sentAt) : '—'}</Typography>
+                      <Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{c.sentAt ? formatDate(c.sentAt) : '-'}</Typography>
                     </TableCell>
                     <TableCell align="right">
-                      <Typography variant="body2" fontWeight={700}>{c.status === 'Sent' ? c.recipients : '—'}</Typography>
+                      <Typography variant="body2" fontWeight={700}>{c.status === 'Sent' ? c.recipients : '-'}</Typography>
                     </TableCell>
                     <TableCell align="right">
                       <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
@@ -272,7 +272,7 @@ export default function Marketing() {
       <Dialog open={openDialog} onClose={() => { setOpenDialog(false); setFormError(''); }} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 700, borderBottom: `1px solid ${colors.border}` }}>
           New Email Campaign
-          <Typography variant="caption" sx={{ display: 'block', color: colors.textSecondary, fontWeight: 400, mt: 0.25 }}>Saved as a draft — send it from the campaign list.</Typography>
+          <Typography variant="caption" sx={{ display: 'block', color: colors.textSecondary, fontWeight: 400, mt: 0.25 }}>Saved as a draft - send it from the campaign list.</Typography>
         </DialogTitle>
         <form onSubmit={handleSubmit} noValidate>
           <DialogContent sx={{ p: 3 }}>

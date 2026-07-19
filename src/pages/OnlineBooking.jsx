@@ -228,8 +228,8 @@ export default function OnlineBooking() {
                     </TableCell>
                     <TableCell>
                       <Stack spacing={0.25}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><PhoneIcon sx={{ fontSize: 13, color: colors.textLight }} /><Typography variant="caption">{r.phone || '—'}</Typography></Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><EmailIcon sx={{ fontSize: 13, color: colors.textLight }} /><Typography variant="caption" sx={{ color: colors.textSecondary }}>{r.email || '—'}</Typography></Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><PhoneIcon sx={{ fontSize: 13, color: colors.textLight }} /><Typography variant="caption">{r.phone || '-'}</Typography></Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><EmailIcon sx={{ fontSize: 13, color: colors.textLight }} /><Typography variant="caption" sx={{ color: colors.textSecondary }}>{r.email || '-'}</Typography></Box>
                       </Stack>
                     </TableCell>
                     <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem' }}>{formatDate(r.preferredDate)}</Typography><Typography variant="caption" sx={{ color: colors.textSecondary }}>{r.preferredTime}</Typography></TableCell>
@@ -246,7 +246,7 @@ export default function OnlineBooking() {
                           <Button size="small" onClick={() => doDecline(r)} sx={{ fontWeight: 600, fontSize: '0.74rem', textTransform: 'none', color: colors.error }}>Decline</Button>
                         </Stack>
                       ) : (
-                        <Typography variant="caption" sx={{ color: colors.textLight }}>{r.status === 'Confirmed' ? 'Booked' : '—'}</Typography>
+                        <Typography variant="caption" sx={{ color: colors.textLight }}>{r.status === 'Confirmed' ? 'Booked' : '-'}</Typography>
                       )}
                     </TableCell>
                   </TableRow>

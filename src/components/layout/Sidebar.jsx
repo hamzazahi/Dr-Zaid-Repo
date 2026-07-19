@@ -116,7 +116,7 @@ const avatarBg  = (name) => AV_COLORS[(name?.charCodeAt(0) || 0) % AV_COLORS.len
 
 // Persisted expand/collapse state per nav section. Only EXPLICIT user toggles
 // are stored; sections without an entry fall back to the default (Overview
-// open, others closed — unless they contain the active route).
+// open, others closed - unless they contain the active route).
 const SECTIONS_KEY = 'dental-sidebar-sections';
 const readSectionPrefs = () => {
   try {
@@ -164,7 +164,7 @@ export default function Sidebar({ collapsed, onToggle, transition, isMobile = fa
     setSectionPrefs(next);
     try {
       window.localStorage.setItem(SECTIONS_KEY, JSON.stringify(next));
-    } catch { /* storage unavailable — state still works in-memory */ }
+    } catch { /* storage unavailable - state still works in-memory */ }
   };
 
   const initials = user?.initials
@@ -184,7 +184,7 @@ export default function Sidebar({ collapsed, onToggle, transition, isMobile = fa
         /*
          * Applying width + transition to BOTH the Drawer root element and
          * its paper ensures the flex placeholder and the visible panel stay
-         * perfectly in sync — no gap, no jump. (Permanent variant only — the
+         * perfectly in sync - no gap, no jump. (Permanent variant only - the
          * temporary variant renders in a modal, so sizing the root would
          * break the backdrop.)
          */
@@ -322,7 +322,7 @@ export default function Sidebar({ collapsed, onToggle, transition, isMobile = fa
             </List>
           );
 
-          // Icon-rail mode has no headers to click — always show every icon.
+          // Icon-rail mode has no headers to click - always show every icon.
           if (collapsed) {
             return (
               <Box key={section.label || 'pinned'} sx={{ mb: 0.5 }}>
@@ -399,7 +399,7 @@ export default function Sidebar({ collapsed, onToggle, transition, isMobile = fa
           </Tooltip>
         )}
 
-        {/* User card — width 100% + overflow hidden prevents clipping beyond sidebar edge */}
+        {/* User card - width 100% + overflow hidden prevents clipping beyond sidebar edge */}
         <Tooltip title={collapsed ? `${user?.name || 'DentSuite'} · ${user?.roleLabel || user?.role || 'Admin'}` : ''} placement="right">
           <Box sx={{
             width: '100%',
@@ -425,7 +425,7 @@ export default function Sidebar({ collapsed, onToggle, transition, isMobile = fa
               </Typography>
             </Box>
 
-            {/* Name + role — only in expanded mode */}
+            {/* Name + role - only in expanded mode */}
             {!collapsed && (
               <Box sx={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
                 <Typography noWrap sx={{ color: '#fff', fontWeight: 600, fontSize: '0.78rem', lineHeight: 1.2 }}>

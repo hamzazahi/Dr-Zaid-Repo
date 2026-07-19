@@ -4,7 +4,7 @@ import { Box, Grid, Skeleton } from '@mui/material';
 import { usePermissions } from '../hooks/usePermissions';
 
 // Route guard for doctor-only screens: a role without view access is sent
-// back to the dashboard (the database would refuse the data anyway — this
+// back to the dashboard (the database would refuse the data anyway - this
 // keeps the UI honest).
 function RequireAccess({ path, children }) {
   const { canView } = usePermissions();

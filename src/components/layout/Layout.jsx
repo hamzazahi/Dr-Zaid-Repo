@@ -21,7 +21,7 @@ const Layout = ({ children }) => {
     /*
      * Root: strict 100vh, no overflow.
      * The MUI permanent Drawer root <div> is already a flex placeholder
-     * that matches its paper width — no manual spacer needed here.
+     * that matches its paper width - no manual spacer needed here.
      */
     <Box
       sx={{

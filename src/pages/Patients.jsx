@@ -107,7 +107,7 @@ const Patients = () => {
       navigate(`/patients/${created.id}`);
     } catch (err) {
       console.error('Register patient failed:', err);
-      notify('Could not save the patient — please try again.', 'error');
+      notify('Could not save the patient - please try again.', 'error');
     }
   };
 
@@ -376,7 +376,7 @@ const Patients = () => {
         open={Boolean(confirmTarget)}
         title="Delete this patient?"
         message={confirmTarget
-          ? `"${confirmTarget.name}" and all of their records — appointments, invoices, treatments, prescriptions and more — will be permanently deleted. This cannot be undone.`
+          ? `"${confirmTarget.name}" and all of their records - appointments, invoices, treatments, prescriptions and more - will be permanently deleted. This cannot be undone.`
           : ''}
         confirmLabel="Delete patient"
         onConfirm={() => handleDelete(confirmTarget)}

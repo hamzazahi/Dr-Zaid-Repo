@@ -36,7 +36,7 @@ const MODULE_COLOR = {
 
 const fmtWhen = (iso) => {
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso || '—';
+  if (Number.isNaN(d.getTime())) return iso || '-';
   return d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 };
 
@@ -86,7 +86,7 @@ export default function AuditLog() {
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       <Box>
         <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', color: colors.textPrimary, letterSpacing: '-0.02em' }}>Audit Log</Typography>
-        <Typography variant="body2" sx={{ color: colors.textSecondary, mt: 0.25 }}>Append-only activity trail — every key action is recorded automatically.</Typography>
+        <Typography variant="body2" sx={{ color: colors.textSecondary, mt: 0.25 }}>Append-only activity trail - every key action is recorded automatically.</Typography>
       </Box>
 
       {/* Stat cards */}
@@ -160,7 +160,7 @@ export default function AuditLog() {
                     </TableCell>
                     <TableCell><ModuleChip module={e.module} /></TableCell>
                     <TableCell><Typography variant="body2" sx={{ fontSize: '0.83rem', fontWeight: 700 }}>{e.action}</Typography></TableCell>
-                    <TableCell sx={{ maxWidth: 360 }}><Typography variant="body2" sx={{ fontSize: '0.8rem', color: colors.textSecondary }}>{e.detail || '—'}</Typography></TableCell>
+                    <TableCell sx={{ maxWidth: 360 }}><Typography variant="body2" sx={{ fontSize: '0.8rem', color: colors.textSecondary }}>{e.detail || '-'}</Typography></TableCell>
                   </TableRow>
                 ))
               )}

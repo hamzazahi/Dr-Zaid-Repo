@@ -60,7 +60,7 @@ const colors = {
   infoBg: '#EFF6FF',
   infoBorder: '#BFDBFE',
 
-  // Primary at 8% alpha — used for subtle "active"/tag backgrounds.
+  // Primary at 8% alpha - used for subtle "active"/tag backgrounds.
   primaryAlpha8: 'rgba(15, 76, 129, 0.08)',
 };
 

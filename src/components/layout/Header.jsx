@@ -102,7 +102,7 @@ function GlobalSearch() {
   const TYPE_COLOR = { Page: '#0D9488', Patient: '#2563EB', Appointment: '#7C3AED', Invoice: '#D97706' };
 
   return (
-    // Hidden on phones — the header keeps hamburger + title + actions; each
+    // Hidden on phones - the header keeps hamburger + title + actions; each
     // page has its own search/filter bar for finding records on mobile.
     <Box sx={{ position: 'relative', flex: 1, maxWidth: 440, display: { xs: 'none', sm: 'block' } }}>
       <TextField
@@ -239,7 +239,7 @@ export default function Header({ onMenuClick }) {
       }}
     >
       <Toolbar sx={{ minHeight: 60, px: { xs: 1.5, md: 3 }, gap: { xs: 1, md: 2 } }}>
-        {/* Hamburger — opens the mobile nav drawer (hidden on desktop) */}
+        {/* Hamburger - opens the mobile nav drawer (hidden on desktop) */}
         <IconButton
           onClick={onMenuClick}
           sx={{ display: { xs: 'inline-flex', md: 'none' }, color: colors.textPrimary, flexShrink: 0 }}
@@ -270,8 +270,8 @@ export default function Header({ onMenuClick }) {
               database; DEMO = this browser only. Kills any ambiguity about
               where a just-created record went. */}
           <Tooltip title={dataLive
-            ? 'Live — connected to Supabase, records save to the cloud database'
-            : 'Demo mode — data stays in this browser only. Restart the dev server after adding .env to go live.'}>
+            ? 'Live - connected to Supabase, records save to the cloud database'
+            : 'Demo mode - data stays in this browser only. Restart the dev server after adding .env to go live.'}>
             <Box sx={{
               display: { xs: 'none', sm: 'inline-flex' }, alignItems: 'center', gap: 0.6,
               px: 1.1, py: 0.4, mr: 0.5, borderRadius: '999px',

@@ -167,7 +167,7 @@ export default function Expenses() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', color: colors.textPrimary, letterSpacing: '-0.02em' }}>Expenses</Typography>
-          <Typography variant="body2" sx={{ color: colors.textSecondary, mt: 0.25 }}>Track clinic spending — rent, salaries, supplies, lab fees and more.</Typography>
+          <Typography variant="body2" sx={{ color: colors.textSecondary, mt: 0.25 }}>Track clinic spending - rent, salaries, supplies, lab fees and more.</Typography>
         </Box>
         <Button variant="contained" startIcon={<AddIcon sx={{ fontSize: 18 }} />} onClick={() => setOpenDialog(true)} sx={{ borderRadius: '8px', fontWeight: 700 }}>
           Add Expense
@@ -258,7 +258,7 @@ export default function Expenses() {
                     <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{formatDate(e.date)}</Typography></TableCell>
                     <TableCell><CategoryChip category={e.category} /></TableCell>
                     <TableCell><Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.84rem' }}>{e.vendor}</Typography></TableCell>
-                    <TableCell sx={{ maxWidth: 280 }}><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }} noWrap>{e.description || '—'}</Typography></TableCell>
+                    <TableCell sx={{ maxWidth: 280 }}><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }} noWrap>{e.description || '-'}</Typography></TableCell>
                     <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem' }}>{e.method}</Typography></TableCell>
                     <TableCell align="right"><Typography sx={{ fontWeight: 700, color: colors.textPrimary }}>{formatCurrency(e.amount)}</Typography></TableCell>
                     <TableCell><StatusPill status={e.status} /></TableCell>

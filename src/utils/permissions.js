@@ -1,4 +1,4 @@
-// Role-based access matrix — the UI mirror of the database RLS policies
+// Role-based access matrix - the UI mirror of the database RLS policies
 // (supabase/migrations/0002_rls.sql). The database is the enforcement layer;
 // this file only decides what the interface SHOWS. Keep the two in sync.
 //

@@ -99,7 +99,7 @@ export default function Prescriptions() {
           </Button>
         ) : (
           <Box sx={{ px: 1.5, py: 0.75, borderRadius: '8px', bgcolor: '#F1F5F9', border: '1px solid #E2E8F0' }}>
-            <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>View only — prescribed by the doctor</Typography>
+            <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569' }}>View only - prescribed by the doctor</Typography>
           </Box>
         )}
       </Box>
@@ -169,8 +169,8 @@ export default function Prescriptions() {
                     <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{formatDate(px.date)}</Typography></TableCell>
                     <TableCell><Typography variant="body2" fontWeight={700} sx={{ color: colors.primary }}>{px.medication}</Typography></TableCell>
                     <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem' }}>{px.dosage}</Typography></TableCell>
-                    <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{px.frequency || '—'}</Typography></TableCell>
-                    <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{px.duration || '—'}</Typography></TableCell>
+                    <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{px.frequency || '-'}</Typography></TableCell>
+                    <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem', color: colors.textSecondary }}>{px.duration || '-'}</Typography></TableCell>
                     <TableCell><Typography variant="body2" sx={{ fontSize: '0.82rem' }}>{px.doctorName}</Typography></TableCell>
                     <TableCell><StatusPill status={px.status} /></TableCell>
                     <TableCell align="right">

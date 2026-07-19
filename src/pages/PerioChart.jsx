@@ -98,7 +98,7 @@ export default function PerioChart() {
   };
 
   const statCards = [
-    { label: 'Deepest Pocket', value: summary.deepest ? `${summary.deepest} mm` : '—', icon: <DepthIcon />,   bg: '#EEF2FF', color: colors.primary },
+    { label: 'Deepest Pocket', value: summary.deepest ? `${summary.deepest} mm` : '-', icon: <DepthIcon />,   bg: '#EEF2FF', color: colors.primary },
     { label: 'Sites ≥4mm',     value: summary.deepSites,                                  icon: <DeepIcon />,    bg: '#FFFBEB', color: '#D97706' },
     { label: 'BOP Teeth',      value: summary.bopTeeth,                                   icon: <BleedIcon />,   bg: '#FEF2F2', color: colors.error },
     { label: 'Charted Teeth',  value: summary.charted,                                    icon: <ChartedIcon />, bg: '#ECFDF5', color: colors.success },
@@ -166,7 +166,7 @@ export default function PerioChart() {
 
       {/* Editor dialog */}
       <Dialog open={editTooth !== null} onClose={() => setEditTooth(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, borderBottom: `1px solid ${colors.border}` }}>Tooth #{editTooth} — Pocket Depths</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, borderBottom: `1px solid ${colors.border}` }}>Tooth #{editTooth} - Pocket Depths</DialogTitle>
         <DialogContent sx={{ p: 3 }}>
           <Typography variant="caption" sx={{ color: colors.textSecondary, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Buccal</Typography>
           <Stack direction="row" spacing={1.5} sx={{ mt: 1, mb: 2 }}>
