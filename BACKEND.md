@@ -17,6 +17,7 @@ from this repo **in order** (paste contents, Run):
 4. `supabase/migrations/0003_realtime.sql` — realtime on the clinical core
 5. `supabase/migrations/0004_realtime_rest.sql` — realtime on everything else
 6. `supabase/migrations/0005_storage.sql` — file storage buckets (Documents + Imaging uploads)
+7. `supabase/migrations/0006_inventory.sql` — SKU + unit columns for the Inventory page
 
 (3 and 4 enable cross-device live sync; the app works without them, but two
 open front-desk screens won't update each other until they're run.

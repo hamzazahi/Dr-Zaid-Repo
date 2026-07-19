@@ -34,6 +34,7 @@ import { appointmentService } from '../services/appointmentService';
 import { treatmentService } from '../services/treatmentService';
 import { billingService } from '../services/billingService';
 import { entityServices as es } from '../services/entityServices';
+import { storageService } from '../services/storageService';
 
 const STORAGE_KEY = 'dental-clinic-app-data';
 
@@ -846,11 +847,16 @@ export const ClinicProvider = ({ children }) => {
   }, [live, patients]);
 
   const deleteDocument = useCallback((id) => {
+    const doc = documents.find((d) => d.id === id);
     setDocuments((prev) => prev.filter((d) => d.id !== id));
     if (live) {
       es.documents.remove(id).catch((e) => { console.error('[live] deleteDocument:', e.message); reloadLive('documents'); });
+      // Also remove the stored file so it doesn't orphan in the bucket.
+      if (doc?.storagePath) {
+        storageService.remove('documents', doc.storagePath).catch((e) => console.error('[live] document file cleanup:', e.message));
+      }
     }
-  }, [live, reloadLive]);
+  }, [live, reloadLive, documents]);
 
   // ── Clinic expenses ───────────────────────────────────────────────────────
   const addExpense = useCallback((data) => {
@@ -1319,11 +1325,16 @@ export const ClinicProvider = ({ children }) => {
   }, [live, patients, logAudit]);
 
   const deleteImagingRecord = useCallback((id) => {
+    const rec = imagingRecords.find((r) => r.id === id);
     setImagingRecords((prev) => prev.filter((r) => r.id !== id));
     if (live) {
       es.imaging.remove(id).catch((e) => { console.error('[live] deleteImaging:', e.message); reloadLive('imaging'); });
+      // Also remove the stored image so it doesn't orphan in the bucket.
+      if (rec?.storagePath) {
+        storageService.remove('imaging', rec.storagePath).catch((e) => console.error('[live] imaging file cleanup:', e.message));
+      }
     }
-  }, [live, reloadLive]);
+  }, [live, reloadLive, imagingRecords]);
 
   // ── Referrals ─────────────────────────────────────────────────────────────
   // Inbound referrals can arrive before the patient exists, so patientId is

@@ -311,6 +311,39 @@ const charting = {
   }, { onConflict: 'patient_id,tooth_number' })),
 };
 
+// ── Inventory ────────────────────────────────────────────────────────────────
+const stockStatus = (qty, min) => (qty <= 0 ? 'out-of-stock' : qty <= min ? 'low' : 'in-stock');
+const STOCK_LABELS = { 'in-stock': 'In Stock', low: 'Low Stock', 'out-of-stock': 'Out of Stock' };
+const invFrom = (r) => ({
+  id: r.id, name: r.name, sku: r.sku ?? '', category: r.category ?? 'Supplies',
+  quantity: r.current_stock ?? 0, minLevel: r.reorder_level ?? 0, unit: r.unit ?? 'pcs',
+  supplier: r.supplier ?? '', unitPrice: `Rs. ${Number(r.unit_price) || 0}`,
+  status: stockStatus(r.current_stock ?? 0, r.reorder_level ?? 0),
+});
+const inventory = {
+  list: async () => (await q(supabase.from('inventory').select('*').order('name'))).map(invFrom),
+  create: async (d) => {
+    const qty = Number(d.quantity) || 0;
+    const min = Number(d.minLevel) || 0;
+    const base = {
+      name: d.name, category: d.category, supplier: d.supplier || null,
+      current_stock: qty, reorder_level: min,
+      unit_price: Number(d.unitPrice) || 0, status: STOCK_LABELS[stockStatus(qty, min)],
+    };
+    // sku + unit arrive with migration 0006; if it hasn't been run yet, retry
+    // without them so the item still saves (they just won't persist until then).
+    const { data, error } = await supabase.from('inventory')
+      .insert({ ...base, sku: d.sku || null, unit: d.unit || 'pcs' }).select().single();
+    if (error) {
+      if (/column|schema cache/i.test(error.message)) {
+        return invFrom(await q(supabase.from('inventory').insert(base).select().single()));
+      }
+      throw error;
+    }
+    return invFrom(data);
+  },
+};
+
 // ── Audit log ────────────────────────────────────────────────────────────────
 const audit = {
   // RLS: only the doctor can read the trail; receptionists get an empty list.
@@ -322,5 +355,5 @@ const audit = {
 export const entityServices = {
   prescriptions, treatmentPlans, labCases, recalls, documents, expenses, claims,
   bookings, memberships, forms, campaigns, referrals, imaging, locations,
-  conversations, charting, audit,
+  conversations, charting, audit, inventory,
 };

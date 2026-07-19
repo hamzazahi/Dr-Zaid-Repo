@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -30,9 +30,12 @@ import {
   Search as SearchIcon,
 } from '@mui/icons-material';
 import { useNotification } from '../hooks/useNotification';
+import { useClinicData } from '../hooks/useClinicData';
 import { formatCurrency } from '../utils/helpers';
 import { colors } from '../theme/theme';
 import { mockInventory } from '../utils/mockData';
+import { isSupabaseConfigured } from '../lib/supabase';
+import { entityServices as es } from '../services/entityServices';
 
 const CATEGORIES = ['Restorative', 'Endodontic', 'Supplies', 'Medications', 'Equipment', 'PPE'];
 const EMPTY_FORM = { name: '', sku: '', category: 'Supplies', quantity: '', minLevel: '', unit: 'pcs', supplier: '', unitPrice: '' };
@@ -60,7 +63,18 @@ function StockBadge({ status }) {
 
 export default function Inventory() {
   const { notify } = useNotification();
-  const [inventory, setInventory] = useState(mockInventory);
+  const { dataLive } = useClinicData();
+  const [inventory, setInventory] = useState(() => (isSupabaseConfigured ? [] : mockInventory));
+
+  // Live mode: this page owns its data (not in ClinicContext), so it loads itself.
+  useEffect(() => {
+    if (!dataLive) return undefined;
+    let active = true;
+    es.inventory.list()
+      .then((rows) => { if (active) setInventory(rows); })
+      .catch((err) => console.error('Inventory load failed:', err.message));
+    return () => { active = false; };
+  }, [dataLive]);
   const [openDialog, setOpenDialog] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState('');
@@ -73,18 +87,28 @@ export default function Inventory() {
     if (formError) setFormError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) { setFormError('Item name is required.'); return; }
     if (!form.quantity || Number(form.quantity) < 0) { setFormError('Please enter a valid quantity.'); return; }
     const qty = Number(form.quantity);
     const minLvl = Number(form.minLevel) || 0;
-    const newItem = { ...form, id: `inv-${Date.now()}`, quantity: qty, minLevel: minLvl, status: getStockStatus(qty, minLvl), unitPrice: form.unitPrice ? `Rs. ${form.unitPrice}` : 'Rs. 0' };
-    setInventory((prev) => [newItem, ...prev]);
-    setOpenDialog(false);
-    setForm(EMPTY_FORM);
-    setFormError('');
-    notify(`${form.name} added to inventory.`, 'success');
+    try {
+      if (dataLive) {
+        const created = await es.inventory.create(form);
+        setInventory((prev) => [created, ...prev]);
+      } else {
+        const newItem = { ...form, id: `inv-${Date.now()}`, quantity: qty, minLevel: minLvl, status: getStockStatus(qty, minLvl), unitPrice: form.unitPrice ? `Rs. ${form.unitPrice}` : 'Rs. 0' };
+        setInventory((prev) => [newItem, ...prev]);
+      }
+      setOpenDialog(false);
+      setForm(EMPTY_FORM);
+      setFormError('');
+      notify(`${form.name} added to inventory.`, 'success');
+    } catch (err) {
+      console.error('Inventory save failed:', err);
+      setFormError(`Could not save the item: ${err?.message || 'unknown error'}`);
+    }
   };
 
   const stats = useMemo(() => ({
@@ -92,7 +116,7 @@ export default function Inventory() {
     inStock: inventory.filter((i) => i.status === 'in-stock').length,
     low: inventory.filter((i) => i.status === 'low').length,
     outOfStock: inventory.filter((i) => i.status === 'out-of-stock').length,
-    totalValue: inventory.reduce((sum, item) => { const price = parseFloat(String(item.unitPrice).replace(/[^0-9.]/g, '')) || 0; return sum + price * item.quantity; }, 0),
+    totalValue: inventory.reduce((sum, item) => { const price = parseFloat((String(item.unitPrice).match(/\d+(\.\d+)?/) || [0])[0]) || 0; return sum + price * item.quantity; }, 0),
   }), [inventory]);
 
   const alerts = useMemo(() => inventory.filter((i) => i.status !== 'in-stock').slice(0, 3), [inventory]);
