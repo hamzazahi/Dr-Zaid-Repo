@@ -20,7 +20,15 @@ import { colors } from '../theme/theme';
 import { Payments as PaymentsIcon } from '@mui/icons-material';
 
 export default function Payments() {
-  const { payments } = useClinicData();
+  const { payments, invoices } = useClinicData();
+
+  // Map invoice id → human-readable number so the ledger shows "INV-2026-001"
+  // instead of the raw database id.
+  const invoiceNumberById = useMemo(() => {
+    const map = {};
+    invoices.forEach((inv) => { map[inv.id] = inv.invoiceNumber; });
+    return map;
+  }, [invoices]);
 
   const total = useMemo(
     () => payments.reduce((sum, p) => sum + p.amount, 0),
@@ -97,7 +105,9 @@ export default function Payments() {
                 <TableRow key={p.id} hover>
                   <TableCell>{formatDate(p.date)}</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>{p.patientName}</TableCell>
-                  <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: colors.textSecondary }}>{p.invoiceId}</TableCell>
+                  <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.8rem', color: colors.textSecondary }}>
+                    {p.invoiceNumber || invoiceNumberById[p.invoiceId] || '—'}
+                  </TableCell>
                   <TableCell>
                     <Chip label={p.method} size="small" variant="outlined" sx={{ fontWeight: 600 }} />
                   </TableCell>

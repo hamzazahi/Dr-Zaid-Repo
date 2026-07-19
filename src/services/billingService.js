@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase';
 // paymentPercentage is derived here for the UI's progress bars.
 
 const INVOICE_JOIN = '*, patients(name)';
-const PAYMENT_JOIN = '*, patients(name)';
+const PAYMENT_JOIN = '*, patients(name), invoices(invoice_number)';
 
 const invoiceFromRow = (r) => {
   const total = Number(r.total_amount) || 0;
@@ -30,6 +30,7 @@ const invoiceFromRow = (r) => {
 const paymentFromRow = (r) => ({
   id: r.id,
   invoiceId: r.invoice_id,
+  invoiceNumber: r.invoices?.invoice_number ?? null,
   patientId: r.patient_id,
   patientName: r.patients?.name ?? 'Unknown Patient',
   date: r.date,
