@@ -46,6 +46,10 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => (isSupabaseConfigured ? null : readDemoStored()));
   // Live mode restores the session asynchronously - gate the first paint.
   const [initializing, setInitializing] = useState(isSupabaseConfigured);
+  // True while the user is following a password-reset email link: the app shows
+  // the "set new password" screen instead of the dashboard, even though a
+  // (recovery) session technically exists.
+  const [recovery, setRecovery] = useState(false);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return undefined;
@@ -74,7 +78,13 @@ export const AuthProvider = ({ children }) => {
     };
 
     supabase.auth.getSession().then(({ data }) => applySession(data.session));
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      // A password-reset link fires PASSWORD_RECOVERY with a temporary session.
+      // Show the reset screen instead of logging the user straight in.
+      if (event === 'PASSWORD_RECOVERY') {
+        if (!cancelled) { setRecovery(true); setInitializing(false); }
+        return;
+      }
       applySession(session);
     });
     return () => {
@@ -127,6 +137,33 @@ export const AuthProvider = ({ children }) => {
     return { ok: true }; // onAuthStateChange populates the user
   }, []);
 
+  // Send a password-reset email. The link brings the user back to the app,
+  // where onAuthStateChange fires PASSWORD_RECOVERY and shows the reset screen.
+  const requestPasswordReset = useCallback(async (email) => {
+    const normalized = email?.toLowerCase().trim();
+    if (!normalized) return { ok: false, error: 'Please enter your email address.' };
+    if (!isSupabaseConfigured) {
+      return { ok: false, error: 'Email password reset is available once the clinic is connected. Please ask your administrator to reset it for you.' };
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(normalized, {
+      redirectTo: window.location.origin,
+    });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  }, []);
+
+  // Set the new password for the recovery session, then sign out so the user
+  // logs in fresh with it.
+  const completePasswordReset = useCallback(async (newPassword) => {
+    if (!isSupabaseConfigured) return { ok: false, error: 'Not available in demo mode.' };
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) return { ok: false, error: error.message };
+    await supabase.auth.signOut();
+    setRecovery(false);
+    setUser(null);
+    return { ok: true };
+  }, []);
+
   const signOut = useCallback(async () => {
     if (isSupabaseConfigured) {
       await supabase.auth.signOut();
@@ -136,7 +173,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: Boolean(user), initializing, signIn, signOut, isLiveAuth: isSupabaseConfigured }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: Boolean(user), initializing, recovery, signIn, signOut, requestPasswordReset, completePasswordReset, isLiveAuth: isSupabaseConfigured }}>
       {children}
     </AuthContext.Provider>
   );

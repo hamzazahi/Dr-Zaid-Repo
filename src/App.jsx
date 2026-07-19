@@ -3,10 +3,11 @@ import { useAuth } from './hooks/useAuth';
 import Layout from './components/layout/Layout';
 import AppRoutes from './routes/AppRoutes';
 import SignIn from './pages/SignIn';
+import ResetPassword from './pages/ResetPassword';
 import ErrorBoundary from './components/common/ErrorBoundary';
 
 export default function App() {
-  const { isAuthenticated, initializing } = useAuth();
+  const { isAuthenticated, initializing, recovery } = useAuth();
 
   // Live auth restores the session asynchronously on load - show a quiet
   // branded splash instead of flashing the sign-in page at returning users.
@@ -23,6 +24,11 @@ export default function App() {
         <Typography sx={{ fontSize: '0.8rem', color: '#64748B' }}>Loading your workspace…</Typography>
       </Box>
     );
+  }
+
+  // Following a password-reset email link takes priority over everything else.
+  if (recovery) {
+    return <ResetPassword />;
   }
 
   if (!isAuthenticated) {

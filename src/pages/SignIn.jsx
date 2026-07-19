@@ -209,7 +209,9 @@ function Field({ id, label, type, value, onChange, onBlur, onKeyEvent, error, au
 }
 
 export default function SignIn() {
-  const { signIn } = useAuth();
+  const { signIn, requestPasswordReset } = useAuth();
+  const [mode, setMode] = useState('signin'); // 'signin' | 'forgot'
+  const [resetSent, setResetSent] = useState(false);
 
   // Remember-email: initialise from the last "remembered" sign-in (lazy
   // initialisers - no effect needed, no cascading render).
@@ -252,6 +254,21 @@ export default function SignIn() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // ── Forgot-password mode: email only, send a reset link ──
+    if (mode === 'forgot') {
+      setEmailTouched(true);
+      if (!email.trim()) { setError('Email address is required.'); triggerShake(); return; }
+      if (!emailValid) { setError('Enter a valid email address.'); triggerShake(); return; }
+      clearBanners();
+      setLoading(true);
+      const res = await requestPasswordReset(email.trim());
+      setLoading(false);
+      if (!res.ok) { setError(res.error); triggerShake(); return; }
+      setResetSent(true);
+      return;
+    }
+
     setEmailTouched(true);
     setPwTouched(true);
     const err = validate();
@@ -365,10 +382,10 @@ export default function SignIn() {
             </Stack>
 
             <Typography component="h2" sx={{ fontWeight: 700, fontSize: { xs: '1.55rem', sm: '1.8rem' }, letterSpacing: '-0.03em', color: C.text, lineHeight: 1.2, mb: 0.75 }}>
-              Welcome Back
+              {mode === 'forgot' ? 'Reset your password' : 'Welcome Back'}
             </Typography>
             <Typography sx={{ color: C.textSecondary, fontSize: '0.9rem', mb: 3.25 }}>
-              Sign in to your clinic workspace.
+              {mode === 'forgot' ? 'Enter your email and we will send you a reset link.' : 'Sign in to your clinic workspace.'}
             </Typography>
 
             {(error || info) && (
@@ -387,72 +404,104 @@ export default function SignIn() {
               </Box>
             )}
 
-            <Stack spacing={1.25}>
-              <Field id="email" label="Email" type="email" autoComplete="email" placeholder="you@clinic.com"
-                value={email} error={emailError}
-                onChange={(e) => { setEmail(e.target.value); clearBanners(); }} onBlur={() => setEmailTouched(true)} />
-              <Field id="password" label="Password" type={showPw ? 'text' : 'password'} autoComplete="current-password" placeholder="Enter your password"
-                value={password} error={pwError}
-                hint={capsOn ? 'Caps Lock is on' : ''}
-                onKeyEvent={handlePwKey}
-                onChange={(e) => { setPassword(e.target.value); clearBanners(); }} onBlur={() => setPwTouched(true)}
-                endAdornment={
-                  <ButtonBase onClick={() => setShowPw((p) => !p)} tabIndex={-1} aria-label={showPw ? 'Hide password' : 'Show password'}
-                    sx={{ p: 1.1, borderRadius: '8px', color: C.textFaint, transition: 'color .2s ease-out', '&:hover': { color: C.text } }}>
-                    {showPw ? <VisibilityOff sx={{ fontSize: 19 }} /> : <Visibility sx={{ fontSize: 19 }} />}
-                  </ButtonBase>
-                } />
-            </Stack>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1, mb: 3 }}>
-              <Box component="label" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, cursor: 'pointer', userSelect: 'none' }}>
-                <Box
-                  role="checkbox"
-                  aria-checked={remember}
-                  tabIndex={0}
-                  onClick={() => setRemember((r) => !r)}
-                  onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setRemember((r) => !r); } }}
-                  sx={{
-                    width: 18, height: 18, borderRadius: '5px', flexShrink: 0,
-                    border: `1.5px solid ${remember ? C.primary : '#CBD5E1'}`, bgcolor: remember ? C.primary : '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'all .2s ease-out',
-                    '&:focus-visible': { outline: 'none', boxShadow: '0 0 0 4px rgba(37,99,235,0.15)' },
-                  }}>
-                  {remember && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 6 9 17l-5-5" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+            {resetSent ? (
+              <Box sx={{ animation: 'si-fadeIn .25s ease-out both' }}>
+                <Box sx={{ display: 'flex', gap: 1, mb: 2.5, px: 1.75, py: 1.5, borderRadius: '10px', bgcolor: '#ECFDF5', border: '1px solid #A7F3D0' }}>
+                  <Box sx={{ flexShrink: 0, mt: '1px', color: '#059669', display: 'flex' }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M22 6 12 13 2 6" /><rect x="2" y="4" width="20" height="16" rx="2" /></svg>
+                  </Box>
+                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 500, color: '#065F46' }}>
+                    If an account exists for <strong>{email.trim()}</strong>, a password reset link is on its way. Please check your inbox (and spam folder).
+                  </Typography>
                 </Box>
-                <Typography onClick={() => setRemember((r) => !r)} sx={{ fontSize: '0.84rem', fontWeight: 500, color: C.textSecondary }}>Remember me</Typography>
+                <ButtonBase onClick={() => { setMode('signin'); setResetSent(false); clearBanners(); }}
+                  sx={{ width: '100%', height: 46, borderRadius: '10px', fontFamily: 'inherit', fontSize: '15px', fontWeight: 700, color: C.primary, border: `1.5px solid ${C.border}`, '&:hover': { bgcolor: C.inputBg } }}>
+                  Back to sign in
+                </ButtonBase>
               </Box>
-              <ButtonBase
-                onClick={() => { setError(''); setInfo('Password resets are handled by your clinic administrator.'); }}
-                sx={{ fontSize: '0.84rem', fontWeight: 600, color: C.primary, fontFamily: 'inherit', borderRadius: '4px', px: 0.5, transition: 'color .2s ease-out', '&:hover': { color: C.primaryHover, textDecoration: 'underline' } }}
-              >
-                Forgot password?
-              </ButtonBase>
-            </Box>
+            ) : (
+              <>
+                <Stack spacing={1.25}>
+                  <Field id="email" label="Email" type="email" autoComplete="email" placeholder="you@clinic.com"
+                    value={email} error={emailError}
+                    onChange={(e) => { setEmail(e.target.value); clearBanners(); }} onBlur={() => setEmailTouched(true)} />
+                  {mode === 'signin' && (
+                    <Field id="password" label="Password" type={showPw ? 'text' : 'password'} autoComplete="current-password" placeholder="Enter your password"
+                      value={password} error={pwError}
+                      hint={capsOn ? 'Caps Lock is on' : ''}
+                      onKeyEvent={handlePwKey}
+                      onChange={(e) => { setPassword(e.target.value); clearBanners(); }} onBlur={() => setPwTouched(true)}
+                      endAdornment={
+                        <ButtonBase onClick={() => setShowPw((p) => !p)} tabIndex={-1} aria-label={showPw ? 'Hide password' : 'Show password'}
+                          sx={{ p: 1.1, borderRadius: '8px', color: C.textFaint, transition: 'color .2s ease-out', '&:hover': { color: C.text } }}>
+                          {showPw ? <VisibilityOff sx={{ fontSize: 19 }} /> : <Visibility sx={{ fontSize: 19 }} />}
+                        </ButtonBase>
+                      } />
+                  )}
+                </Stack>
 
-            <ButtonBase type="submit" disabled={busy} sx={{
-              width: '100%', height: 48, borderRadius: '10px', fontFamily: 'inherit', fontSize: '16px', fontWeight: 700, color: '#fff',
-              background: success ? 'linear-gradient(180deg, #22A85D, #15833F)' : 'linear-gradient(180deg, #3B82F6, #2563EB)',
-              boxShadow: '0 1px 2px rgba(15,23,42,0.10), inset 0 1px 0 rgba(255,255,255,0.16)',
-              transition: 'transform .2s ease-out, box-shadow .2s ease-out, filter .2s ease-out',
-              '&:hover': busy ? {} : { filter: 'brightness(1.05)', transform: 'translateY(-1px)', boxShadow: '0 6px 16px -6px rgba(37,99,235,0.55)' },
-              '&:active': busy ? {} : { transform: 'translateY(0) scale(0.985)' },
-              '&:focus-visible': { outline: 'none', boxShadow: '0 0 0 4px rgba(37,99,235,0.25)' },
-              '&.Mui-disabled': { color: '#fff', opacity: success ? 1 : 0.85 },
-            }}>
-              {success ? (
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 6 9 17l-5-5" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                  <span>Signed in</span>
-                </Stack>
-              ) : loading ? (
-                <Stack direction="row" alignItems="center" spacing={1.25}>
-                  <Box sx={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', animation: 'si-spin .7s linear infinite' }} />
-                  <span>Signing in…</span>
-                </Stack>
-              ) : 'Sign in'}
-            </ButtonBase>
+                {mode === 'signin' ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1, mb: 3 }}>
+                    <Box component="label" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, cursor: 'pointer', userSelect: 'none' }}>
+                      <Box
+                        role="checkbox"
+                        aria-checked={remember}
+                        tabIndex={0}
+                        onClick={() => setRemember((r) => !r)}
+                        onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setRemember((r) => !r); } }}
+                        sx={{
+                          width: 18, height: 18, borderRadius: '5px', flexShrink: 0,
+                          border: `1.5px solid ${remember ? C.primary : '#CBD5E1'}`, bgcolor: remember ? C.primary : '#fff',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          transition: 'all .2s ease-out',
+                          '&:focus-visible': { outline: 'none', boxShadow: '0 0 0 4px rgba(37,99,235,0.15)' },
+                        }}>
+                        {remember && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 6 9 17l-5-5" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                      </Box>
+                      <Typography onClick={() => setRemember((r) => !r)} sx={{ fontSize: '0.84rem', fontWeight: 500, color: C.textSecondary }}>Remember me</Typography>
+                    </Box>
+                    <ButtonBase
+                      onClick={() => { clearBanners(); setMode('forgot'); setResetSent(false); }}
+                      sx={{ fontSize: '0.84rem', fontWeight: 600, color: C.primary, fontFamily: 'inherit', borderRadius: '4px', px: 0.5, transition: 'color .2s ease-out', '&:hover': { color: C.primaryHover, textDecoration: 'underline' } }}
+                    >
+                      Forgot password?
+                    </ButtonBase>
+                  </Box>
+                ) : (
+                  <Box sx={{ mt: 1, mb: 3 }}>
+                    <ButtonBase
+                      onClick={() => { clearBanners(); setMode('signin'); }}
+                      sx={{ fontSize: '0.84rem', fontWeight: 600, color: C.primary, fontFamily: 'inherit', borderRadius: '4px', px: 0.5, '&:hover': { color: C.primaryHover, textDecoration: 'underline' } }}
+                    >
+                      ← Back to sign in
+                    </ButtonBase>
+                  </Box>
+                )}
+
+                <ButtonBase type="submit" disabled={busy} sx={{
+                  width: '100%', height: 48, borderRadius: '10px', fontFamily: 'inherit', fontSize: '16px', fontWeight: 700, color: '#fff',
+                  background: success ? 'linear-gradient(180deg, #22A85D, #15833F)' : 'linear-gradient(180deg, #3B82F6, #2563EB)',
+                  boxShadow: '0 1px 2px rgba(15,23,42,0.10), inset 0 1px 0 rgba(255,255,255,0.16)',
+                  transition: 'transform .2s ease-out, box-shadow .2s ease-out, filter .2s ease-out',
+                  '&:hover': busy ? {} : { filter: 'brightness(1.05)', transform: 'translateY(-1px)', boxShadow: '0 6px 16px -6px rgba(37,99,235,0.55)' },
+                  '&:active': busy ? {} : { transform: 'translateY(0) scale(0.985)' },
+                  '&:focus-visible': { outline: 'none', boxShadow: '0 0 0 4px rgba(37,99,235,0.25)' },
+                  '&.Mui-disabled': { color: '#fff', opacity: success ? 1 : 0.85 },
+                }}>
+                  {success ? (
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 6 9 17l-5-5" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      <span>Signed in</span>
+                    </Stack>
+                  ) : loading ? (
+                    <Stack direction="row" alignItems="center" spacing={1.25}>
+                      <Box sx={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', animation: 'si-spin .7s linear infinite' }} />
+                      <span>{mode === 'forgot' ? 'Sending…' : 'Signing in…'}</span>
+                    </Stack>
+                  ) : (mode === 'forgot' ? 'Send reset link' : 'Sign in')}
+                </ButtonBase>
+              </>
+            )}
           </Box>
           </Box>
 
