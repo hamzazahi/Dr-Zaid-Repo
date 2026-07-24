@@ -37,7 +37,6 @@ import { useNavigate } from 'react-router-dom';
 import { useClinicData } from '../hooks/useClinicData';
 import { useNotification } from '../hooks/useNotification';
 import { formatDate } from '../utils/helpers';
-import { RECALL_CHANNELS } from '../utils/constants';
 import { colors } from '../theme/theme';
 
 const RECALL_TYPES = ['6-Month Checkup', 'Cleaning / Scaling', 'Follow-up', 'Ortho Adjustment', 'Implant Review', 'Whitening Touch-up'];
@@ -79,7 +78,7 @@ function StatusPill({ status }) {
   );
 }
 
-const EMPTY_FORM = { patientId: '', type: '6-Month Checkup', dueDate: '', channel: 'WhatsApp', notes: '' };
+const EMPTY_FORM = { patientId: '', type: '6-Month Checkup', dueDate: '', channel: 'Email', notes: '' };
 
 export default function Recalls() {
   const { patients, recalls, addRecall, sendRecallReminder, updateRecallStatus } = useClinicData();
@@ -128,7 +127,7 @@ export default function Recalls() {
 
   const handleSend = (r) => {
     sendRecallReminder(r.id);
-    notify(`${r.channel || 'WhatsApp'} reminder sent to ${r.patientName}.`, 'success');
+    notify(`Email reminder sent to ${r.patientName}.`, 'success');
   };
 
   const openMenu = (e, recall) => { setMenuAnchor(e.currentTarget); setMenuRecall(recall); };
@@ -151,7 +150,7 @@ export default function Recalls() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography sx={{ fontWeight: 800, fontSize: '1.25rem', color: colors.textPrimary, letterSpacing: '-0.02em' }}>Recalls &amp; Reminders</Typography>
-          <Typography variant="body2" sx={{ color: colors.textSecondary, mt: 0.25 }}>Schedule patient recalls and send WhatsApp, SMS, or email reminders for due check-ups.</Typography>
+          <Typography variant="body2" sx={{ color: colors.textSecondary, mt: 0.25 }}>Schedule patient recalls and send email reminders for due check-ups.</Typography>
         </Box>
         <Button variant="contained" startIcon={<AddIcon sx={{ fontSize: 18 }} />} onClick={() => setOpenDialog(true)} sx={{ borderRadius: '8px', fontWeight: 700 }}>
           New Recall
@@ -162,7 +161,7 @@ export default function Recalls() {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 2, py: 1.25, borderRadius: '10px', bgcolor: '#EAF2FB', border: '1px solid #C3DCF3' }}>
         <MailIcon sx={{ fontSize: 18, color: colors.primary }} />
         <Typography variant="body2" sx={{ color: '#0A3254', fontSize: '0.82rem' }}>
-          Reminders go out via <strong>WhatsApp, SMS, or email</strong> (simulated until the messaging gateway is connected). Sending logs the date against each recall.
+          Reminders are sent by <strong>email</strong>. Sending logs the date against each recall so you can track follow-ups.
         </Typography>
       </Box>
 
@@ -240,7 +239,7 @@ export default function Recalls() {
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontSize: '0.83rem' }}>{r.type}</Typography>
-                        <Typography variant="caption" sx={{ color: colors.textSecondary, fontSize: '0.68rem' }}>via {r.channel || 'WhatsApp'}</Typography>
+                        <Typography variant="caption" sx={{ color: colors.textSecondary, fontSize: '0.68rem' }}>via {r.channel || 'Email'}</Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontSize: '0.82rem', fontWeight: overdue ? 700 : 400, color: overdue ? colors.error : colors.textSecondary }}>
@@ -308,11 +307,6 @@ export default function Recalls() {
               <Grid item xs={12} sm={6}>
                 <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: colors.textSecondary, mb: 0.5 }}>Due Date *</Typography>
                 <Box component="input" type="date" name="dueDate" value={form.dueDate} min={todayStr()} onChange={handleChange} sx={DATE_INPUT_SX} />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField select label="Reminder Channel" name="channel" value={form.channel} onChange={handleChange} fullWidth>
-                  {RECALL_CHANNELS.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
-                </TextField>
               </Grid>
               <Grid item xs={12}>
                 <TextField label="Notes" name="notes" value={form.notes} onChange={handleChange} fullWidth multiline rows={2} placeholder="Reason for recall, instructions…" />

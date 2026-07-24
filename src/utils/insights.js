@@ -77,8 +77,8 @@ export const buildInsights = (data) => {
     insights.push({
       id: 'no-show-risk', severity: 'warning', category: 'Schedule',
       title: `${risks.length} upcoming appointment${risks.length > 1 ? 's' : ''} at no-show risk`,
-      detail: `${risks.map((r) => r.patientName).slice(0, 3).join(', ')}${risks.length > 3 ? '…' : ''} missed appointments before${high ? ` (${high} high-risk)` : ''}. A WhatsApp reminder cuts no-shows sharply.`,
-      action: { label: 'Send Reminders', path: '/messages' },
+      detail: `${risks.map((r) => r.patientName).slice(0, 3).join(', ')}${risks.length > 3 ? '…' : ''} missed appointments before${high ? ` (${high} high-risk)` : ''}. A reminder cuts no-shows sharply.`,
+      action: { label: 'Open Recalls', path: '/recalls' },
     });
   }
 
@@ -246,7 +246,7 @@ export const answerQuestion = (query, data) => {
 
   if (/no.?show|risk/.test(q)) {
     const risks = findNoShowRisks({ appointments });
-    return { text: risks.length ? `${risks.length} upcoming appointment${risks.length > 1 ? 's' : ''} at no-show risk: ${risks.map((r) => `${r.patientName} (${r.priorNoShows} prior, ${r.risk.toLowerCase()} risk)`).join(' · ')}. Recommend WhatsApp reminders.` : 'No no-show risks detected on upcoming appointments.', action: { label: 'Open Messages', path: '/messages' } };
+    return { text: risks.length ? `${risks.length} upcoming appointment${risks.length > 1 ? 's' : ''} at no-show risk: ${risks.map((r) => `${r.patientName} (${r.priorNoShows} prior, ${r.risk.toLowerCase()} risk)`).join(' · ')}. Recommend sending reminders.` : 'No no-show risks detected on upcoming appointments.', action: { label: 'Open Recalls', path: '/recalls' } };
   }
 
   if (/recall|overdue check|follow.?up/.test(q)) {

@@ -45,7 +45,6 @@ const PAGE_TITLES = {
   '/imaging': 'Imaging',
   '/referrals': 'Referrals',
   '/marketing': 'Marketing',
-  '/messages': 'Messages',
   '/assistant': 'DentIQ Assistant',
   '/locations': 'Locations',
   '/staff': 'Staff',

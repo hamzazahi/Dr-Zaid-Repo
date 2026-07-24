@@ -11,7 +11,6 @@ export const ACCESS = {
   '/appointments':    { doctor: 'full', receptionist: 'full' },
   '/recalls':         { doctor: 'full', receptionist: 'full' },
   '/online-booking':  { doctor: 'full', receptionist: 'full' },
-  '/messages':        { doctor: 'full', receptionist: 'full' },
   '/billing':         { doctor: 'full', receptionist: 'full' },
   '/payments':        { doctor: 'full', receptionist: 'full' },
   '/memberships':     { doctor: 'full', receptionist: 'full' },

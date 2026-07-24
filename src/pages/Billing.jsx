@@ -32,10 +32,10 @@ import { summariseInvoices } from '../utils/billing';
 import { PAYMENT_METHODS } from '../utils/constants';
 import StatusBadge from '../components/common/StatusBadge';
 import { colors } from '../theme/theme';
-import { Payment as PaymentIcon, ReceiptLong as ReceiptLongIcon, TrendingUp as TrendingUpIcon, HourglassEmpty as HourglassEmptyIcon, Link as LinkIcon, ContentCopy as CopyIcon, WhatsApp as WhatsAppIcon } from '@mui/icons-material';
+import { Payment as PaymentIcon, ReceiptLong as ReceiptLongIcon, TrendingUp as TrendingUpIcon, HourglassEmpty as HourglassEmptyIcon } from '@mui/icons-material';
 
 export default function Billing() {
-  const { invoices, addPayment, patients } = useClinicData();
+  const { invoices, addPayment } = useClinicData();
   const { notify } = useNotification();
   const navigate = useNavigate();
 
@@ -56,32 +56,6 @@ export default function Billing() {
   };
 
   const closeCollect = () => setPayInvoice(null);
-
-  // "Pay by link" - generates a shareable payment URL per invoice. The link
-  // itself activates once the payment gateway (JazzCash/Easypaisa/card) is
-  // connected in the backend phase; copying and WhatsApp sharing work now.
-  const [linkInvoice, setLinkInvoice] = useState(null);
-  const paymentLink = linkInvoice
-    ? `https://pay.dentsuite.pk/inv/${linkInvoice.invoiceNumber.toLowerCase()}`
-    : '';
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(paymentLink);
-      notify('Payment link copied to clipboard.', 'success');
-    } catch {
-      notify('Could not copy - select and copy the link manually.', 'warning');
-    }
-  };
-
-  const shareOnWhatsApp = () => {
-    const patient = patients.find((p) => p.id === linkInvoice.patientId);
-    const digits = (patient?.phone || '').replace(/\D/g, '');
-    const text = encodeURIComponent(
-      `Dear ${linkInvoice.patientName}, your invoice ${linkInvoice.invoiceNumber} from DentSuite has a balance of Rs ${linkInvoice.balanceDue.toLocaleString()}. Pay securely: ${paymentLink}`
-    );
-    window.open(digits ? `https://wa.me/${digits}?text=${text}` : `https://wa.me/?text=${text}`, '_blank', 'noopener');
-  };
 
   const submitCollect = (e) => {
     e.preventDefault();
@@ -267,25 +241,15 @@ export default function Billing() {
                     <TableCell align="right">
                       <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                         {inv.balanceDue > 0 && (
-                          <>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              startIcon={<PaymentIcon sx={{ fontSize: 15 }} />}
-                              onClick={() => openCollect(inv)}
-                              sx={{ textTransform: 'none', fontWeight: 700 }}
-                            >
-                              Collect
-                            </Button>
-                            <Button
-                              size="small"
-                              startIcon={<LinkIcon sx={{ fontSize: 15 }} />}
-                              onClick={() => setLinkInvoice(inv)}
-                              sx={{ textTransform: 'none', fontWeight: 600 }}
-                            >
-                              Link
-                            </Button>
-                          </>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            startIcon={<PaymentIcon sx={{ fontSize: 15 }} />}
+                            onClick={() => openCollect(inv)}
+                            sx={{ textTransform: 'none', fontWeight: 700 }}
+                          >
+                            Collect
+                          </Button>
                         )}
                         <Button
                           size="small"
@@ -336,37 +300,6 @@ export default function Billing() {
             <Button type="submit" variant="contained" sx={{ fontWeight: 700 }}>Confirm Payment</Button>
           </DialogActions>
         </form>
-      </Dialog>
-
-      <Dialog open={Boolean(linkInvoice)} onClose={() => setLinkInvoice(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, borderBottom: `1px solid ${colors.border}` }}>
-          Share Payment Link
-          <Typography variant="caption" sx={{ display: 'block', color: colors.textSecondary, fontWeight: 400, mt: 0.25 }}>
-            {linkInvoice?.invoiceNumber} · {linkInvoice?.patientName} · balance {formatCurrency(linkInvoice?.balanceDue || 0)}
-          </Typography>
-        </DialogTitle>
-        <DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <Alert severity="info" sx={{ borderRadius: '8px', py: 0.5 }}>
-            The link goes live once the payment gateway (JazzCash / Easypaisa / card) is connected in the backend phase. You can copy and share it now.
-          </Alert>
-          <TextField
-            value={paymentLink}
-            fullWidth
-            size="small"
-            InputProps={{ readOnly: true, sx: { fontFamily: 'monospace', fontSize: '0.8rem' } }}
-          />
-          <Stack direction="row" spacing={1}>
-            <Button fullWidth variant="outlined" startIcon={<CopyIcon sx={{ fontSize: 16 }} />} onClick={copyLink} sx={{ fontWeight: 600, textTransform: 'none' }}>
-              Copy link
-            </Button>
-            <Button fullWidth variant="contained" startIcon={<WhatsAppIcon sx={{ fontSize: 16 }} />} onClick={shareOnWhatsApp} sx={{ fontWeight: 700, textTransform: 'none', bgcolor: '#128C4A', '&:hover': { bgcolor: '#0E7038' } }}>
-              Share on WhatsApp
-            </Button>
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ p: 2, borderTop: `1px solid ${colors.border}` }}>
-          <Button onClick={() => setLinkInvoice(null)} color="inherit" sx={{ fontWeight: 600 }}>Close</Button>
-        </DialogActions>
       </Dialog>
     </Box>
   );

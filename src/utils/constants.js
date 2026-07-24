@@ -35,6 +35,6 @@ export const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export const PAYMENT_METHODS = ['Cash', 'Credit Card', 'Bank Transfer', 'Insurance', 'Cheque'];
 
-export const RECALL_CHANNELS = ['WhatsApp', 'SMS', 'Email'];
+export const RECALL_CHANNELS = ['Email'];
 
 export const TOOTH_NUMBERS = Array.from({ length: 32 }, (_, i) => String(i + 1));
