@@ -45,6 +45,7 @@ import {
   Download as DownloadIcon,
 } from '@mui/icons-material';
 import { useClinicData } from '../hooks/useClinicData';
+import { useNotification } from '../hooks/useNotification';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { buildPeriodSummary, totalsFromBuckets, GRANULARITIES } from '../utils/reporting';
 import { colors } from '../theme/theme';
@@ -115,9 +116,9 @@ const calcPreset = (preset) => {
 const initPreset  = 'this_month';
 const initDates   = calcPreset(initPreset);
 
-const escapeHtml = (value) => String(value ?? '')
-  .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
-  .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+// PDF-safe money: jsPDF's built-in fonts don't include the ₨ glyph, so we
+// render an ASCII "Rs " prefix instead of the currency symbol.
+const pdfMoney = (n) => `Rs ${Math.round(Number(n) || 0).toLocaleString('en-US')}`;
 
 function ChartTip({ active, payload, label, currency = false }) {
   if (!active || !payload?.length) return null;
@@ -145,7 +146,9 @@ const PRESETS = [
 
 export default function Reports() {
   const { patients, appointments, treatments, invoices, payments } = useClinicData();
+  const { notify } = useNotification();
 
+  const [pdfBusy, setPdfBusy]     = useState(false);
   const [preset, setPreset]       = useState(initPreset);
   const [startDate, setStartDate] = useState(initDates.start); // YYYY-MM-DD string
   const [endDate, setEndDate]     = useState(initDates.end);   // YYYY-MM-DD string
@@ -242,102 +245,108 @@ export default function Reports() {
     return found ? found.label : 'Selected period';
   }, [preset, startDate, endDate]);
 
-  const generatePdfReport = () => {
-    const generatedAt = new Date().toLocaleString();
-    const invoiceRows = recentInvoices.map((invoice) => `
-      <tr>
-        <td>${escapeHtml(invoice.invoiceNumber)}</td>
-        <td>${escapeHtml(invoice.patientName)}</td>
-        <td>${escapeHtml(formatDate(invoice.date))}</td>
-        <td class="num">${escapeHtml(formatCurrency(invoice.totalAmount))}</td>
-        <td class="num">${escapeHtml(formatCurrency(invoice.balanceDue))}</td>
-        <td>${escapeHtml(invoice.status)}</td>
-      </tr>
-    `).join('');
+  // Generate a real, downloadable PDF with jsPDF (loaded on demand so it stays
+  // out of the initial bundle). One click = one .pdf file, no print dialog.
+  const generatePdfReport = async () => {
+    if (pdfBusy) return;
+    setPdfBusy(true);
+    try {
+      const { jsPDF } = await import('jspdf');
+      const autoTable = (await import('jspdf-autotable')).default;
 
-    const periodRows = periodSummary.map((row) => `
-      <tr>
-        <td>${escapeHtml(row.label)}</td>
-        <td class="num">${row.appointments}</td>
-        <td class="num">${escapeHtml(formatCurrency(row.revenue))}</td>
-        <td class="num">${escapeHtml(formatCurrency(row.billed))}</td>
-        <td class="num">${escapeHtml(formatCurrency(row.outstanding))}</td>
-        <td class="num">${row.paidInvoices} / ${row.partialInvoices} / ${row.unpaidInvoices}</td>
-      </tr>
-    `).join('');
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const pageW = doc.internal.pageSize.getWidth();
+      const BLUE = [26, 93, 200];
 
-    const treatmentRows = filteredTreatments.slice(0, 10).map((treatment) => `
-      <tr>
-        <td>${escapeHtml(formatDate(treatment.date))}</td>
-        <td>${escapeHtml(treatment.patientName)}</td>
-        <td>${escapeHtml(treatment.type)}</td>
-        <td>${escapeHtml(treatment.toothNumber)}</td>
-        <td class="num">${escapeHtml(formatCurrency(treatment.cost))}</td>
-      </tr>
-    `).join('');
+      // ── Header ──
+      doc.setFillColor(...BLUE);
+      doc.rect(0, 0, pageW, 6, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.setTextColor(...BLUE);
+      doc.text('Dr Zaid Dental — Clinic Performance Report', 40, 46);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(107, 114, 128);
+      doc.text(`Generated ${new Date().toLocaleString()}   |   Period: ${subtitleText}`, 40, 63);
 
-    const html = `<!doctype html><html><head><title>Clinic Performance Report</title>
-      <style>* { box-sizing: border-box; } body { font-family: Arial, sans-serif; color: #111827; margin: 32px; }
-      header { border-bottom: 3px solid #1A5DC8; padding-bottom: 16px; margin-bottom: 24px; }
-      h1 { margin: 0; font-size: 26px; color: #1A5DC8; } h2 { font-size: 16px; margin: 28px 0 10px; color: #111827; }
-      .muted { color: #6B7280; font-size: 12px; margin-top: 6px; }
-      .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
-      .card { border: 1px solid #E5E7EB; border-radius: 8px; padding: 14px; }
-      .label { font-size: 11px; text-transform: uppercase; color: #6B7280; font-weight: 700; }
-      .value { font-size: 20px; font-weight: 800; margin-top: 8px; }
-      table { width: 100%; border-collapse: collapse; font-size: 12px; }
-      th { background: #F3F4F6; text-align: left; color: #374151; }
-      th, td { border: 1px solid #E5E7EB; padding: 8px; } .num { text-align: right; }
-      .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-      @media print { body { margin: 18mm; } button { display: none; } }</style></head>
-      <body><header><h1>Dr Zaid Dental - Clinic Performance Report</h1>
-      <div class="muted">Generated ${escapeHtml(generatedAt)} · Period: ${escapeHtml(subtitleText)}</div></header>
-      <section class="grid">
-        <div class="card"><div class="label">Patients</div><div class="value">${patients.length}</div></div>
-        <div class="card"><div class="label">Appointments</div><div class="value">${filteredAppointments.length}</div></div>
-        <div class="card"><div class="label">Treatments</div><div class="value">${filteredTreatments.length}</div></div>
-        <div class="card"><div class="label">Outstanding</div><div class="value">${escapeHtml(formatCurrency(report.outstanding))}</div></div>
-      </section>
-      <section class="summary">
-        <div><h2>Financial Summary</h2><table><tbody>
-          <tr><th>Total Billed</th><td class="num">${escapeHtml(formatCurrency(report.billed))}</td></tr>
-          <tr><th>Revenue Collected</th><td class="num">${escapeHtml(formatCurrency(report.revenue))}</td></tr>
-          <tr><th>Outstanding Balance</th><td class="num">${escapeHtml(formatCurrency(report.outstanding))}</td></tr>
-          <tr><th>Collection Rate</th><td class="num">${report.collectionRate}%</td></tr>
-        </tbody></table></div>
-        <div><h2>Patient Summary</h2><table><tbody>
-          <tr><th>Active Patients</th><td class="num">${report.activePatients}</td></tr>
-          <tr><th>Pending Payment</th><td class="num">${report.pendingPatients}</td></tr>
-          <tr><th>Paid Invoices</th><td class="num">${report.paidInvoices}</td></tr>
-          <tr><th>Total Invoices</th><td class="num">${filteredInvoices.length}</td></tr>
-        </tbody></table></div>
-      </section>
-      <h2>${escapeHtml(granularity)} Summary</h2>
-      <table><thead><tr><th>Period</th><th class="num">Appointments</th><th class="num">Revenue</th><th class="num">Billed</th><th class="num">Outstanding</th><th class="num">Paid / Partial / Unpaid</th></tr></thead>
-      <tbody>${periodRows || '<tr><td colspan="6">No activity in the selected period.</td></tr>'}</tbody></table>
-      <h2>Recent Invoices</h2>
-      <table><thead><tr><th>Invoice</th><th>Patient</th><th>Date</th><th class="num">Total</th><th class="num">Balance</th><th>Status</th></tr></thead>
-      <tbody>${invoiceRows || '<tr><td colspan="6">No invoices available.</td></tr>'}</tbody></table>
-      <h2>Recent Treatments</h2>
-      <table><thead><tr><th>Date</th><th>Patient</th><th>Procedure</th><th>Tooth</th><th class="num">Fee</th></tr></thead>
-      <tbody>${treatmentRows || '<tr><td colspan="5">No treatments available.</td></tr>'}</tbody></table>
-      </body></html>`;
+      const headStyle = { fillColor: BLUE, textColor: 255, fontStyle: 'bold', fontSize: 9 };
 
-    // Render into a hidden iframe and print from there. This avoids pop-up
-    // blockers (which silently kill window.open on deployed hosts like Vercel),
-    // so "Export PDF → Save as PDF" works reliably.
-    const iframe = document.createElement('iframe');
-    iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
-    document.body.appendChild(iframe);
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(html);
-    doc.close();
-    setTimeout(() => {
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-      setTimeout(() => document.body.removeChild(iframe), 1000);
-    }, 350);
+      // ── KPI row ──
+      autoTable(doc, {
+        startY: 80,
+        head: [['Patients', 'Appointments', 'Treatments', 'Outstanding']],
+        body: [[patients.length, filteredAppointments.length, filteredTreatments.length, pdfMoney(report.outstanding)]],
+        theme: 'grid',
+        headStyles: { fillColor: [243, 244, 246], textColor: [55, 65, 81], fontStyle: 'bold', fontSize: 9 },
+        styles: { fontSize: 10, halign: 'center' },
+      });
+
+      // ── Financial + Patient summary ──
+      autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 16,
+        head: [['Financial Summary', '']],
+        body: [
+          ['Total Billed', pdfMoney(report.billed)],
+          ['Revenue Collected', pdfMoney(report.revenue)],
+          ['Outstanding Balance', pdfMoney(report.outstanding)],
+          ['Collection Rate', `${report.collectionRate}%`],
+          ['Active Patients', report.activePatients],
+          ['Pending Payment', report.pendingPatients],
+          ['Paid Invoices', `${report.paidInvoices} / ${filteredInvoices.length}`],
+        ],
+        theme: 'grid',
+        headStyles: headStyle,
+        columnStyles: { 1: { halign: 'right' } },
+        styles: { fontSize: 9.5 },
+      });
+
+      // ── Period summary ──
+      autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 16,
+        head: [[`${granularity} Period`, 'Appts', 'Revenue', 'Billed', 'Outstanding', 'Paid/Part/Unpaid']],
+        body: periodSummary.length
+          ? periodSummary.map((r) => [r.label, r.appointments, pdfMoney(r.revenue), pdfMoney(r.billed), pdfMoney(r.outstanding), `${r.paidInvoices}/${r.partialInvoices}/${r.unpaidInvoices}`])
+          : [['No activity in the selected period.', '', '', '', '', '']],
+        theme: 'striped',
+        headStyles: headStyle,
+        columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } },
+        styles: { fontSize: 8.5 },
+      });
+
+      // ── Recent invoices ──
+      autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 16,
+        head: [['Invoice', 'Patient', 'Date', 'Total', 'Balance', 'Status']],
+        body: recentInvoices.length
+          ? recentInvoices.map((i) => [i.invoiceNumber, i.patientName, formatDate(i.date), pdfMoney(i.totalAmount), pdfMoney(i.balanceDue), i.status])
+          : [['No invoices available.', '', '', '', '', '']],
+        theme: 'striped',
+        headStyles: headStyle,
+        columnStyles: { 3: { halign: 'right' }, 4: { halign: 'right' } },
+        styles: { fontSize: 8.5 },
+      });
+
+      // ── Recent treatments ──
+      autoTable(doc, {
+        startY: doc.lastAutoTable.finalY + 16,
+        head: [['Date', 'Patient', 'Procedure', 'Tooth', 'Fee']],
+        body: filteredTreatments.slice(0, 10).length
+          ? filteredTreatments.slice(0, 10).map((t) => [formatDate(t.date), t.patientName, t.type, t.toothNumber, pdfMoney(t.cost)])
+          : [['No treatments available.', '', '', '', '']],
+        theme: 'striped',
+        headStyles: headStyle,
+        columnStyles: { 4: { halign: 'right' } },
+        styles: { fontSize: 8.5 },
+      });
+
+      doc.save(`dr-zaid-report_${startDate}_to_${endDate}.pdf`);
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      notify('Could not generate the PDF. Please try again.', 'error');
+    } finally {
+      setPdfBusy(false);
+    }
   };
 
   // Reliable file download (Blob + anchor) - always downloads, no pop-up needed.
@@ -409,11 +418,12 @@ export default function Reports() {
           </Button>
           <Button
             variant="contained"
+            disabled={pdfBusy}
             startIcon={<PictureAsPdfIcon sx={{ fontSize: 17 }} />}
             onClick={generatePdfReport}
             sx={{ height: 38, borderRadius: '8px', fontWeight: 700, fontSize: '0.82rem', flexShrink: 0, whiteSpace: 'nowrap', px: 2 }}
           >
-            Export PDF
+            {pdfBusy ? 'Generating…' : 'Export PDF'}
           </Button>
         </Box>
       </Box>
