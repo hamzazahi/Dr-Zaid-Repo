@@ -43,6 +43,7 @@ import {
   TrendingUp as TrendingUpIcon,
   DateRange as DateRangeIcon,
   Download as DownloadIcon,
+  InfoOutlined as InfoIcon,
 } from '@mui/icons-material';
 import { useClinicData } from '../hooks/useClinicData';
 import { useNotification } from '../hooks/useNotification';
@@ -145,7 +146,7 @@ const PRESETS = [
 ];
 
 export default function Reports() {
-  const { patients, appointments, treatments, invoices, payments } = useClinicData();
+  const { patients, appointments, treatments, invoices, payments, dentists } = useClinicData();
   const { notify } = useNotification();
 
   const [pdfBusy, setPdfBusy]     = useState(false);
@@ -153,6 +154,8 @@ export default function Reports() {
   const [startDate, setStartDate] = useState(initDates.start); // YYYY-MM-DD string
   const [endDate, setEndDate]     = useState(initDates.end);   // YYYY-MM-DD string
   const [granularity, setGranularity] = useState('Monthly');   // Daily | Weekly | Monthly | Quarterly
+  const [dentistFilter, setDentistFilter] = useState('All');   // 'All' | dentist id
+  const isDentistView = dentistFilter !== 'All';
 
   const handlePresetChange = (e) => {
     const val = e.target.value;
@@ -179,10 +182,29 @@ export default function Reports() {
     return true;
   }, [startDate, endDate]);
 
+  // Some records carry dentistId, others only dentistName (e.g. treatments),
+  // so match on either to attribute a row to the selected dentist reliably.
+  const selectedDentist = useMemo(() => dentists.find((d) => d.id === dentistFilter), [dentists, dentistFilter]);
+  const byDentist = useCallback((row) => {
+    if (dentistFilter === 'All') return true;
+    return row.dentistId === dentistFilter || (selectedDentist && row.dentistName === selectedDentist.name);
+  }, [dentistFilter, selectedDentist]);
+
   const filteredPayments     = useMemo(() => payments.filter((p) => inRange(p.date)),     [payments, inRange]);
   const filteredInvoices     = useMemo(() => invoices.filter((i) => inRange(i.date)),     [invoices, inRange]);
-  const filteredAppointments = useMemo(() => appointments.filter((a) => inRange(a.date)), [appointments, inRange]);
-  const filteredTreatments   = useMemo(() => treatments.filter((t) => inRange(t.date)),   [treatments, inRange]);
+  const filteredAppointments = useMemo(() => appointments.filter((a) => inRange(a.date) && byDentist(a)), [appointments, inRange, byDentist]);
+  const filteredTreatments   = useMemo(() => treatments.filter((t) => inRange(t.date) && byDentist(t)),   [treatments, inRange, byDentist]);
+
+  // Per-dentist figures (attributable from treatments/appointments, which carry
+  // the dentist). "Production" = fees the dentist generated in the period;
+  // patient count = distinct patients they saw/treated.
+  const dentistProduction = useMemo(() => filteredTreatments.reduce((s, t) => s + Number(t.cost || 0), 0), [filteredTreatments]);
+  const dentistPatientCount = useMemo(() => {
+    const ids = new Set();
+    filteredTreatments.forEach((t) => t.patientId && ids.add(t.patientId));
+    filteredAppointments.forEach((a) => a.patientId && ids.add(a.patientId));
+    return ids.size;
+  }, [filteredTreatments, filteredAppointments]);
 
   const report = useMemo(() => {
     const revenue     = filteredPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
@@ -454,6 +476,25 @@ export default function Reports() {
             </Box>
           </Box>
 
+          {/* Dentist filter - scopes the report to a single doctor */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <Typography sx={FILTER_LABEL_SX}>Dentist</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', border: '1px solid #E5E7EB', borderRadius: '7px', bgcolor: '#F3F4F6', px: '10px', height: 38 }}>
+              <Select
+                value={dentistFilter}
+                onChange={(e) => setDentistFilter(e.target.value)}
+                variant="standard"
+                disableUnderline
+                sx={{ fontSize: '0.85rem', fontWeight: 700, color: colors.primary, minWidth: 150, '& .MuiSelect-select': { py: 0 }, '& .MuiSelect-icon': { color: colors.primary } }}
+              >
+                <MenuItem value="All" sx={{ fontSize: '0.85rem', fontWeight: dentistFilter === 'All' ? 700 : 400 }}>All Dentists</MenuItem>
+                {dentists.map((d) => (
+                  <MenuItem key={d.id} value={d.id} sx={{ fontSize: '0.85rem', fontWeight: d.id === dentistFilter ? 700 : 400 }}>{d.name}</MenuItem>
+                ))}
+              </Select>
+            </Box>
+          </Box>
+
           {/* Start date */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <Typography sx={FILTER_LABEL_SX}>Start date (From)</Typography>
@@ -486,10 +527,10 @@ export default function Reports() {
       {/* ── KPI cards ── */}
       <Grid container spacing={2}>
         {[
-          { label: 'Registered Patients', value: patients.length,                      detail: `${report.activePatients} active`,      icon: <PeopleIcon />,              bg: '#EEF2FF', color: colors.primary },
-          { label: 'Appointments',         value: filteredAppointments.length,           detail: 'In selected period',                   icon: <CalendarMonthIcon />,       bg: '#E0F2FE', color: '#0369A1' },
+          { label: isDentistView ? 'Patients Seen' : 'Registered Patients', value: isDentistView ? dentistPatientCount : patients.length, detail: isDentistView ? 'By this dentist' : `${report.activePatients} active`, icon: <PeopleIcon />,              bg: '#EEF2FF', color: colors.primary },
+          { label: 'Appointments',         value: filteredAppointments.length,           detail: isDentistView ? 'By this dentist' : 'In selected period', icon: <CalendarMonthIcon />,       bg: '#E0F2FE', color: '#0369A1' },
           { label: 'Treatment Cases',      value: filteredTreatments.length,             detail: 'Procedures recorded',                  icon: <LocalHospitalIcon />,       bg: '#ECFDF5', color: '#0D9488' },
-          { label: 'Revenue Collected',    value: formatCurrency(report.revenue),        detail: `${report.collectionRate}% collection rate`, icon: <AccountBalanceWalletIcon />, bg: '#F0FDF4', color: colors.success },
+          { label: isDentistView ? 'Production (Fees)' : 'Revenue Collected', value: isDentistView ? formatCurrency(dentistProduction) : formatCurrency(report.revenue), detail: isDentistView ? 'Fees this dentist generated' : `${report.collectionRate}% collection rate`, icon: <AccountBalanceWalletIcon />, bg: '#F0FDF4', color: colors.success },
         ].map((card) => (
           <Grid item xs={12} sm={6} md={3} key={card.label}>
             <Card sx={{ borderRadius: '12px' }}>
@@ -505,6 +546,16 @@ export default function Reports() {
           </Grid>
         ))}
       </Grid>
+
+      {/* Context note when scoped to one dentist */}
+      {isDentistView && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 2, py: 1.25, borderRadius: '10px', bgcolor: '#EAF2FB', border: '1px solid #C3DCF3' }}>
+          <InfoIcon sx={{ fontSize: 18, color: colors.primary }} />
+          <Typography variant="body2" sx={{ color: '#0A3254', fontSize: '0.82rem' }}>
+            Showing <strong>{selectedDentist?.name}</strong>&apos;s patients, visits, treatments and production (the cards above). The billing tables below cover the <strong>whole clinic</strong> — payments aren&apos;t split per dentist.
+          </Typography>
+        </Box>
+      )}
 
       {/* ── Revenue Trend ── */}
       <Card sx={{ borderRadius: '12px' }}>
