@@ -16,7 +16,7 @@ const STORAGE_KEY = 'dental-auth';
 const DEMO_ACCOUNTS = {
   'admin@drzaiddental.com': {
     password: 'admin123',
-    profile: { name: 'Dr. Hamza Zahid', role: 'doctor', roleLabel: 'Doctor', initials: 'HZ' },
+    profile: { name: 'Dr. Zaid', role: 'doctor', roleLabel: 'Doctor', initials: 'DZ' },
   },
   'reception@drzaiddental.com': {
     password: 'reception123',

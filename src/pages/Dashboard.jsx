@@ -223,7 +223,7 @@ export default function Dashboard() {
   const { notify } = useNotification();
   const navigate = useNavigate();
 
-  // Greet by first name ("Dr. Hamza Zahid" → "Dr. Hamza"); fall back gracefully.
+  // Greet by first name ("Dr. Zaid Ahmed" → "Dr. Zaid"); fall back gracefully.
   const firstName = user?.name ? user.name.split(' ').slice(0, 2).join(' ') : 'Doctor';
 
   const todayAppts = useMemo(() => getTodayAppointments(), [getTodayAppointments]);

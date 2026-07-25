@@ -94,7 +94,7 @@ function ProductPreview() {
           {/* main */}
           <Box sx={{ flex: 1, bgcolor: '#F8FAFC', p: 1.5, display: 'flex', flexDirection: 'column', gap: 1.1 }}>
             <Box>
-              <Typography sx={{ fontSize: 12.5, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.01em' }}>Good morning, Dr. Zahid</Typography>
+              <Typography sx={{ fontSize: 12.5, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.01em' }}>Good morning, Dr. Zaid</Typography>
               <Typography sx={{ fontSize: 9, color: '#94A3B8' }}>Here&apos;s what&apos;s happening at your clinic today.</Typography>
             </Box>
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0.75 }}>
