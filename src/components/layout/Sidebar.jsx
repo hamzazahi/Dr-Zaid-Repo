@@ -47,6 +47,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { usePermissions } from '../../hooks/usePermissions';
+import { inFocus } from '../../utils/focus';
 
 const W  = 256;   // expanded width  (px)
 const WC = 64;    // collapsed width (px)
@@ -265,7 +266,7 @@ export default function Sidebar({ collapsed, onToggle, transition, isMobile = fa
           const expanded = isExpanded(section);
           // Role gating: items the signed-in role can't open never render;
           // a group with nothing visible disappears entirely.
-          const visibleItems = section.items.filter((i) => canView(i.path));
+          const visibleItems = section.items.filter((i) => canView(i.path) && inFocus(i.path));
           if (visibleItems.length === 0) return null;
           const items = (
             <List disablePadding sx={{ px: collapsed ? 0.75 : 1 }}>

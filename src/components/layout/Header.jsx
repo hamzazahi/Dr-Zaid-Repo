@@ -20,6 +20,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 import { usePermissions } from '../../hooks/usePermissions';
+import { inFocus } from '../../utils/focus';
 import { useClinicData } from '../../hooks/useClinicData';
 import { colors } from '../../theme/theme';
 
@@ -75,7 +76,7 @@ function GlobalSearch() {
     // Command-palette behaviour: typing a module name jumps straight to it
     // (same interaction Linear/Notion/Stripe ship on Cmd/Ctrl+K).
     ...Object.entries(PAGE_TITLES)
-      .filter(([path, title]) => title.toLowerCase().includes(q) && canView(path))
+      .filter(([path, title]) => title.toLowerCase().includes(q) && canView(path) && inFocus(path))
       .slice(0, 3)
       .map(([path, title]) => ({ type: 'Page', label: title, sub: `Jump to ${title}`, path, icon: <PageIcon sx={{ fontSize: 15 }} /> })),
     ...patients
