@@ -61,10 +61,23 @@ export default function Treatments() {
   const { notify } = useNotification();
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState('');
+  const [feeQuery, setFeeQuery] = useState('');
 
   const handleChange = (field, value) => {
     setFormError('');
     setForm((prev) => ({ ...prev, [field]: value, ...(field === 'type' ? { cost: TREATMENT_COSTS[value] ?? '' } : {}) }));
+  };
+
+  // Fee schedule (price list) with a live search filter.
+  const feeList = useMemo(() => {
+    const q = feeQuery.trim().toLowerCase();
+    return TREATMENT_TYPES.filter((t) => !q || t.toLowerCase().includes(q));
+  }, [feeQuery]);
+
+  // Click a price-list row to load that procedure + its fee into the form.
+  const pickProcedure = (name) => {
+    setFormError('');
+    setForm((prev) => ({ ...prev, type: name, cost: TREATMENT_COSTS[name] ?? prev.cost }));
   };
 
   const handleSubmit = (e) => {
@@ -132,7 +145,7 @@ export default function Treatments() {
               </Grid>
               <Grid item xs={12} md={2}>
                 <TextField select label="Procedure" value={form.type} onChange={(e) => handleChange('type', e.target.value)} fullWidth>
-                  {TREATMENT_TYPES.filter((t) => t !== 'Consultation').map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+                  {TREATMENT_TYPES.map((t) => <MenuItem key={t} value={t}>{t} · {formatCurrency(TREATMENT_COSTS[t])}</MenuItem>)}
                 </TextField>
               </Grid>
               <Grid item xs={12} md={2}>
@@ -157,6 +170,46 @@ export default function Treatments() {
         </Box>
       </Card>
       )}
+
+      {/* Fee Schedule (price list) with search */}
+      <Card sx={{ borderRadius: '12px' }}>
+        <Box sx={{ px: 2.5, py: 2, borderBottom: `1px solid ${colors.border}`, display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box>
+            <Typography variant="subtitle2" fontWeight={700}>Fee Schedule</Typography>
+            <Typography variant="caption" sx={{ color: colors.textSecondary }}>
+              {editable ? 'Standard prices · click a procedure to load it into the form above' : 'Standard clinic prices'}
+            </Typography>
+          </Box>
+          <TextField size="small" placeholder="Search procedures…" value={feeQuery} onChange={(e) => setFeeQuery(e.target.value)} sx={{ minWidth: 220 }} />
+        </Box>
+        <Box sx={{ p: 2 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 1 }}>
+            {feeList.map((name) => (
+              <Box
+                key={name}
+                onClick={editable ? () => pickProcedure(name) : undefined}
+                sx={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1,
+                  px: 1.5, py: 1.1, borderRadius: '9px',
+                  border: `1px solid ${form.type === name ? colors.primary : colors.border}`,
+                  bgcolor: form.type === name ? '#EFF6FF' : '#FFFFFF',
+                  cursor: editable ? 'pointer' : 'default',
+                  transition: 'border-color .12s, background .12s',
+                  '&:hover': editable ? { borderColor: colors.primary, bgcolor: '#F5F9FF' } : {},
+                }}
+              >
+                <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: colors.textPrimary }}>{name}</Typography>
+                <Typography sx={{ fontSize: '0.82rem', fontWeight: 800, color: '#0D9488', whiteSpace: 'nowrap' }}>{formatCurrency(TREATMENT_COSTS[name])}</Typography>
+              </Box>
+            ))}
+            {feeList.length === 0 && (
+              <Typography variant="body2" sx={{ color: colors.textSecondary, gridColumn: '1 / -1', py: 2, textAlign: 'center' }}>
+                No procedure matches "{feeQuery}".
+              </Typography>
+            )}
+          </Box>
+        </Box>
+      </Card>
 
       <Card sx={{ borderRadius: '12px', overflow: 'hidden' }}>
         <Box sx={{ px: 2.5, py: 2, borderBottom: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

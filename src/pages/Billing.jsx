@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Card,
@@ -12,7 +13,6 @@ import {
   DialogTitle,
   Grid,
   LinearProgress,
-  MenuItem,
   Paper,
   Stack,
   Table,
@@ -291,9 +291,15 @@ export default function Billing() {
               inputProps={{ min: 1, max: payInvoice?.balanceDue }}
               helperText="Enter the full balance for Fully Paid, or less for Partially Paid."
             />
-            <TextField select label="Payment Method" value={payMethod} onChange={(e) => setPayMethod(e.target.value)} fullWidth>
-              {PAYMENT_METHODS.map((m) => <MenuItem key={m} value={m}>{m}</MenuItem>)}
-            </TextField>
+            <Autocomplete
+              freeSolo
+              options={PAYMENT_METHODS}
+              inputValue={payMethod}
+              onInputChange={(e, val) => setPayMethod(val)}
+              renderInput={(params) => (
+                <TextField {...params} label="Payment Method" fullWidth helperText="Pick a method or type your own." />
+              )}
+            />
           </DialogContent>
           <DialogActions sx={{ p: 2, borderTop: `1px solid ${colors.border}` }}>
             <Button onClick={closeCollect} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
