@@ -88,8 +88,7 @@ const Patients = () => {
     const errors = {};
     if (!form.name.trim()) errors.name = 'Full name is required.';
     if (!form.phone.trim()) errors.phone = 'Phone number is required.';
-    if (!form.dob) errors.dob = 'Date of birth is required.';
-    else if (new Date(form.dob) > new Date()) errors.dob = 'Date of birth cannot be in the future.';
+    if (form.dob && new Date(form.dob) > new Date()) errors.dob = 'Date of birth cannot be in the future.';
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errors.email = 'Invalid email address.';
     return errors;
   };
@@ -222,7 +221,7 @@ const Patients = () => {
                     </Typography>
                   </TableCell>
                   <TableCell>{patient.gender}</TableCell>
-                  <TableCell>{calculateAge(patient.dob)} yrs</TableCell>
+                  <TableCell>{patient.dob ? `${calculateAge(patient.dob)} yrs` : '-'}</TableCell>
                   <TableCell>{patient.phone}</TableCell>
                   <TableCell>{formatDate(patient.registrationDate)}</TableCell>
                   <TableCell>
@@ -291,16 +290,15 @@ const Patients = () => {
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="Date of Birth"
+                  label="Date of Birth (optional)"
                   name="dob"
                   type="date"
                   value={form.dob}
                   onChange={handleInputChange}
                   fullWidth
-                  required
                   InputLabelProps={{ shrink: true }}
                   error={Boolean(formErrors.dob)}
-                  helperText={formErrors.dob}
+                  helperText={formErrors.dob || 'Leave blank if the patient did not provide it.'}
                   inputProps={{ max: new Date().toISOString().split('T')[0] }}
                 />
               </Grid>

@@ -166,7 +166,7 @@ const PatientProfile = () => {
               </Box>
               <Stack direction="row" gap={2} flexWrap="wrap">
                 <Typography variant="caption" sx={{ color: colors.textSecondary }}><strong>ID:</strong> <span style={{ fontFamily: 'monospace' }}>{patientRef(patient.id)}</span></Typography>
-                <Typography variant="caption" sx={{ color: colors.textSecondary }}><strong>Age:</strong> {calculateAge(patient.dob)} yrs / {patient.gender}</Typography>
+                <Typography variant="caption" sx={{ color: colors.textSecondary }}><strong>Age:</strong> {patient.dob ? `${calculateAge(patient.dob)} yrs` : '-'} / {patient.gender}</Typography>
                 <Typography variant="caption" sx={{ color: colors.textSecondary }}><strong>Blood:</strong> {patient.bloodGroup || 'O+'}</Typography>
                 <Typography variant="caption" sx={{ color: colors.textSecondary }}><strong>Registered:</strong> {formatDate(patient.registrationDate)}</Typography>
               </Stack>
