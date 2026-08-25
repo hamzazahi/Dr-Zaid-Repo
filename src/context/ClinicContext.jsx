@@ -38,7 +38,7 @@ import { storageService } from '../services/storageService';
 
 // Bump this version to reset every browser's saved demo data to a clean slate
 // (old data under a previous key is simply ignored).
-const STORAGE_KEY = 'dental-clinic-app-data-v2';
+const STORAGE_KEY = 'dental-clinic-app-data-v3';
 
 // Cap the charting audit log so the persisted blob can't grow without bound
 // (localStorage is ~5MB and the whole app state is serialised on every change).

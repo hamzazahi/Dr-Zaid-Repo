@@ -1,7 +1,9 @@
 export const mockDentists = [
   { id: 'dentist-1', name: 'Dr. Zaid', specialty: 'Chief Clinical Director & Surgeon', status: 'Active' },
-  { id: 'dentist-2', name: 'Dr. Sarah Ahmed', specialty: 'Orthodontist & Pedodontist', status: 'Active' },
-  { id: 'dentist-3', name: 'Dr. Ayesha Khan', specialty: 'Endodontist (Root Canal Specialist)', status: 'Active' },
+  { id: 'dentist-2', name: 'Dr. Babar', specialty: 'General Dentist', status: 'Active' },
+  { id: 'dentist-3', name: 'Dr. Afreen', specialty: 'General Dentist', status: 'Active' },
+  { id: 'dentist-4', name: 'Dr. Iqra', specialty: 'General Dentist', status: 'Active' },
+  { id: 'dentist-5', name: 'Dr. Aqsa', specialty: 'General Dentist', status: 'Active' },
 ];
 
 export const mockPatients = [];
@@ -82,12 +84,12 @@ export const mockTreatmentPlans = [];
 // existing references (appointments, treatments, plans) stay valid; dentists are
 // derived from this list in ClinicContext.
 export const mockStaff = [
-  { id: 'dentist-1', name: 'Dr. Zaid', role: 'Dentist', specialty: 'Chief Clinical Director & Surgeon', email: 'zaid@dentsuite.com', phone: '+92 300 1112233', status: 'Active', joinedDate: '2021-03-01' },
-  { id: 'dentist-2', name: 'Dr. Sarah Ahmed', role: 'Dentist', specialty: 'Orthodontist & Pedodontist', email: 'sarah@dentsuite.com', phone: '+92 301 2223344', status: 'Active', joinedDate: '2022-07-15' },
-  { id: 'dentist-3', name: 'Dr. Ayesha Khan', role: 'Dentist', specialty: 'Endodontist (Root Canal Specialist)', email: 'ayesha@dentsuite.com', phone: '+92 302 3334455', status: 'Active', joinedDate: '2023-01-10' },
-  { id: 'staff-1', name: 'Bilal Hussain', role: 'Receptionist', specialty: '', email: 'bilal@dentsuite.com', phone: '+92 303 4445566', status: 'Active', joinedDate: '2022-09-01' },
-  { id: 'staff-2', name: 'Nadia Aslam', role: 'Dental Hygienist', specialty: 'Preventive Care', email: 'nadia@dentsuite.com', phone: '+92 304 5556677', status: 'Active', joinedDate: '2023-05-20' },
-  { id: 'staff-3', name: 'Imran Sheikh', role: 'Lab Technician', specialty: 'Prosthetics & Crowns', email: 'imran@dentsuite.com', phone: '+92 305 6667788', status: 'On Leave', joinedDate: '2021-11-05' },
+  { id: 'dentist-1', name: 'Dr. Zaid', role: 'Dentist', specialty: 'Chief Clinical Director & Surgeon', email: 'zaid@dentsuite.com', phone: '', status: 'Active', joinedDate: '2021-03-01' },
+  { id: 'dentist-2', name: 'Dr. Babar', role: 'Dentist', specialty: 'General Dentist', email: 'babar@dentsuite.com', phone: '', status: 'Active', joinedDate: '2024-01-01' },
+  { id: 'dentist-3', name: 'Dr. Afreen', role: 'Dentist', specialty: 'General Dentist', email: 'afreen@dentsuite.com', phone: '', status: 'Active', joinedDate: '2024-01-01' },
+  { id: 'dentist-4', name: 'Dr. Iqra', role: 'Dentist', specialty: 'General Dentist', email: 'iqra@dentsuite.com', phone: '', status: 'Active', joinedDate: '2024-01-01' },
+  { id: 'dentist-5', name: 'Dr. Aqsa', role: 'Dentist', specialty: 'General Dentist', email: 'aqsa@dentsuite.com', phone: '', status: 'Active', joinedDate: '2024-01-01' },
+  { id: 'staff-1', name: 'Reception', role: 'Receptionist', specialty: '', email: 'reception@dentsuite.com', phone: '', status: 'Active', joinedDate: '2024-01-01' },
 ];
 
 // External lab cases (crowns/bridges/dentures/aligners). Status lifecycle:
