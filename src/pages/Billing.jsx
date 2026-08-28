@@ -32,12 +32,102 @@ import { summariseInvoices } from '../utils/billing';
 import { PAYMENT_METHODS } from '../utils/constants';
 import StatusBadge from '../components/common/StatusBadge';
 import { colors } from '../theme/theme';
-import { Payment as PaymentIcon, ReceiptLong as ReceiptLongIcon, TrendingUp as TrendingUpIcon, HourglassEmpty as HourglassEmptyIcon } from '@mui/icons-material';
+import { Payment as PaymentIcon, ReceiptLong as ReceiptLongIcon, TrendingUp as TrendingUpIcon, HourglassEmpty as HourglassEmptyIcon, Print as PrintIcon } from '@mui/icons-material';
+
+// PDF-safe money (jsPDF fonts lack the rupee glyph).
+const rs = (n) => `Rs ${Math.round(Number(n) || 0).toLocaleString('en-US')}`;
 
 export default function Billing() {
-  const { invoices, addPayment } = useClinicData();
+  const { invoices, addPayment, patients, payments, treatments, locations } = useClinicData();
   const { notify } = useNotification();
   const navigate = useNavigate();
+
+  // Generate a printable invoice/receipt PDF and open the printer dialog.
+  const printInvoice = async (inv) => {
+    try {
+      const { jsPDF } = await import('jspdf');
+      const autoTable = (await import('jspdf-autotable')).default;
+
+      const clinic = locations?.find((l) => l.isPrimary) || locations?.[0];
+      const clinicName = clinic?.name || 'Dr. Zaid Dental Clinic';
+      const patient = patients.find((p) => p.id === inv.patientId);
+      const invPayments = payments.filter((p) => p.invoiceId === inv.id);
+      const lastPay = invPayments[invPayments.length - 1];
+      // Best-effort line item: a treatment for this patient matching the amount.
+      const match = treatments.find((t) => t.patientId === inv.patientId && Number(t.cost) === Number(inv.totalAmount));
+      const description = match ? `${match.type}${match.toothNumber && match.toothNumber !== 'All' ? ` (tooth ${match.toothNumber})` : ''}` : 'Dental treatment / services';
+
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const pageW = doc.internal.pageSize.getWidth();
+      const BLUE = [26, 93, 200];
+
+      // Header band
+      doc.setFillColor(...BLUE);
+      doc.rect(0, 0, pageW, 76, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(19);
+      doc.text(clinicName, 40, 40);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5);
+      doc.text([clinic?.address, clinic?.phone].filter(Boolean).join('   |   ') || 'Dental Clinic', 40, 58);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(22);
+      doc.text('INVOICE', pageW - 40, 46, { align: 'right' });
+
+      // Meta + Bill To
+      doc.setTextColor(60, 60, 60);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+      doc.text(`Invoice #: ${inv.invoiceNumber}`, pageW - 40, 100, { align: 'right' });
+      doc.text(`Date: ${formatDate(inv.date)}`, pageW - 40, 116, { align: 'right' });
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+      doc.text('BILL TO', 40, 100);
+      doc.setFont('helvetica', 'normal');
+      doc.text(patient?.name || inv.patientName, 40, 116);
+      if (patient?.phone) doc.text(patient.phone, 40, 130);
+
+      // Line items
+      autoTable(doc, {
+        startY: 150,
+        head: [['Description', 'Amount']],
+        body: [[description, rs(inv.totalAmount)]],
+        theme: 'grid',
+        headStyles: { fillColor: BLUE, textColor: 255, fontStyle: 'bold' },
+        columnStyles: { 1: { halign: 'right', cellWidth: 120 } },
+        styles: { fontSize: 10, cellPadding: 8 },
+      });
+
+      // Totals
+      const y = doc.lastAutoTable.finalY + 16;
+      autoTable(doc, {
+        startY: y,
+        body: [
+          ['Total', rs(inv.totalAmount)],
+          ['Paid', rs(inv.paidAmount)],
+          ['Balance Due', rs(inv.balanceDue)],
+          ['Status', inv.status],
+        ],
+        theme: 'plain',
+        tableWidth: 240,
+        margin: { left: pageW - 40 - 240 },
+        columnStyles: { 0: { fontStyle: 'bold' }, 1: { halign: 'right' } },
+        styles: { fontSize: 10.5, cellPadding: 3 },
+      });
+
+      let fy = doc.lastAutoTable.finalY + 24;
+      doc.setFontSize(9.5); doc.setTextColor(90, 90, 90); doc.setFont('helvetica', 'normal');
+      if (lastPay) doc.text(`Payment method: ${lastPay.method}   |   Received: ${formatDate(lastPay.date)}`, 40, fy);
+      fy += 26;
+      doc.setDrawColor(220, 224, 230); doc.line(40, fy, pageW - 40, fy);
+      doc.setFontSize(10); doc.setTextColor(60, 60, 60);
+      doc.text(`Thank you for choosing ${clinicName}.`, 40, fy + 20);
+
+      doc.autoPrint();
+      const url = doc.output('bloburl');
+      const win = window.open(url, '_blank');
+      if (!win) { doc.save(`invoice_${inv.invoiceNumber}.pdf`); notify('Invoice downloaded (allow pop-ups to print directly).', 'info'); }
+    } catch (err) {
+      console.error('Print invoice failed:', err);
+      notify('Could not generate the invoice. Please try again.', 'error');
+    }
+  };
 
   const stats = useMemo(() => summariseInvoices(invoices), [invoices]);
 
@@ -251,6 +341,14 @@ export default function Billing() {
                             Collect
                           </Button>
                         )}
+                        <Button
+                          size="small"
+                          startIcon={<PrintIcon sx={{ fontSize: 15 }} />}
+                          onClick={() => printInvoice(inv)}
+                          sx={{ textTransform: 'none', fontWeight: 600 }}
+                        >
+                          Print
+                        </Button>
                         <Button
                           size="small"
                           onClick={() => navigate(`/patients/${inv.patientId}`, { state: { tab: 4 } })}
