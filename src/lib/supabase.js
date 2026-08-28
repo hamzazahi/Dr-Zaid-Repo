@@ -13,9 +13,10 @@ import { createClient } from '@supabase/supabase-js';
 // touches a real database and no data is shared between people. This is the
 // safe mode for public demos shown to prospective clinics.
 //
-// To go LIVE again (real backend, shared clinic database): set DEMO_MODE = false
-// (the VITE_SUPABASE_* env vars are already configured).
-const DEMO_MODE = true;
+// LIVE (shared) mode: DEMO_MODE = false connects the app to the real Supabase
+// database, so everyone who signs in sees the same clinic data. Set to true to
+// go back to isolated per-browser demo mode.
+const DEMO_MODE = false;
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
