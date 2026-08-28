@@ -33,6 +33,7 @@ import {
   FolderShared as DocsIcon,
   Description   as FormsIcon,
   Straighten    as PerioIcon,
+  Architecture  as OrthoIcon,
   Inventory    as InvIcon,
   Collections  as ImagingIcon,
   SwapHoriz    as ReferralIcon,
@@ -81,6 +82,7 @@ const SECTIONS = [
     label: 'Clinical',
     items: [
       { text: 'Treatment Plans', path: '/treatment-plans', icon: PlanIcon },
+      { text: 'Orthodontics',  path: '/orthodontics',   icon: OrthoIcon },
       { text: 'Prescriptions', path: '/prescriptions', icon: RxIcon  },
       { text: 'Lab Work',      path: '/lab-work',      icon: LabIcon },
       { text: 'Imaging',       path: '/imaging',       icon: ImagingIcon },

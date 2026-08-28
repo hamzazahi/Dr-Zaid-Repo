@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   Alert,
+  Autocomplete,
   Avatar,
   Box,
   Button,
@@ -28,7 +29,7 @@ import { formatCurrency, formatDate } from '../utils/helpers';
 import { TREATMENT_COSTS, TREATMENT_TYPES, TOOTH_NUMBERS } from '../utils/constants';
 import { colors } from '../theme/theme';
 
-const EMPTY_FORM = { patientId: '', type: 'Filling', toothNumber: '11', cost: TREATMENT_COSTS.Filling, notes: '' };
+const EMPTY_FORM = { patientId: '', dentistId: '', type: 'Filling', teeth: [], cost: TREATMENT_COSTS.Filling, notes: '' };
 
 const AVATAR_COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626', '#0D9488', '#DB2777'];
 const avatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
@@ -55,7 +56,7 @@ function ProcedurePill({ type }) {
 }
 
 export default function Treatments() {
-  const { patients, treatments, addTreatment } = useClinicData();
+  const { patients, treatments, addTreatment, dentists } = useClinicData();
   const { canEdit } = usePermissions();
   const editable = canEdit('/treatments');
   const { notify } = useNotification();
@@ -65,7 +66,9 @@ export default function Treatments() {
 
   const handleChange = (field, value) => {
     setFormError('');
-    setForm((prev) => ({ ...prev, [field]: value, ...(field === 'type' ? { cost: TREATMENT_COSTS[value] ?? '' } : {}) }));
+    // Picking a known procedure fills its fee; typing a custom one keeps the
+    // fee you entered (so custom treatments aren't wiped).
+    setForm((prev) => ({ ...prev, [field]: value, ...(field === 'type' ? { cost: TREATMENT_COSTS[value] ?? prev.cost } : {}) }));
   };
 
   // Fee schedule (price list) with a live search filter.
@@ -83,9 +86,15 @@ export default function Treatments() {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!form.patientId) { setFormError('Please select a patient.'); return; }
+    if (!form.dentistId) { setFormError('Please select the dentist.'); return; }
+    if (!form.type || !form.type.trim()) { setFormError('Please enter or pick a procedure.'); return; }
     if (!form.cost || Number(form.cost) <= 0) { setFormError('Please enter a valid fee amount.'); return; }
     const patient = patients.find((p) => p.id === form.patientId);
-    addTreatment(form);
+    // Multiple teeth are stored as a comma-separated list; empty means "All".
+    const toothNumber = form.teeth.length ? form.teeth.join(', ') : 'All';
+    const payload = { ...form, type: form.type.trim(), toothNumber };
+    delete payload.teeth;
+    addTreatment(payload);
     setForm(EMPTY_FORM);
     notify(`Treatment logged for ${patient?.name}. Invoice generated automatically.`, 'success');
   };
@@ -143,27 +152,54 @@ export default function Treatments() {
                   {patients.map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
                 </TextField>
               </Grid>
-              <Grid item xs={12} md={2}>
-                <TextField select label="Procedure" value={form.type} onChange={(e) => handleChange('type', e.target.value)} fullWidth>
-                  {TREATMENT_TYPES.map((t) => <MenuItem key={t} value={t}>{t} · {formatCurrency(TREATMENT_COSTS[t])}</MenuItem>)}
+              <Grid item xs={12} md={3}>
+                <TextField select label="Dentist" value={form.dentistId} onChange={(e) => handleChange('dentistId', e.target.value)} fullWidth required error={Boolean(formError && !form.dentistId)}>
+                  {dentists.map((d) => <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>)}
                 </TextField>
-              </Grid>
-              <Grid item xs={12} md={2}>
-                <TextField select label="Tooth #" value={form.toothNumber} onChange={(e) => handleChange('toothNumber', e.target.value)} fullWidth>
-                  <MenuItem value="All">All Teeth</MenuItem>
-                  {TOOTH_NUMBERS.map((n) => <MenuItem key={n} value={n}>Tooth #{n}</MenuItem>)}
-                </TextField>
-              </Grid>
-              <Grid item xs={12} md={2}>
-                <TextField label="Fee (PKR)" type="number" value={form.cost} onChange={(e) => handleChange('cost', e.target.value)} fullWidth required inputProps={{ min: 0 }} />
               </Grid>
               <Grid item xs={12} md={3}>
-                <Button type="submit" variant="contained" startIcon={<LocalHospitalIcon />} fullWidth sx={{ bgcolor: '#0D9488', '&:hover': { bgcolor: '#0B7A6F' }, height: 40, fontWeight: 700 }}>
-                  Log Treatment
-                </Button>
+                {/* Free-type any procedure, or pick from the fee schedule (auto-fills the fee). */}
+                <Autocomplete
+                  freeSolo
+                  options={TREATMENT_TYPES}
+                  value={form.type}
+                  onInputChange={(e, val) => handleChange('type', val)}
+                  renderOption={(props, option) => {
+                    const { key, ...rest } = props;
+                    return (
+                      <Box component="li" key={key} {...rest} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+                        <span>{option}</span>
+                        <span style={{ color: '#0D9488', fontWeight: 700 }}>{formatCurrency(TREATMENT_COSTS[option])}</span>
+                      </Box>
+                    );
+                  }}
+                  renderInput={(params) => <TextField {...params} label="Procedure (type or pick)" fullWidth />}
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                {/* Select one or more teeth. */}
+                <Autocomplete
+                  multiple
+                  disableCloseOnSelect
+                  options={TOOTH_NUMBERS}
+                  value={form.teeth}
+                  onChange={(e, val) => handleChange('teeth', val)}
+                  getOptionLabel={(n) => `#${n}`}
+                  renderInput={(params) => <TextField {...params} label="Teeth" placeholder={form.teeth.length ? '' : 'All teeth'} fullWidth />}
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <TextField label="Fee (PKR)" type="number" value={form.cost} onChange={(e) => handleChange('cost', e.target.value)} fullWidth required inputProps={{ min: 0 }} />
+              </Grid>
+              <Grid item xs={12} md={9}>
+                <TextField label="Clinical Notes" value={form.notes} onChange={(e) => handleChange('notes', e.target.value)} fullWidth multiline rows={2} placeholder="Describe procedure details, findings, or follow-up instructions…" />
               </Grid>
               <Grid item xs={12}>
-                <TextField label="Clinical Notes" value={form.notes} onChange={(e) => handleChange('notes', e.target.value)} fullWidth multiline rows={2} placeholder="Describe procedure details, findings, or follow-up instructions…" />
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button type="submit" variant="contained" startIcon={<LocalHospitalIcon />} sx={{ bgcolor: '#0D9488', '&:hover': { bgcolor: '#0B7A6F' }, height: 42, fontWeight: 700, minWidth: 200 }}>
+                    Log Treatment
+                  </Button>
+                </Box>
               </Grid>
             </Grid>
           </Box>

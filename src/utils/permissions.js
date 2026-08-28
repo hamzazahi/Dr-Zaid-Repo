@@ -23,6 +23,7 @@ export const ACCESS = {
 
   // Clinical records: receptionists look things up but never author them.
   '/treatments':      { doctor: 'full', receptionist: 'view' },
+  '/orthodontics':    { doctor: 'full', receptionist: 'view' },
   '/treatment-plans': { doctor: 'full', receptionist: 'view' },
   '/prescriptions':   { doctor: 'full', receptionist: 'view' },
   '/perio':           { doctor: 'full', receptionist: 'view' },

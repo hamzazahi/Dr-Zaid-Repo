@@ -44,6 +44,7 @@ const PAGE_TITLES = {
   '/forms': 'Forms & e-Consent',
   '/perio': 'Periodontal Chart',
   '/imaging': 'Imaging',
+  '/orthodontics': 'Orthodontics',
   '/referrals': 'Referrals',
   '/marketing': 'Marketing',
   '/assistant': 'DentIQ Assistant',

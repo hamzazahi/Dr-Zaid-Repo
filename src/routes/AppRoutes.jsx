@@ -41,6 +41,7 @@ const Locations = lazy(() => import('../pages/Locations'));
 const Marketing = lazy(() => import('../pages/Marketing'));
 const Assistant = lazy(() => import('../pages/Assistant'));
 const Imaging = lazy(() => import('../pages/Imaging'));
+const Orthodontics = lazy(() => import('../pages/Orthodontics'));
 const Referrals = lazy(() => import('../pages/Referrals'));
 
 // Page-shaped skeleton: mirrors the standard module layout (title, stat cards,
@@ -88,6 +89,7 @@ export default function AppRoutes() {
         <Route path="/forms" element={<Forms />} />
         <Route path="/perio" element={<PerioChart />} />
         <Route path="/imaging" element={<Imaging />} />
+        <Route path="/orthodontics" element={<Orthodontics />} />
         <Route path="/referrals" element={<Referrals />} />
         <Route path="/marketing" element={<Marketing />} />
         <Route path="/assistant" element={<Assistant />} />

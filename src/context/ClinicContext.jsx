@@ -394,11 +394,13 @@ export const ClinicProvider = ({ children }) => {
       })();
     }
     const patientObj = patients.find((p) => p.id === treatmentData.patientId);
+    const dentistObj = dentists.find((d) => d.id === treatmentData.dentistId);
     const now = new Date();
     const newTreatment = {
       ...treatmentData,
       id: uid('treat'),
       patientName: patientObj?.name || 'Unknown Patient',
+      dentistName: dentistObj?.name || treatmentData.dentistName || '',
       date: today(),
       cost: Number(treatmentData.cost),
     };
@@ -431,7 +433,7 @@ export const ClinicProvider = ({ children }) => {
 
     logAudit('Treatments', 'Treatment logged', `${newTreatment.patientName} - ${newTreatment.type} (tooth ${newTreatment.toothNumber}), invoice ${newInvoice.invoiceNumber} generated`);
     return newTreatment;
-  }, [live, patients, reloadLive, logAudit]);
+  }, [live, patients, dentists, reloadLive, logAudit]);
 
   const addPayment = useCallback((paymentData) => {
     if (live) {

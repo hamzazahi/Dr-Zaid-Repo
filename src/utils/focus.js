@@ -10,6 +10,7 @@ export const CORE_PATHS = new Set([
   '/appointments',     // Appointments
   '/treatments',       // Treatments
   '/treatment-plans',  // Treatment Plans
+  '/orthodontics',     // Orthodontics (Dr. Babar)
   '/prescriptions',    // Prescriptions
   '/perio',            // Perio Chart
   '/documents',        // Documents
