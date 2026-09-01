@@ -6,6 +6,8 @@ import {
   Box,
   Button,
   Card,
+  Checkbox,
+  FormControlLabel,
   Grid,
   MenuItem,
   Table,
@@ -88,15 +90,25 @@ export default function Treatments() {
     if (!form.patientId) { setFormError('Please select a patient.'); return; }
     if (!form.dentistId) { setFormError('Please select the dentist.'); return; }
     if (!form.type || !form.type.trim()) { setFormError('Please enter or pick a procedure.'); return; }
-    if (!form.cost || Number(form.cost) <= 0) { setFormError('Please enter a valid fee amount.'); return; }
+    // Fee may be 0 (a free / waived treatment, e.g. a consultation done the same
+    // visit as the treatment) but never blank or negative.
+    if (form.cost === '' || form.cost === null || Number.isNaN(Number(form.cost)) || Number(form.cost) < 0) {
+      setFormError('Please enter a valid fee amount (0 for free).'); return;
+    }
     const patient = patients.find((p) => p.id === form.patientId);
+    const isFree = Number(form.cost) <= 0;
     // Multiple teeth are stored as a comma-separated list; empty means "All".
     const toothNumber = form.teeth.length ? form.teeth.join(', ') : 'All';
     const payload = { ...form, type: form.type.trim(), toothNumber };
     delete payload.teeth;
     addTreatment(payload);
     setForm(EMPTY_FORM);
-    notify(`Treatment logged for ${patient?.name}. Invoice generated automatically.`, 'success');
+    notify(
+      isFree
+        ? `Treatment logged for ${patient?.name}. Free - no charge, no invoice.`
+        : `Treatment logged for ${patient?.name}. Invoice generated automatically.`,
+      'success',
+    );
   };
 
   const totalRevenue = useMemo(() => treatments.reduce((sum, t) => sum + t.cost, 0), [treatments]);
@@ -189,9 +201,21 @@ export default function Treatments() {
                 />
               </Grid>
               <Grid item xs={12} md={3}>
-                <TextField label="Fee (PKR)" type="number" value={form.cost} onChange={(e) => handleChange('cost', e.target.value)} fullWidth required inputProps={{ min: 0 }} />
+                <TextField label="Fee (PKR)" type="number" value={form.cost} onChange={(e) => handleChange('cost', e.target.value)} fullWidth required inputProps={{ min: 0 }} disabled={Number(form.cost) === 0 && form.cost !== ''} helperText={Number(form.cost) <= 0 && form.cost !== '' ? 'Free - no invoice will be created' : ' '} />
               </Grid>
-              <Grid item xs={12} md={9}>
+              <Grid item xs={12} md={3}>
+                <FormControlLabel
+                  sx={{ mt: 1 }}
+                  control={
+                    <Checkbox
+                      checked={Number(form.cost) === 0 && form.cost !== ''}
+                      onChange={(e) => handleChange('cost', e.target.checked ? 0 : (TREATMENT_COSTS[form.type] ?? ''))}
+                    />
+                  }
+                  label={<Typography variant="body2">Free / No charge (waive)</Typography>}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
                 <TextField label="Clinical Notes" value={form.notes} onChange={(e) => handleChange('notes', e.target.value)} fullWidth multiline rows={2} placeholder="Describe procedure details, findings, or follow-up instructions…" />
               </Grid>
               <Grid item xs={12}>

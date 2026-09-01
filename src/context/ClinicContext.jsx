@@ -375,17 +375,23 @@ export const ClinicProvider = ({ children }) => {
       return (async () => {
         try {
           const created = await treatmentService.create(treatmentData);
-          await billingService.createInvoice({
-            patientId: treatmentData.patientId,
-            totalAmount: Number(treatmentData.cost),
-            dueDays: 10,
-          });
-          const pat = patients.find((p) => p.id === treatmentData.patientId);
-          if (pat && pat.status !== 'Pending Payment') {
-            await patientService.update(pat.id, { status: 'Pending Payment' });
+          // A free/no-charge treatment (fee 0) records the clinical work but
+          // never bills the patient - e.g. a consultation waived because the
+          // treatment was done the same visit.
+          const isFree = Number(treatmentData.cost) <= 0;
+          if (!isFree) {
+            await billingService.createInvoice({
+              patientId: treatmentData.patientId,
+              totalAmount: Number(treatmentData.cost),
+              dueDays: 10,
+            });
+            const pat = patients.find((p) => p.id === treatmentData.patientId);
+            if (pat && pat.status !== 'Pending Payment') {
+              await patientService.update(pat.id, { status: 'Pending Payment' });
+            }
           }
           await reloadLive('treatments', 'invoices', 'patients');
-          logAudit('Treatments', 'Treatment logged', `${created.patientName} - ${created.type} (tooth ${created.toothNumber}), invoice generated`);
+          logAudit('Treatments', 'Treatment logged', `${created.patientName} - ${created.type} (tooth ${created.toothNumber})${isFree ? ' (free, no charge)' : ', invoice generated'}`);
           return created;
         } catch (e) {
           console.error('[live] addTreatment:', e.message);
@@ -405,6 +411,14 @@ export const ClinicProvider = ({ children }) => {
       cost: Number(treatmentData.cost),
     };
     setTreatments((prev) => [newTreatment, ...prev]);
+
+    // A free/no-charge treatment (fee 0) records the clinical work but never
+    // bills the patient - e.g. a consultation waived because the treatment was
+    // done the same visit. No invoice, no "Pending Payment" status.
+    if (Number(treatmentData.cost) <= 0) {
+      logAudit('Treatments', 'Treatment logged', `${newTreatment.patientName} - ${newTreatment.type} (tooth ${newTreatment.toothNumber}) (free, no charge)`);
+      return newTreatment;
+    }
 
     const dueDate = new Date(now);
     dueDate.setDate(now.getDate() + 10);
@@ -507,6 +521,27 @@ export const ClinicProvider = ({ children }) => {
     logAudit('Billing', 'Payment recorded', `Rs ${amount.toLocaleString()} from ${newPayment.patientName} (${newPayment.method || 'Cash'})`);
     return newPayment;
   }, [live, patients, invoices, reloadLive, logAudit]);
+
+  // Waive (write off) an unpaid invoice - e.g. a consultation charge that was
+  // generated but should not be collected because the treatment was done the
+  // same visit. Zeroes the total (balance 0) and marks it 'Waived'. Only makes
+  // sense for an invoice with nothing paid yet.
+  const waiveInvoice = useCallback((id, reason = '') => {
+    const target = invoices.find((inv) => inv.id === id);
+    if (live) {
+      billingService.waiveInvoice(id)
+        .then(() => reloadLive('invoices', 'patients'))
+        .catch((e) => { console.error('[live] waiveInvoice:', e.message); reloadLive('invoices'); });
+    } else {
+      setInvoices((prev) => prev.map((inv) => (
+        inv.id === id
+          ? { ...inv, totalAmount: 0, paidAmount: 0, balanceDue: 0, status: 'Waived', paymentPercentage: 0 }
+          : inv
+      )));
+    }
+    logAudit('Billing', 'Invoice waived', `${target?.invoiceNumber || id} for ${target?.patientName || 'patient'}${reason ? ` - ${reason}` : ''}`);
+    return true;
+  }, [live, invoices, reloadLive, logAudit]);
 
   // Chart a single tooth. Records the change and appends an audit entry.
   // surfaces is a compact string of surface letters (e.g. "MOD"); the caller
@@ -1621,6 +1656,7 @@ export const ClinicProvider = ({ children }) => {
       assignDentist,
       addTreatment,
       addPayment,
+      waiveInvoice,
       getTodayAppointments,
       getTodayMetrics,
     }),
@@ -1646,7 +1682,7 @@ export const ClinicProvider = ({ children }) => {
       conversations, sendMessage, markConversationRead, startConversation,
       addPatient, updatePatient, deletePatient,
       addAppointment, updateAppointmentStatus, assignDentist, addTreatment,
-      addPayment, getTodayAppointments, getTodayMetrics,
+      addPayment, waiveInvoice, getTodayAppointments, getTodayMetrics,
     ]
   );
 

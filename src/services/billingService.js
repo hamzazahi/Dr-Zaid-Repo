@@ -87,6 +87,20 @@ export const billingService = {
     return invoiceFromRow(data);
   },
 
+  // Waive (write off) an unpaid invoice: zero the total so the generated
+  // balance_due becomes 0, and stamp the terminal 'Waived' status. Requires
+  // migration 0008.
+  async waiveInvoice(id) {
+    const { data, error } = await supabase
+      .from('invoices')
+      .update({ total_amount: 0, status: 'Waived' })
+      .eq('id', id)
+      .select(INVOICE_JOIN)
+      .single();
+    if (error) throw error;
+    return invoiceFromRow(data);
+  },
+
   // The BEFORE-INSERT trigger refuses overpayment; the AFTER trigger
   // recalculates the invoice. We just insert.
   async addPayment({ invoiceId, patientId, amount, method }) {
