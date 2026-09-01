@@ -39,7 +39,7 @@ const PAGE_TITLES = {
   '/memberships': 'Memberships',
   '/prescriptions': 'Prescriptions',
   '/inventory': 'Inventory',
-  '/lab-work': 'Lab Work',
+  '/lab-work': 'Lab Dispatch',
   '/documents': 'Documents',
   '/forms': 'Forms & e-Consent',
   '/perio': 'Periodontal Chart',

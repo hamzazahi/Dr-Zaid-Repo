@@ -60,15 +60,18 @@ const labFrom = (r) => ({
   id: r.id, patientId: r.patient_id, patientName: r.patients?.name ?? 'Unknown',
   dentistId: r.dentist_id ?? null, dentistName: r.staff?.name ?? 'Unassigned',
   labName: r.lab_name, caseType: r.case_type ?? '', toothNumber: r.tooth_number ?? '-',
-  status: r.status, cost: Number(r.cost) || 0, sentDate: r.sent_date, dueDate: r.due_date ?? '',
-  receivedDate: r.received_date, notes: r.notes ?? '',
+  units: Number(r.units) || 1, status: r.status, cost: Number(r.cost) || 0,
+  sentDate: r.sent_date, dueDate: r.due_date ?? '', receivedDate: r.received_date,
+  sentBy: r.sent_by ?? '', receivedBy: r.received_by ?? '', whatsappSent: Boolean(r.whatsapp_sent),
+  notes: r.notes ?? '',
 });
 const labCases = {
   list: async () => (await q(supabase.from('lab_cases').select(`*, ${P_NAME}, ${S_NAME}`).order('sent_date', { ascending: false }))).map(labFrom),
   create: async (d) => labFrom(await q(supabase.from('lab_cases').insert({
     patient_id: d.patientId, dentist_id: d.dentistId || null, lab_name: d.labName?.trim() || 'External Lab',
-    case_type: d.caseType ?? null, tooth_number: d.toothNumber ?? null, cost: Number(d.cost) || 0,
-    due_date: d.dueDate || null, notes: d.notes?.trim() || null,
+    case_type: d.caseType ?? null, tooth_number: d.toothNumber ?? null, units: Number(d.units) || 1,
+    cost: Number(d.cost) || 0, due_date: d.dueDate || null, sent_by: d.sentBy?.trim() || null,
+    whatsapp_sent: Boolean(d.whatsappSent), notes: d.notes?.trim() || null,
   }).select(`*, ${P_NAME}, ${S_NAME}`).single())),
   update: (id, patch) => q(supabase.from('lab_cases').update(patch).eq('id', id)),
 };

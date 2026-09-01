@@ -84,7 +84,7 @@ const SECTIONS = [
       { text: 'Treatment Plans', path: '/treatment-plans', icon: PlanIcon },
       { text: 'Orthodontics',  path: '/orthodontics',   icon: OrthoIcon },
       { text: 'Prescriptions', path: '/prescriptions', icon: RxIcon  },
-      { text: 'Lab Work',      path: '/lab-work',      icon: LabIcon },
+      { text: 'Lab Dispatch',  path: '/lab-work',      icon: LabIcon },
       { text: 'Imaging',       path: '/imaging',       icon: ImagingIcon },
       { text: 'Perio Chart',   path: '/perio',         icon: PerioIcon },
       { text: 'Documents',     path: '/documents',     icon: DocsIcon },

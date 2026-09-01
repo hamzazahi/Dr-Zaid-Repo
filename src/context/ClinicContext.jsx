@@ -770,11 +770,15 @@ export const ClinicProvider = ({ children }) => {
       labName: data.labName?.trim() || 'External Lab',
       caseType: data.caseType || 'Crown',
       toothNumber: data.toothNumber || '-',
+      units: Number(data.units) || 1,
       status: 'Sent',
       cost: Number(data.cost) || 0,
       sentDate: today(),
       dueDate: data.dueDate || '',
       receivedDate: null,
+      sentBy: data.sentBy?.trim() || '',
+      receivedBy: '',
+      whatsappSent: Boolean(data.whatsappSent),
       notes: data.notes?.trim() || '',
     };
     setLabCases((prev) => [newCase, ...prev]);
@@ -797,6 +801,32 @@ export const ClinicProvider = ({ children }) => {
       return { ...c, status, receivedDate };
     }));
   }, [live, labCases, reloadLive]);
+
+  // Richer lab-case edit: receiving a case back (Trial / Final), re-sending a
+  // trial to the same or another lab, fitting, etc. `fields` uses the same
+  // camelCase keys as a lab case; only the ones passed are changed.
+  const updateLabCase = useCallback((id, fields) => {
+    if (live) {
+      const dbPatch = {};
+      if ('status' in fields) dbPatch.status = fields.status;
+      if ('labName' in fields) dbPatch.lab_name = fields.labName;
+      if ('caseType' in fields) dbPatch.case_type = fields.caseType;
+      if ('toothNumber' in fields) dbPatch.tooth_number = fields.toothNumber;
+      if ('units' in fields) dbPatch.units = Number(fields.units) || 1;
+      if ('cost' in fields) dbPatch.cost = Number(fields.cost) || 0;
+      if ('dueDate' in fields) dbPatch.due_date = fields.dueDate || null;
+      if ('receivedDate' in fields) dbPatch.received_date = fields.receivedDate || null;
+      if ('sentBy' in fields) dbPatch.sent_by = fields.sentBy || null;
+      if ('receivedBy' in fields) dbPatch.received_by = fields.receivedBy || null;
+      if ('whatsappSent' in fields) dbPatch.whatsapp_sent = Boolean(fields.whatsappSent);
+      if ('notes' in fields) dbPatch.notes = fields.notes || null;
+      es.labCases.update(id, dbPatch).catch((e) => {
+        console.error('[live] updateLabCase:', e.message);
+        reloadLive('labCases');
+      });
+    }
+    setLabCases((prev) => prev.map((c) => (c.id === id ? { ...c, ...fields } : c)));
+  }, [live, reloadLive]);
 
   // ── Recalls / reminders (email-only) ──────────────────────────────────────
   const addRecall = useCallback((data) => {
@@ -1529,6 +1559,7 @@ export const ClinicProvider = ({ children }) => {
       labCases,
       addLabCase,
       updateLabCaseStatus,
+      updateLabCase,
       recalls,
       addRecall,
       sendRecallReminder,
@@ -1599,7 +1630,7 @@ export const ClinicProvider = ({ children }) => {
       toothRecords, toothHistory, updateTooth, prescriptions, addPrescription,
       updatePrescriptionStatus, treatmentPlans, addTreatmentPlan,
       updateTreatmentPlanStatus, togglePlanItem, staff, addStaff, updateStaffStatus,
-      labCases, addLabCase, updateLabCaseStatus, recalls, addRecall,
+      labCases, addLabCase, updateLabCaseStatus, updateLabCase, recalls, addRecall,
       sendRecallReminder, updateRecallStatus, documents, addDocument, deleteDocument,
       expenses, addExpense, updateExpenseStatus, deleteExpense,
       claims, addClaim, updateClaimStatus, deleteClaim,

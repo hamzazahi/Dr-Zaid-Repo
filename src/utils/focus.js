@@ -11,6 +11,7 @@ export const CORE_PATHS = new Set([
   '/treatments',       // Treatments
   '/treatment-plans',  // Treatment Plans
   '/orthodontics',     // Orthodontics (Dr. Babar)
+  '/lab-work',         // Lab Dispatch
   '/prescriptions',    // Prescriptions
   '/perio',            // Perio Chart
   '/documents',        // Documents
