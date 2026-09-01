@@ -25,7 +25,7 @@ import {
   mockReferrals,
   mockConversations
 } from '../utils/mockData';
-import { recalcInvoice } from '../utils/billing';
+import { recalcInvoice, computeInvoiceStatus } from '../utils/billing';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { patientService } from '../services/patientService';
@@ -540,6 +540,36 @@ export const ClinicProvider = ({ children }) => {
       )));
     }
     logAudit('Billing', 'Invoice waived', `${target?.invoiceNumber || id} for ${target?.patientName || 'patient'}${reason ? ` - ${reason}` : ''}`);
+    return true;
+  }, [live, invoices, reloadLive, logAudit]);
+
+  // Correct a wrong invoice total (e.g. a fee typed wrong while logging the
+  // treatment). Balance and status are re-derived; the new total can never be
+  // below what has already been paid.
+  const updateInvoiceTotal = useCallback((id, newTotal) => {
+    const target = invoices.find((inv) => inv.id === id);
+    if (!target) return false;
+    const total = Math.max(0, Number(newTotal) || 0);
+    const paid = Number(target.paidAmount) || 0;
+    if (total < paid) return false; // guarded again in the UI
+    const status = computeInvoiceStatus(total, paid);
+    if (live) {
+      billingService.updateInvoiceTotal(id, total, status)
+        .then(() => reloadLive('invoices', 'patients'))
+        .catch((e) => { console.error('[live] updateInvoiceTotal:', e.message); reloadLive('invoices'); });
+    } else {
+      setInvoices((prev) => prev.map((inv) => (
+        inv.id === id ? recalcInvoice({ ...inv, totalAmount: total }, paid) : inv
+      )));
+      // Keep the patient's status honest: cleared balance reactivates them.
+      const balance = Math.max(0, total - paid);
+      setPatients((prev) => prev.map((p) => {
+        if (p.id !== target.patientId) return p;
+        if (balance <= 0 && p.status === 'Pending Payment') return { ...p, status: 'Active' };
+        return p;
+      }));
+    }
+    logAudit('Billing', 'Invoice amount corrected', `${target.invoiceNumber} for ${target.patientName}: ${target.totalAmount} -> ${total}`);
     return true;
   }, [live, invoices, reloadLive, logAudit]);
 
@@ -1657,6 +1687,7 @@ export const ClinicProvider = ({ children }) => {
       addTreatment,
       addPayment,
       waiveInvoice,
+      updateInvoiceTotal,
       getTodayAppointments,
       getTodayMetrics,
     }),
@@ -1682,7 +1713,7 @@ export const ClinicProvider = ({ children }) => {
       conversations, sendMessage, markConversationRead, startConversation,
       addPatient, updatePatient, deletePatient,
       addAppointment, updateAppointmentStatus, assignDentist, addTreatment,
-      addPayment, waiveInvoice, getTodayAppointments, getTodayMetrics,
+      addPayment, waiveInvoice, updateInvoiceTotal, getTodayAppointments, getTodayMetrics,
     ]
   );
 

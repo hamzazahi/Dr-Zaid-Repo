@@ -33,16 +33,31 @@ import { summariseInvoices } from '../utils/billing';
 import { PAYMENT_METHODS } from '../utils/constants';
 import StatusBadge from '../components/common/StatusBadge';
 import { colors } from '../theme/theme';
-import { Payment as PaymentIcon, ReceiptLong as ReceiptLongIcon, TrendingUp as TrendingUpIcon, HourglassEmpty as HourglassEmptyIcon, Print as PrintIcon, Block as BlockIcon } from '@mui/icons-material';
+import { Payment as PaymentIcon, ReceiptLong as ReceiptLongIcon, TrendingUp as TrendingUpIcon, HourglassEmpty as HourglassEmptyIcon, Print as PrintIcon, Block as BlockIcon, Edit as EditIcon } from '@mui/icons-material';
 
 // PDF-safe money (jsPDF fonts lack the rupee glyph).
 const rs = (n) => `Rs ${Math.round(Number(n) || 0).toLocaleString('en-US')}`;
 
 export default function Billing() {
-  const { invoices, addPayment, waiveInvoice, patients, payments, treatments, locations } = useClinicData();
+  const { invoices, addPayment, waiveInvoice, updateInvoiceTotal, patients, payments, treatments, locations } = useClinicData();
   const { isDoctor } = usePermissions();
   const { notify } = useNotification();
   const navigate = useNavigate();
+
+  // Correct a wrong invoice total (e.g. a fee mistyped when logging the
+  // treatment). Doctor-only; the new total can't be less than what's paid.
+  const [editTarget, setEditTarget] = useState(null);
+  const [editAmount, setEditAmount] = useState('');
+  const [editError, setEditError] = useState('');
+  const openEdit = (inv) => { setEditTarget(inv); setEditAmount(String(inv.totalAmount ?? '')); setEditError(''); };
+  const submitEdit = () => {
+    const val = Number(editAmount);
+    if (editAmount === '' || Number.isNaN(val) || val < 0) { setEditError('Enter a valid amount.'); return; }
+    if (val < (editTarget.paidAmount || 0)) { setEditError(`Amount can't be less than the ${formatCurrency(editTarget.paidAmount)} already paid.`); return; }
+    updateInvoiceTotal(editTarget.id, val);
+    notify(`${editTarget.invoiceNumber} amount updated to ${formatCurrency(val)}.`, 'success');
+    setEditTarget(null);
+  };
 
   // Waive (write off) an unpaid charge - e.g. a consultation done the same
   // visit as the treatment. Doctor-only, and only when nothing has been paid.
@@ -355,6 +370,17 @@ export default function Billing() {
                             Collect
                           </Button>
                         )}
+                        {isDoctor && inv.status !== 'Waived' && (
+                          <Button
+                            size="small"
+                            color="inherit"
+                            startIcon={<EditIcon sx={{ fontSize: 15 }} />}
+                            onClick={() => openEdit(inv)}
+                            sx={{ textTransform: 'none', fontWeight: 600, color: colors.textSecondary }}
+                          >
+                            Edit
+                          </Button>
+                        )}
                         {isDoctor && inv.balanceDue > 0 && inv.paidAmount === 0 && inv.status !== 'Waived' && (
                           <Button
                             size="small"
@@ -453,6 +479,36 @@ export default function Billing() {
         <DialogActions sx={{ p: 2, borderTop: `1px solid ${colors.border}` }}>
           <Button onClick={() => setWaiveTarget(null)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
           <Button onClick={confirmWaive} variant="contained" color="warning" sx={{ fontWeight: 700 }}>Waive Charge</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit / correct invoice amount */}
+      <Dialog open={Boolean(editTarget)} onClose={() => setEditTarget(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, borderBottom: `1px solid ${colors.border}` }}>Edit Invoice Amount</DialogTitle>
+        <DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          <Box>
+            <Typography variant="caption" sx={{ color: colors.textSecondary }}>Invoice · {editTarget?.patientName}</Typography>
+            <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 700 }}>{editTarget?.invoiceNumber}</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', bgcolor: colors.surfaceAlt, p: 1.5, borderRadius: '8px', border: `1px solid ${colors.border}` }}>
+            <Typography variant="body2">Current: <strong>{formatCurrency(editTarget?.totalAmount || 0)}</strong></Typography>
+            <Typography variant="body2" sx={{ color: colors.success }}>Paid: <strong>{formatCurrency(editTarget?.paidAmount || 0)}</strong></Typography>
+          </Box>
+          {editError && <Alert severity="error" sx={{ borderRadius: '8px', py: 0.5 }}>{editError}</Alert>}
+          <TextField
+            label="Correct Amount (PKR)"
+            type="number"
+            value={editAmount}
+            onChange={(e) => { setEditAmount(e.target.value); setEditError(''); }}
+            fullWidth
+            required
+            inputProps={{ min: editTarget?.paidAmount || 0 }}
+            helperText="Balance and status update automatically."
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2, borderTop: `1px solid ${colors.border}` }}>
+          <Button onClick={() => setEditTarget(null)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
+          <Button onClick={submitEdit} variant="contained" sx={{ fontWeight: 700 }}>Save Amount</Button>
         </DialogActions>
       </Dialog>
     </Box>

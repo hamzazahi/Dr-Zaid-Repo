@@ -87,6 +87,21 @@ export const billingService = {
     return invoiceFromRow(data);
   },
 
+  // Correct a wrong invoice total (e.g. a fee typed wrong when the treatment
+  // was logged). balance_due is generated; status is not payment-driven here,
+  // so the caller passes the recomputed status. New total must be >= amount
+  // already paid (the DB also enforces paid <= total).
+  async updateInvoiceTotal(id, totalAmount, status) {
+    const { data, error } = await supabase
+      .from('invoices')
+      .update({ total_amount: Number(totalAmount) || 0, status })
+      .eq('id', id)
+      .select(INVOICE_JOIN)
+      .single();
+    if (error) throw error;
+    return invoiceFromRow(data);
+  },
+
   // Waive (write off) an unpaid invoice: zero the total so the generated
   // balance_due becomes 0, and stamp the terminal 'Waived' status. Requires
   // migration 0008.
