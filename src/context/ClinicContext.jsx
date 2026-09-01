@@ -543,21 +543,87 @@ export const ClinicProvider = ({ children }) => {
     return true;
   }, [live, invoices, reloadLive, logAudit]);
 
-  // Correct a wrong invoice total (e.g. a fee typed wrong while logging the
-  // treatment). Balance and status are re-derived; the new total can never be
-  // below what has already been paid.
-  const updateInvoiceTotal = useCallback((id, newTotal) => {
+  // Correct an invoice's amounts - the total (a fee typed wrong while logging
+  // the treatment) and/or what the patient has actually paid (a receipt
+  // entered as 5,000 instead of 500). Balance, status and the progress bar are
+  // always re-derived from the corrected pair, never set by hand.
+  //
+  // paidAmount is owned by the payments ledger, so a paid correction is
+  // applied AS ledger changes: top the ledger up with one adjustment payment
+  // when the figure goes up, trim the newest payments when it goes down. That
+  // keeps the Payments page and the patient's ledger agreeing with the
+  // invoice.
+  //
+  // Ordering matters because paid may never exceed total: lower the paid
+  // figure before lowering the total, and raise the total before raising paid.
+  const updateInvoiceAmounts = useCallback((id, { totalAmount, paidAmount, method = 'Adjustment' } = {}) => {
     const target = invoices.find((inv) => inv.id === id);
     if (!target) return false;
-    const total = Math.max(0, Number(newTotal) || 0);
-    const paid = Number(target.paidAmount) || 0;
-    if (total < paid) return false; // guarded again in the UI
+
+    const total = totalAmount === undefined
+      ? Number(target.totalAmount) || 0
+      : Math.max(0, Number(totalAmount) || 0);
+    const currentPaid = Number(target.paidAmount) || 0;
+    const paid = paidAmount === undefined
+      ? currentPaid
+      : Math.max(0, Number(paidAmount) || 0);
+    if (paid > total) return false; // guarded again in the UI
+    const totalChanged = total !== (Number(target.totalAmount) || 0);
+    const paidChanged = paid !== currentPaid;
+    if (!totalChanged && !paidChanged) return true;
+
     const status = computeInvoiceStatus(total, paid);
+
     if (live) {
-      billingService.updateInvoiceTotal(id, total, status)
-        .then(() => reloadLive('invoices', 'patients'))
-        .catch((e) => { console.error('[live] updateInvoiceTotal:', e.message); reloadLive('invoices'); });
+      const setTotal = () => billingService.updateInvoiceTotal(id, total, status);
+      const setPaid = () => billingService.updateInvoicePaid(id, paid, method);
+      const steps = paid < currentPaid
+        ? [paidChanged && setPaid, totalChanged && setTotal]
+        : [totalChanged && setTotal, paidChanged && setPaid];
+      steps
+        .filter(Boolean)
+        .reduce((chain, step) => chain.then(step), Promise.resolve())
+        .then(async () => {
+          // Same courtesy as recording a payment: a cleared balance takes the
+          // patient off "Pending Payment".
+          if (total - paid <= 0) {
+            const pat = patients.find((p) => p.id === target.patientId);
+            if (pat?.status === 'Pending Payment') {
+              await patientService.update(target.patientId, { status: 'Active' });
+            }
+          }
+          await reloadLive('invoices', 'payments', 'patients');
+        })
+        .catch((e) => { console.error('[live] updateInvoiceAmounts:', e.message); reloadLive('invoices', 'payments'); });
     } else {
+      // Demo mode mirrors the server's ledger reconciliation.
+      if (paidChanged) {
+        setPayments((prev) => {
+          if (paid > currentPaid) {
+            return [{
+              id: uid('pay'),
+              invoiceId: id,
+              patientId: target.patientId,
+              patientName: target.patientName,
+              date: today(),
+              amount: paid - currentPaid,
+              method,
+            }, ...prev];
+          }
+          // Retire the newest payments until the ledger matches; a payment
+          // only partly over the line is reduced rather than dropped.
+          let excess = currentPaid - paid;
+          const kept = [];
+          prev.forEach((p) => {
+            if (excess <= 0 || p.invoiceId !== id) { kept.push(p); return; }
+            const amount = Number(p.amount) || 0;
+            if (amount <= excess) { excess -= amount; return; }
+            kept.push({ ...p, amount: amount - excess });
+            excess = 0;
+          });
+          return kept;
+        });
+      }
       setInvoices((prev) => prev.map((inv) => (
         inv.id === id ? recalcInvoice({ ...inv, totalAmount: total }, paid) : inv
       )));
@@ -569,9 +635,21 @@ export const ClinicProvider = ({ children }) => {
         return p;
       }));
     }
-    logAudit('Billing', 'Invoice amount corrected', `${target.invoiceNumber} for ${target.patientName}: ${target.totalAmount} -> ${total}`);
+
+    if (totalChanged) {
+      logAudit('Billing', 'Invoice amount corrected', `${target.invoiceNumber} for ${target.patientName}: ${target.totalAmount} -> ${total}`);
+    }
+    if (paidChanged) {
+      logAudit('Billing', 'Invoice paid amount corrected', `${target.invoiceNumber} for ${target.patientName}: paid ${currentPaid} -> ${paid} (balance ${Math.max(0, total - paid)})`);
+    }
     return true;
-  }, [live, invoices, reloadLive, logAudit]);
+  }, [live, invoices, patients, reloadLive, logAudit]);
+
+  // Correct just the total, leaving what has been paid alone.
+  const updateInvoiceTotal = useCallback(
+    (id, newTotal) => updateInvoiceAmounts(id, { totalAmount: newTotal }),
+    [updateInvoiceAmounts]
+  );
 
   // Chart a single tooth. Records the change and appends an audit entry.
   // surfaces is a compact string of surface letters (e.g. "MOD"); the caller
@@ -1688,6 +1766,7 @@ export const ClinicProvider = ({ children }) => {
       addPayment,
       waiveInvoice,
       updateInvoiceTotal,
+      updateInvoiceAmounts,
       getTodayAppointments,
       getTodayMetrics,
     }),
@@ -1713,7 +1792,8 @@ export const ClinicProvider = ({ children }) => {
       conversations, sendMessage, markConversationRead, startConversation,
       addPatient, updatePatient, deletePatient,
       addAppointment, updateAppointmentStatus, assignDentist, addTreatment,
-      addPayment, waiveInvoice, updateInvoiceTotal, getTodayAppointments, getTodayMetrics,
+      addPayment, waiveInvoice, updateInvoiceTotal, updateInvoiceAmounts,
+      getTodayAppointments, getTodayMetrics,
     ]
   );
 

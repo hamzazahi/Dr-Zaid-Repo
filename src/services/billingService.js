@@ -102,6 +102,21 @@ export const billingService = {
     return invoiceFromRow(data);
   },
 
+  // Correct what a patient has actually paid (e.g. a receipt entered as 5,000
+  // instead of 500). paid_amount is derived from the payments ledger, so we
+  // never write it directly - the RPC reconciles the ledger (adds a top-up
+  // payment, or trims the newest ones) and the triggers recompute
+  // paid_amount, balance_due and status. Requires migration 0009.
+  async updateInvoicePaid(id, paidAmount, method = 'Adjustment') {
+    const { error } = await supabase.rpc('set_invoice_paid_amount', {
+      inv_id: id,
+      new_paid: Number(paidAmount) || 0,
+      method,
+    });
+    if (error) throw error;
+    return this.getInvoice(id);
+  },
+
   // Waive (write off) an unpaid invoice: zero the total so the generated
   // balance_due becomes 0, and stamp the terminal 'Waived' status. Requires
   // migration 0008.

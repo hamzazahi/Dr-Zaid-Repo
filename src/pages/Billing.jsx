@@ -29,7 +29,7 @@ import { useClinicData } from '../hooks/useClinicData';
 import { usePermissions } from '../hooks/usePermissions';
 import { useNotification } from '../hooks/useNotification';
 import { formatCurrency, formatDate } from '../utils/helpers';
-import { summariseInvoices } from '../utils/billing';
+import { summariseInvoices, recalcInvoice, invoiceStatusLabel } from '../utils/billing';
 import { PAYMENT_METHODS } from '../utils/constants';
 import StatusBadge from '../components/common/StatusBadge';
 import { colors } from '../theme/theme';
@@ -39,23 +39,50 @@ import { Payment as PaymentIcon, ReceiptLong as ReceiptLongIcon, TrendingUp as T
 const rs = (n) => `Rs ${Math.round(Number(n) || 0).toLocaleString('en-US')}`;
 
 export default function Billing() {
-  const { invoices, addPayment, waiveInvoice, updateInvoiceTotal, patients, payments, treatments, locations } = useClinicData();
+  const { invoices, addPayment, waiveInvoice, updateInvoiceAmounts, patients, payments, treatments, locations } = useClinicData();
   const { isDoctor } = usePermissions();
   const { notify } = useNotification();
   const navigate = useNavigate();
 
-  // Correct a wrong invoice total (e.g. a fee mistyped when logging the
-  // treatment). Doctor-only; the new total can't be less than what's paid.
+  // Correct an invoice's figures: the total (a fee mistyped when logging the
+  // treatment) and the amount actually paid (a receipt entered as 5,000
+  // instead of 500). Doctor-only. Balance and status are never typed - they
+  // are re-derived from the corrected pair, so the row updates accordingly.
   const [editTarget, setEditTarget] = useState(null);
   const [editAmount, setEditAmount] = useState('');
+  const [editPaid, setEditPaid] = useState('');
   const [editError, setEditError] = useState('');
-  const openEdit = (inv) => { setEditTarget(inv); setEditAmount(String(inv.totalAmount ?? '')); setEditError(''); };
+  const openEdit = (inv) => {
+    setEditTarget(inv);
+    setEditAmount(String(inv.totalAmount ?? ''));
+    setEditPaid(String(inv.paidAmount ?? ''));
+    setEditError('');
+  };
+
+  // Live preview of what the edit will produce, run through the same state
+  // machine the saved invoice goes through.
+  const editPreview = useMemo(() => {
+    if (!editTarget) return null;
+    const total = Number(editAmount);
+    const paid = Number(editPaid);
+    if (editAmount === '' || editPaid === '' || Number.isNaN(total) || Number.isNaN(paid)) return null;
+    if (total < 0 || paid < 0 || paid > total) return null;
+    return recalcInvoice({ ...editTarget, totalAmount: total }, paid);
+  }, [editTarget, editAmount, editPaid]);
+
   const submitEdit = () => {
-    const val = Number(editAmount);
-    if (editAmount === '' || Number.isNaN(val) || val < 0) { setEditError('Enter a valid amount.'); return; }
-    if (val < (editTarget.paidAmount || 0)) { setEditError(`Amount can't be less than the ${formatCurrency(editTarget.paidAmount)} already paid.`); return; }
-    updateInvoiceTotal(editTarget.id, val);
-    notify(`${editTarget.invoiceNumber} amount updated to ${formatCurrency(val)}.`, 'success');
+    const total = Number(editAmount);
+    const paid = Number(editPaid);
+    if (editAmount === '' || Number.isNaN(total) || total < 0) { setEditError('Enter a valid invoice amount.'); return; }
+    if (editPaid === '' || Number.isNaN(paid) || paid < 0) { setEditError('Enter a valid paid amount.'); return; }
+    if (paid > total) { setEditError(`Paid can't be more than the invoice total of ${formatCurrency(total)}.`); return; }
+    const ok = updateInvoiceAmounts(editTarget.id, { totalAmount: total, paidAmount: paid });
+    if (!ok) { setEditError('Could not update this invoice. Please refresh and try again.'); return; }
+    const balance = Math.max(0, total - paid);
+    notify(
+      `${editTarget.invoiceNumber} updated - paid ${formatCurrency(paid)} of ${formatCurrency(total)}, balance ${formatCurrency(balance)}.`,
+      'success'
+    );
     setEditTarget(null);
   };
 
@@ -482,9 +509,9 @@ export default function Billing() {
         </DialogActions>
       </Dialog>
 
-      {/* Edit / correct invoice amount */}
+      {/* Edit / correct invoice amounts (total and paid) */}
       <Dialog open={Boolean(editTarget)} onClose={() => setEditTarget(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, borderBottom: `1px solid ${colors.border}` }}>Edit Invoice Amount</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, borderBottom: `1px solid ${colors.border}` }}>Edit Invoice Amounts</DialogTitle>
         <DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
           <Box>
             <Typography variant="caption" sx={{ color: colors.textSecondary }}>Invoice · {editTarget?.patientName}</Typography>
@@ -496,21 +523,53 @@ export default function Billing() {
           </Box>
           {editError && <Alert severity="error" sx={{ borderRadius: '8px', py: 0.5 }}>{editError}</Alert>}
           <TextField
-            label="Correct Amount (PKR)"
+            label="Invoice Amount (PKR)"
             type="number"
             value={editAmount}
             onChange={(e) => { setEditAmount(e.target.value); setEditError(''); }}
             fullWidth
             required
-            inputProps={{ min: editTarget?.paidAmount || 0 }}
-            helperText="Balance and status update automatically."
+            inputProps={{ min: 0 }}
+            helperText="The total this treatment should be charged at."
           />
+          <TextField
+            label="Paid Amount (PKR)"
+            type="number"
+            value={editPaid}
+            onChange={(e) => { setEditPaid(e.target.value); setEditError(''); }}
+            fullWidth
+            required
+            inputProps={{ min: 0, max: Number(editAmount) || 0 }}
+            helperText="What the patient has actually paid. The payment record is adjusted to match."
+          />
+          {/* The balance and status the edit will produce - derived, never typed. */}
+          <Box sx={{ p: 1.5, borderRadius: '8px', border: `1px dashed ${colors.border}`, bgcolor: colors.surfaceAlt }}>
+            <Typography variant="caption" sx={{ color: colors.textSecondary, fontWeight: 600 }}>After saving</Typography>
+            {editPreview ? (
+              <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mt: 0.75 }}>
+                <Typography variant="body2">
+                  Balance:{' '}
+                  <strong style={{ color: editPreview.balanceDue > 0 ? colors.error : colors.success }}>
+                    {formatCurrency(editPreview.balanceDue)}
+                  </strong>
+                </Typography>
+                <Typography variant="body2" sx={{ color: colors.textSecondary }}>
+                  {invoiceStatusLabel(editPreview.status)} · {editPreview.paymentPercentage}%
+                </Typography>
+              </Stack>
+            ) : (
+              <Typography variant="body2" sx={{ mt: 0.75, color: colors.textSecondary }}>
+                Enter an invoice amount and a paid amount that is not more than it.
+              </Typography>
+            )}
+          </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2, borderTop: `1px solid ${colors.border}` }}>
           <Button onClick={() => setEditTarget(null)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
-          <Button onClick={submitEdit} variant="contained" sx={{ fontWeight: 700 }}>Save Amount</Button>
+          <Button onClick={submitEdit} variant="contained" sx={{ fontWeight: 700 }}>Save Amounts</Button>
         </DialogActions>
       </Dialog>
+
     </Box>
   );
 }

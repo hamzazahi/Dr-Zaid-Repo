@@ -18,11 +18,16 @@ from this repo **in order** (paste contents, Run):
 5. `supabase/migrations/0004_realtime_rest.sql` — realtime on everything else
 6. `supabase/migrations/0005_storage.sql` — file storage buckets (Documents + Imaging uploads)
 7. `supabase/migrations/0006_inventory.sql` — SKU + unit columns for the Inventory page
+8. `supabase/migrations/0007_lab_dispatch.sql` — lab dispatch tracking
+9. `supabase/migrations/0008_invoice_waive.sql` — waive (write off) an invoice
+10. `supabase/migrations/0009_invoice_paid_adjust.sql` — let the doctor correct an invoice's paid amount
 
 (3 and 4 enable cross-device live sync; the app works without them, but two
 open front-desk screens won't update each other until they're run.
 6 enables real file upload/preview on the Documents and Imaging pages —
-without it those pages still work but save metadata-only records.)
+without it those pages still work but save metadata-only records.
+10 backs the Billing page's "Edit" dialog: correcting the paid amount
+reconciles the payments ledger, so paid, balance and status stay derived.)
 
 **Verify the state machine:** Table Editor → `invoices` — you should see
 INV-2026-001 `Partially Paid` (6000/12000), INV-2026-002 `Paid`,
