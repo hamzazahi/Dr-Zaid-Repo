@@ -79,39 +79,83 @@ export const PLAN_CATEGORY_COLORS = {
   Ortho:   { color: '#6D34D6', bg: '#F0E9FD' },
 };
 
-const stage = (procedure, toothNumber = '-') => ({
+const stage = (procedure, phase = 1, toothNumber = '-') => ({
   procedure,
   toothNumber,
   cost: TREATMENT_COSTS[procedure] ?? 0,
   kind: 'procedure',
+  phase,
 });
-const wait = (procedure) => ({ procedure, toothNumber: '-', cost: 0, kind: 'wait' });
+const wait = (procedure, phase = 1) => ({ procedure, toothNumber: '-', cost: 0, kind: 'wait', phase });
+
+// Phase names. A case is presented and accepted a phase at a time, so each one
+// is billed on its own rather than committing the patient to every stage months
+// before it happens. A General plan is a single unnamed phase - the whole plan.
+export const PLAN_PHASE_NAMES = {
+  General: {},
+  Implant: {
+    1: 'Assessment & preparation',
+    2: 'Implant placement',
+    3: 'Restoration',
+  },
+  Ortho: {
+    1: 'Records & planning',
+    2: 'Active treatment',
+    3: 'Debond & retention',
+  },
+};
 
 // Standard sequences, offered as starting points. Waits carry no fee and are
 // charted when healing is confirmed.
 export const PLAN_TEMPLATES = {
   General: [],
   Implant: [
-    stage('Implant Consultation & CBCT'),
-    stage('Bone Graft / Sinus Lift'),
-    wait('Healing after graft - 2 to 4 months'),
-    stage('Implant Fixture Placement'),
-    wait('Osseointegration - 3 to 6 months upper, 2 to 4 lower'),
-    stage('Healing Abutment'),
-    stage('Implant Impression / Scan'),
-    stage('Implant Crown'),
-    stage('Implant Review'),
+    stage('Implant Consultation & CBCT', 1),
+    stage('Bone Graft / Sinus Lift', 1),
+    wait('Healing after graft - 2 to 4 months', 1),
+    stage('Implant Fixture Placement', 2),
+    wait('Osseointegration - 3 to 6 months upper, 2 to 4 lower', 2),
+    stage('Healing Abutment', 3),
+    stage('Implant Impression / Scan', 3),
+    stage('Implant Crown', 3),
+    stage('Implant Review', 3),
   ],
   Ortho: [
-    stage('Ortho Consultation & Records', 'All'),
-    stage('Separators / Banding', 'All'),
-    stage('Bracket Bonding', 'All'),
-    stage('Ortho Adjustment Visit', 'All'),
-    stage('Elastics / Auxiliaries', 'All'),
-    stage('Debonding', 'All'),
-    stage('Retainer Fitting', 'All'),
-    stage('Retention Review', 'All'),
+    stage('Ortho Consultation & Records', 1, 'All'),
+    stage('Separators / Banding', 2, 'All'),
+    stage('Bracket Bonding', 2, 'All'),
+    stage('Ortho Adjustment Visit', 2, 'All'),
+    stage('Elastics / Auxiliaries', 2, 'All'),
+    stage('Debonding', 3, 'All'),
+    stage('Retainer Fitting', 3, 'All'),
+    stage('Retention Review', 3, 'All'),
   ],
+};
+
+// Group a plan's items into ordered phases, each with its name, fee and how
+// far through it is. A plan with everything in phase 1 comes back as one
+// unnamed phase, which is exactly how plans behaved before phases existed.
+export const groupPlanPhases = (plan) => {
+  const names = PLAN_PHASE_NAMES[plan?.category] || {};
+  const byPhase = new Map();
+  (plan?.items || []).forEach((it) => {
+    const n = Number(it.phase) || 1;
+    if (!byPhase.has(n)) byPhase.set(n, []);
+    byPhase.get(n).push(it);
+  });
+  return [...byPhase.keys()].sort((a, b) => a - b).map((n) => {
+    const items = byPhase.get(n);
+    const billable = items.filter((it) => it.kind !== 'wait');
+    return {
+      phase: n,
+      name: names[n] || (byPhase.size > 1 ? `Phase ${n}` : ''),
+      items,
+      total: items.reduce((sum, it) => sum + (Number(it.cost) || 0), 0),
+      doneCount: items.filter((it) => it.done).length,
+      billableCount: billable.length,
+      invoiceId: (plan?.phases || []).find((ph) => Number(ph.phase) === n)?.invoiceId || null,
+    };
+  });
 };
 
 export const APPOINTMENT_STATUSES = [

@@ -24,6 +24,7 @@ from this repo **in order** (paste contents, Run):
 11. `supabase/migrations/0010_plan_categories.sql` — Implant / Ortho treatment plan categories and ordered stages
 12. `supabase/migrations/0011_payment_schedules.sql` — installment payment plans (down payment + monthly installments)
 13. `supabase/migrations/0012_ortho_case_dates.sql` — banding / expected debond dates on an ortho plan
+14. `supabase/migrations/0013_plan_phases.sql` — phase-by-phase acceptance and billing of a treatment plan
 
 (3 and 4 enable cross-device live sync; the app works without them, but two
 open front-desk screens won't update each other until they're run.
@@ -38,7 +39,9 @@ expected and when — the money still arrives as ordinary payments against the
 invoice, so paid, balance and status stay derived by the triggers.
 13 turns an ortho plan into a case with a span: store the banding and expected
 debond dates and the months of treatment, progress and adjustment-visit count
-all follow.)
+all follow.
+14 lets a case be accepted a phase at a time, each phase raising its own
+invoice. A single-phase plan bills exactly as it always did.)
 
 **Verify the state machine:** Table Editor → `invoices` — you should see
 INV-2026-001 `Partially Paid` (6000/12000), INV-2026-002 `Paid`,

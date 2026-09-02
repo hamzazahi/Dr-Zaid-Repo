@@ -47,10 +47,16 @@ const planFrom = (r) => ({
     .map((it) => ({
       id: it.id, procedure: it.procedure, toothNumber: it.tooth_number ?? '-',
       cost: Number(it.cost) || 0, done: it.done, kind: it.kind ?? 'procedure',
+      phase: Number(it.phase) || 1,
     })),
+  // Which phases have been accepted and billed, and to which invoice.
+  phases: (r.plan_phases ?? [])
+    .slice()
+    .sort((a, b) => a.phase - b.phase)
+    .map((ph) => ({ id: ph.id, phase: ph.phase, name: ph.name ?? '', invoiceId: ph.invoice_id ?? null })),
 });
 const treatmentPlans = {
-  list: async () => (await q(supabase.from('treatment_plans').select(`*, ${P_NAME}, ${S_NAME}, plan_items(*)`).order('created_at', { ascending: false }))).map(planFrom),
+  list: async () => (await q(supabase.from('treatment_plans').select(`*, ${P_NAME}, ${S_NAME}, plan_items(*), plan_phases(*)`).order('created_at', { ascending: false }))).map(planFrom),
   create: async (d, items) => {
     const plan = await q(supabase.from('treatment_plans').insert({
       patient_id: d.patientId, dentist_id: d.dentistId || null, title: d.title?.trim() || 'Treatment Plan',
@@ -62,13 +68,28 @@ const treatmentPlans = {
       await q(supabase.from('plan_items').insert(items.map((it, i) => ({
         plan_id: plan.id, procedure: it.procedure, tooth_number: it.toothNumber || '-', cost: Number(it.cost) || 0,
         sort_order: i + 1, kind: it.kind === 'wait' ? 'wait' : 'procedure',
+        phase: Number(it.phase) || 1,
       }))).select());
     }
-    const full = await q(supabase.from('treatment_plans').select(`*, ${P_NAME}, ${S_NAME}, plan_items(*)`).eq('id', plan.id).single());
+    // Seed a row per phase so each carries its name and, later, its invoice.
+    const phases = [...new Set(items.map((it) => Number(it.phase) || 1))].sort((a, b) => a - b);
+    if (phases.length) {
+      await q(supabase.from('plan_phases').insert(phases.map((n) => ({
+        plan_id: plan.id, phase: n, name: d.phaseNames?.[n] || null,
+      }))).select());
+    }
+    const full = await q(supabase.from('treatment_plans').select(`*, ${P_NAME}, ${S_NAME}, plan_items(*), plan_phases(*)`).eq('id', plan.id).single());
     return planFrom(full);
   },
   update: (id, patch) => q(supabase.from('treatment_plans').update(patch).eq('id', id)),
   setItemDone: (itemId, done) => q(supabase.from('plan_items').update({ done }).eq('id', itemId)),
+  // Record the invoice raised for one phase. Upserts so a plan created before
+  // phases existed still gets its row.
+  setPhaseInvoice: (planId, phase, invoiceId, name) =>
+    q(supabase.from('plan_phases').upsert(
+      { plan_id: planId, phase, invoice_id: invoiceId, name: name || null },
+      { onConflict: 'plan_id,phase' },
+    )),
 };
 
 // ── Payment schedules (installment plans) ────────────────────────────────────

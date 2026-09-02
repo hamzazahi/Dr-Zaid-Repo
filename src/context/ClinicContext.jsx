@@ -758,8 +758,10 @@ export const ClinicProvider = ({ children }) => {
       cost: Number(it.cost) || 0,
       // A wait (healing, osseointegration) is charted, never charged.
       kind: it.kind === 'wait' ? 'wait' : 'procedure',
+      phase: Number(it.phase) || 1,
       done: false,
     }));
+    const phaseNumbers = [...new Set(items.map((it) => it.phase))].sort((a, b) => a - b);
     const newPlan = {
       id: uid('plan'),
       patientId: data.patientId,
@@ -774,6 +776,7 @@ export const ClinicProvider = ({ children }) => {
       createdDate: today(),
       invoiceId: null,
       items,
+      phases: phaseNumbers.map((n) => ({ id: uid('phase'), phase: n, name: data.phaseNames?.[n] || '', invoiceId: null })),
     };
     setTreatmentPlans((prev) => [newPlan, ...prev]);
     return newPlan;
@@ -863,6 +866,85 @@ export const ClinicProvider = ({ children }) => {
       return { ...plan, items, status };
     }));
   }, [live, treatmentPlans]);
+
+  // Accept and bill ONE phase of a plan. Billing the whole case up front asks
+  // the patient to commit to stages that are months away; a phase is what they
+  // are actually agreeing to today. Each phase raises its own invoice through
+  // the same billing state machine - balance and status are never hand-set.
+  //
+  // A single-phase plan behaves exactly as it always did: one invoice for the
+  // lot, and the plan moves to Accepted.
+  const acceptPlanPhase = useCallback((planId, phase, { name = '', total } = {}) => {
+    const plan = treatmentPlans.find((p) => p.id === planId);
+    if (!plan) return false;
+    const already = (plan.phases || []).find((ph) => Number(ph.phase) === Number(phase));
+    if (already?.invoiceId) return false; // billed once, never twice
+
+    const amount = total != null
+      ? Math.max(0, Number(total) || 0)
+      : plan.items
+        .filter((it) => (Number(it.phase) || 1) === Number(phase))
+        .reduce((sum, it) => sum + (Number(it.cost) || 0), 0);
+
+    // Every phase billed means the whole case is accepted.
+    const phaseNumbers = [...new Set(plan.items.map((it) => Number(it.phase) || 1))];
+    const billedAfter = new Set(
+      (plan.phases || []).filter((ph) => ph.invoiceId).map((ph) => Number(ph.phase)),
+    );
+    billedAfter.add(Number(phase));
+    const wholeCaseBilled = phaseNumbers.every((n) => billedAfter.has(n));
+    const nextStatus = plan.status === 'Proposed' ? 'Accepted' : plan.status;
+
+    if (live) {
+      (async () => {
+        try {
+          const inv = await billingService.createInvoice({ patientId: plan.patientId, totalAmount: amount, dueDays: 14 });
+          await es.treatmentPlans.setPhaseInvoice(planId, Number(phase), inv.id, name);
+          const patch = { status: nextStatus };
+          if (wholeCaseBilled) patch.invoice_id = inv.id;
+          await es.treatmentPlans.update(planId, patch);
+          const pat = patients.find((p) => p.id === plan.patientId);
+          if (pat && pat.status !== 'Pending Payment') {
+            await patientService.update(plan.patientId, { status: 'Pending Payment' });
+          }
+          await reloadLive('treatmentPlans', 'invoices', 'patients');
+          logAudit('Treatment Plans', 'Phase accepted & billed', `${plan.title}${name ? ` - ${name}` : ` phase ${phase}`} for ${plan.patientName} - Rs ${amount.toLocaleString()}`);
+        } catch (e) {
+          console.error('[live] acceptPlanPhase:', e.message);
+          reloadLive('treatmentPlans', 'invoices');
+        }
+      })();
+      return true;
+    }
+
+    const now = new Date();
+    const dueDate = new Date(now);
+    dueDate.setDate(now.getDate() + 14);
+    const invoiceId = uid('inv');
+    setInvoices((prev) => [recalcInvoice({
+      id: invoiceId,
+      patientId: plan.patientId,
+      patientName: plan.patientName,
+      invoiceNumber: `INV-${now.getFullYear()}-${String(now.getTime()).slice(-6)}`,
+      date: today(),
+      dueDate: dueDate.toISOString().split('T')[0],
+      totalAmount: amount,
+      paidAmount: 0,
+    }), ...prev]);
+    setPatients((prev) => prev.map((p) => (
+      p.id === plan.patientId && p.status !== 'Pending Payment' ? { ...p, status: 'Pending Payment' } : p
+    )));
+    setTreatmentPlans((prev) => prev.map((p) => {
+      if (p.id !== planId) return p;
+      const phases = [...(p.phases || [])];
+      const idx = phases.findIndex((ph) => Number(ph.phase) === Number(phase));
+      if (idx >= 0) phases[idx] = { ...phases[idx], invoiceId, name: name || phases[idx].name };
+      else phases.push({ id: uid('phase'), phase: Number(phase), name, invoiceId });
+      return { ...p, phases, status: nextStatus, invoiceId: wholeCaseBilled ? invoiceId : p.invoiceId };
+    }));
+    logAudit('Treatment Plans', 'Phase accepted & billed', `${plan.title}${name ? ` - ${name}` : ` phase ${phase}`} for ${plan.patientName} - Rs ${amount.toLocaleString()}`);
+    return true;
+  }, [live, treatmentPlans, patients, reloadLive, logAudit]);
 
   // ── Installment payment plans ─────────────────────────────────────────────
   // Spread an invoice over a down payment plus N monthly installments. The
@@ -1758,6 +1840,7 @@ export const ClinicProvider = ({ children }) => {
       addTreatmentPlan,
       updateTreatmentPlanStatus,
       togglePlanItem,
+      acceptPlanPhase,
       staff,
       addStaff,
       updateStaffStatus,
@@ -1839,7 +1922,7 @@ export const ClinicProvider = ({ children }) => {
       live, coreLoading,
       patients, appointments, treatments, invoices, payments, dentists,
       toothRecords, toothHistory, updateTooth, prescriptions, addPrescription,
-      updatePrescriptionStatus, treatmentPlans, addTreatmentPlan,
+      updatePrescriptionStatus, treatmentPlans, addTreatmentPlan, acceptPlanPhase,
       updateTreatmentPlanStatus, togglePlanItem, staff, addStaff, updateStaffStatus,
       labCases, addLabCase, updateLabCaseStatus, updateLabCase, recalls, addRecall,
       sendRecallReminder, updateRecallStatus, documents, addDocument, deleteDocument,
