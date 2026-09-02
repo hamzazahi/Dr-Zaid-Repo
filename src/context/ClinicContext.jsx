@@ -112,6 +112,7 @@ export const ClinicProvider = ({ children }) => {
 
   // Treatment plans (multi-visit, phased; persisted).
   const [treatmentPlans, setTreatmentPlans] = useState(() => (isSupabaseConfigured ? [] : stored.treatmentPlans || mockTreatmentPlans));
+  const [paymentSchedules, setPaymentSchedules] = useState(() => (isSupabaseConfigured ? [] : stored.paymentSchedules || []));
 
   // External lab cases (Sent → In Progress → Received → Fitted; persisted).
   const [labCases, setLabCases] = useState(() => (isSupabaseConfigured ? [] : stored.labCases || mockLabCases));
@@ -171,6 +172,7 @@ export const ClinicProvider = ({ children }) => {
       payments: async () => setPayments(await billingService.listPayments()),
       prescriptions: async () => setPrescriptions(await es.prescriptions.list()),
       treatmentPlans: async () => setTreatmentPlans(await es.treatmentPlans.list()),
+      paymentSchedules: async () => setPaymentSchedules(await es.paymentSchedules.list()),
       labCases: async () => setLabCases(await es.labCases.list()),
       recalls: async () => setRecalls(await es.recalls.list()),
       documents: async () => setDocuments(await es.documents.list()),
@@ -203,6 +205,7 @@ export const ClinicProvider = ({ children }) => {
       patients: 'patients', staff: 'staff', appointments: 'appointments',
       treatments: 'treatments', invoices: 'invoices', payments: 'payments',
       prescriptions: 'prescriptions', treatment_plans: 'treatmentPlans', plan_items: 'treatmentPlans',
+      payment_schedules: 'paymentSchedules', schedule_installments: 'paymentSchedules',
       lab_cases: 'labCases', recalls: 'recalls', documents: 'documents',
       expenses: 'expenses', claims: 'claims', booking_requests: 'bookings',
       membership_plans: 'membershipPlans', memberships: 'memberships',
@@ -234,6 +237,7 @@ export const ClinicProvider = ({ children }) => {
           toothHistory,
           prescriptions,
           treatmentPlans,
+          paymentSchedules,
           staff,
           labCases,
           recalls,
@@ -257,7 +261,7 @@ export const ClinicProvider = ({ children }) => {
       // Storage full or unavailable (e.g. private mode). The app keeps working
       // from in-memory state; we just can't persist this change.
     }
-  }, [patients, appointments, treatments, invoices, payments, toothRecords, toothHistory, prescriptions, treatmentPlans, staff, labCases, recalls, documents, expenses, claims, bookingRequests, membershipPlans, memberships, formSubmissions, perioCharts, auditLog, locations, campaigns, imagingRecords, referrals, conversations]);
+  }, [patients, appointments, treatments, invoices, payments, toothRecords, toothHistory, prescriptions, treatmentPlans, paymentSchedules, staff, labCases, recalls, documents, expenses, claims, bookingRequests, membershipPlans, memberships, formSubmissions, perioCharts, auditLog, locations, campaigns, imagingRecords, referrals, conversations]);
 
   // Append an audit entry - locally for instant UI, and to the append-only
   // audit_log table in live mode (server timestamps, no update/delete policy).
@@ -857,6 +861,59 @@ export const ClinicProvider = ({ children }) => {
       return { ...plan, items, status };
     }));
   }, [live, treatmentPlans]);
+
+  // ── Installment payment plans ─────────────────────────────────────────────
+  // Spread an invoice over a down payment plus N monthly installments. The
+  // schedule only records what is expected and when: the money still arrives
+  // through the ordinary Collect flow as payments against the invoice, so
+  // paid, balance and status stay derived by the billing state machine.
+  const addPaymentSchedule = useCallback((data) => {
+    const { invoiceId, patientId, category = 'General', totalAmount, downPayment, firstDueDate, notes, installments } = data;
+    if (!invoiceId || !installments?.length) return null;
+    const invoice = invoices.find((inv) => inv.id === invoiceId);
+
+    if (live) {
+      return es.paymentSchedules.create(
+        { invoiceId, patientId, category, totalAmount, downPayment, firstDueDate, notes },
+        installments,
+      ).then((created) => {
+        setPaymentSchedules((prev) => [created, ...prev]);
+        logAudit('Billing', 'Payment plan created', `${invoice?.invoiceNumber || invoiceId} for ${invoice?.patientName || 'patient'} - ${installments.length} monthly installments`);
+        return created;
+      }).catch((e) => { console.error('[live] addPaymentSchedule:', e.message); return null; });
+    }
+
+    const schedule = {
+      id: uid('sched'),
+      invoiceId,
+      patientId,
+      patientName: invoice?.patientName || 'Unknown Patient',
+      category,
+      totalAmount: Number(totalAmount) || 0,
+      downPayment: Number(downPayment) || 0,
+      firstDueDate,
+      frequency: 'Monthly',
+      status: 'Active',
+      notes: notes?.trim() || '',
+      installments: installments.map((i) => ({ ...i, id: uid('inst') })),
+    };
+    setPaymentSchedules((prev) => [schedule, ...prev]);
+    logAudit('Billing', 'Payment plan created', `${invoice?.invoiceNumber || invoiceId} for ${schedule.patientName} - ${installments.length} monthly installments`);
+    return schedule;
+  }, [live, invoices, logAudit]);
+
+  const cancelPaymentSchedule = useCallback((id) => {
+    const target = paymentSchedules.find((s) => s.id === id);
+    if (live) {
+      es.paymentSchedules.cancel(id)
+        .then(() => reloadLive('paymentSchedules'))
+        .catch((e) => { console.error('[live] cancelPaymentSchedule:', e.message); reloadLive('paymentSchedules'); });
+    } else {
+      setPaymentSchedules((prev) => prev.map((s) => (s.id === id ? { ...s, status: 'Cancelled' } : s)));
+    }
+    logAudit('Billing', 'Payment plan cancelled', `${target?.patientName || id} - remaining balance stays due on the invoice`);
+    return true;
+  }, [live, paymentSchedules, reloadLive, logAudit]);
 
   // ── Staff / team ──────────────────────────────────────────────────────────
   const addStaff = useCallback((data) => {
@@ -1767,6 +1824,9 @@ export const ClinicProvider = ({ children }) => {
       assignDentist,
       addTreatment,
       addPayment,
+      paymentSchedules,
+      addPaymentSchedule,
+      cancelPaymentSchedule,
       waiveInvoice,
       updateInvoiceTotal,
       updateInvoiceAmounts,
@@ -1795,7 +1855,8 @@ export const ClinicProvider = ({ children }) => {
       conversations, sendMessage, markConversationRead, startConversation,
       addPatient, updatePatient, deletePatient,
       addAppointment, updateAppointmentStatus, assignDentist, addTreatment,
-      addPayment, waiveInvoice, updateInvoiceTotal, updateInvoiceAmounts,
+      addPayment, paymentSchedules, addPaymentSchedule, cancelPaymentSchedule,
+      waiveInvoice, updateInvoiceTotal, updateInvoiceAmounts,
       getTodayAppointments, getTodayMetrics,
     ]
   );

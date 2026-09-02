@@ -66,6 +66,53 @@ const treatmentPlans = {
   setItemDone: (itemId, done) => q(supabase.from('plan_items').update({ done }).eq('id', itemId)),
 };
 
+// ── Payment schedules (installment plans) ────────────────────────────────────
+// A schedule is a plan, never a ledger: it records what is expected and when.
+// The money itself stays in `payments` against the invoice, so paid/balance
+// stay derived by the billing triggers exactly as before. Requires 0011.
+const scheduleFrom = (r) => ({
+  id: r.id,
+  invoiceId: r.invoice_id,
+  patientId: r.patient_id,
+  patientName: r.patients?.name ?? 'Unknown Patient',
+  category: r.category ?? 'General',
+  totalAmount: Number(r.total_amount) || 0,
+  downPayment: Number(r.down_payment) || 0,
+  firstDueDate: r.first_due_date,
+  frequency: r.frequency ?? 'Monthly',
+  status: r.status ?? 'Active',
+  notes: r.notes ?? '',
+  installments: (r.schedule_installments ?? [])
+    .slice()
+    .sort((a, b) => a.seq - b.seq)
+    .map((i) => ({ id: i.id, seq: i.seq, dueDate: i.due_date, amount: Number(i.amount) || 0 })),
+});
+const paymentSchedules = {
+  list: async () => (await q(supabase
+    .from('payment_schedules')
+    .select(`*, ${P_NAME}, schedule_installments(*)`)
+    .order('created_at', { ascending: false }))).map(scheduleFrom),
+  create: async (d, installments) => {
+    const sched = await q(supabase.from('payment_schedules').insert({
+      invoice_id: d.invoiceId, patient_id: d.patientId, category: d.category || 'General',
+      total_amount: Number(d.totalAmount) || 0, down_payment: Number(d.downPayment) || 0,
+      first_due_date: d.firstDueDate, notes: d.notes?.trim() || null,
+    }).select().single());
+    if (installments.length) {
+      await q(supabase.from('schedule_installments').insert(installments.map((i) => ({
+        schedule_id: sched.id, seq: i.seq, due_date: i.dueDate, amount: Number(i.amount) || 0,
+      }))).select());
+    }
+    const full = await q(supabase
+      .from('payment_schedules')
+      .select(`*, ${P_NAME}, schedule_installments(*)`)
+      .eq('id', sched.id)
+      .single());
+    return scheduleFrom(full);
+  },
+  cancel: (id) => q(supabase.from('payment_schedules').update({ status: 'Cancelled' }).eq('id', id)),
+};
+
 // ── Lab cases ────────────────────────────────────────────────────────────────
 const labFrom = (r) => ({
   id: r.id, patientId: r.patient_id, patientName: r.patients?.name ?? 'Unknown',
@@ -367,7 +414,7 @@ const audit = {
 };
 
 export const entityServices = {
-  prescriptions, treatmentPlans, labCases, recalls, documents, expenses, claims,
+  prescriptions, treatmentPlans, paymentSchedules, labCases, recalls, documents, expenses, claims,
   bookings, memberships, forms, campaigns, referrals, imaging, locations,
   conversations, charting, audit, inventory,
 };
