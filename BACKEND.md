@@ -22,6 +22,7 @@ from this repo **in order** (paste contents, Run):
 9. `supabase/migrations/0008_invoice_waive.sql` — waive (write off) an invoice
 10. `supabase/migrations/0009_invoice_paid_adjust.sql` — let the doctor correct an invoice's paid amount
 11. `supabase/migrations/0010_plan_categories.sql` — Implant / Ortho treatment plan categories and ordered stages
+12. `supabase/migrations/0011_payment_schedules.sql` — installment payment plans (down payment + monthly installments)
 
 (3 and 4 enable cross-device live sync; the app works without them, but two
 open front-desk screens won't update each other until they're run.
@@ -30,7 +31,10 @@ without it those pages still work but save metadata-only records.
 10 backs the Billing page's "Edit" dialog: correcting the paid amount
 reconciles the payments ledger, so paid, balance and status stay derived.
 11 adds the Implant and Ortho categories on Treatment Plans, with the stage
-order and the healing periods those cases run through.)
+order and the healing periods those cases run through.
+12 adds installment payment plans on Billing. A schedule only records what is
+expected and when — the money still arrives as ordinary payments against the
+invoice, so paid, balance and status stay derived by the triggers.)
 
 **Verify the state machine:** Table Editor → `invoices` — you should see
 INV-2026-001 `Partially Paid` (6000/12000), INV-2026-002 `Paid`,

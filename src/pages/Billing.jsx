@@ -13,6 +13,7 @@ import {
   DialogTitle,
   Grid,
   LinearProgress,
+  MenuItem,
   Paper,
   Stack,
   Table,
@@ -30,16 +31,17 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useNotification } from '../hooks/useNotification';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { summariseInvoices, recalcInvoice, invoiceStatusLabel } from '../utils/billing';
-import { PAYMENT_METHODS } from '../utils/constants';
+import { buildSchedule, summariseSchedule, dueInMonth, INSTALLMENT_STATE } from '../utils/paymentPlan';
+import { PAYMENT_METHODS, PLAN_CATEGORIES, PLAN_CATEGORY_COLORS } from '../utils/constants';
 import StatusBadge from '../components/common/StatusBadge';
 import { colors } from '../theme/theme';
-import { Payment as PaymentIcon, ReceiptLong as ReceiptLongIcon, TrendingUp as TrendingUpIcon, HourglassEmpty as HourglassEmptyIcon, Print as PrintIcon, Block as BlockIcon, Edit as EditIcon } from '@mui/icons-material';
+import { Payment as PaymentIcon, ReceiptLong as ReceiptLongIcon, TrendingUp as TrendingUpIcon, HourglassEmpty as HourglassEmptyIcon, Print as PrintIcon, Block as BlockIcon, Edit as EditIcon, EventRepeat as PlanIcon, ExpandMore as ExpandMoreIcon, ExpandLess as ExpandLessIcon } from '@mui/icons-material';
 
 // PDF-safe money (jsPDF fonts lack the rupee glyph).
 const rs = (n) => `Rs ${Math.round(Number(n) || 0).toLocaleString('en-US')}`;
 
 export default function Billing() {
-  const { invoices, addPayment, waiveInvoice, updateInvoiceAmounts, patients, payments, treatments, locations } = useClinicData();
+  const { invoices, addPayment, waiveInvoice, updateInvoiceAmounts, paymentSchedules, addPaymentSchedule, cancelPaymentSchedule, patients, payments, treatments, locations } = useClinicData();
   const { isDoctor } = usePermissions();
   const { notify } = useNotification();
   const navigate = useNavigate();
@@ -185,6 +187,89 @@ export default function Billing() {
     }
   };
 
+  // ── Installment payment plans ──────────────────────────────────────────────
+  // Spread an invoice over a down payment plus N monthly installments. The
+  // plan says what is expected and when; the money still arrives through the
+  // ordinary Collect flow, so paid and balance stay derived from the invoice.
+  const [planTarget, setPlanTarget] = useState(null);
+  const [planForm, setPlanForm] = useState({ category: 'General', downPayment: '0', firstDueDate: '', mode: 'count', count: '6', amount: '', notes: '' });
+  const [planError, setPlanError] = useState('');
+  const [openPlan, setOpenPlan] = useState(null);
+
+  const scheduleByInvoice = useMemo(() => {
+    const m = {};
+    paymentSchedules.forEach((sc) => { if (sc.status !== 'Cancelled') m[sc.invoiceId] = sc; });
+    return m;
+  }, [paymentSchedules]);
+
+  // Every active plan, paired with where it actually stands - worked out from
+  // the invoice's own paid figure, never from a second set of books.
+  const activePlans = useMemo(() => paymentSchedules
+    .filter((sc) => sc.status !== 'Cancelled')
+    .map((sc) => {
+      const inv = invoices.find((i) => i.id === sc.invoiceId);
+      return { schedule: sc, invoice: inv, summary: summariseSchedule(sc, inv?.paidAmount ?? 0) };
+    })
+    .filter((p) => p.invoice), [paymentSchedules, invoices]);
+
+  const thisMonth = useMemo(() => dueInMonth(activePlans.map((p) => p.summary)), [activePlans]);
+  const overdueTotal = useMemo(() => activePlans.reduce((sum, p) => sum + p.summary.overdue, 0), [activePlans]);
+
+  const openPlanDialog = (inv) => {
+    const due = new Date();
+    due.setMonth(due.getMonth() + 1);
+    setPlanTarget(inv);
+    setPlanForm({
+      category: 'General',
+      downPayment: '0',
+      firstDueDate: due.toISOString().split('T')[0],
+      mode: 'count',
+      count: '6',
+      amount: '',
+      notes: '',
+    });
+    setPlanError('');
+  };
+
+  // Live preview: exactly the schedule that will be saved.
+  const planPreview = useMemo(() => {
+    if (!planTarget) return null;
+    const down = Number(planForm.downPayment);
+    if (!planForm.firstDueDate || Number.isNaN(down) || down < 0) return null;
+    if (down > planTarget.balanceDue) return null;
+    const opts = { total: planTarget.balanceDue, downPayment: down, firstDueDate: planForm.firstDueDate };
+    if (planForm.mode === 'count') {
+      const n = Number(planForm.count);
+      if (!n || n < 1 || n > 60) return null;
+      return buildSchedule({ ...opts, count: n });
+    }
+    const amt = Number(planForm.amount);
+    if (!amt || amt <= 0) return null;
+    return buildSchedule({ ...opts, amount: amt });
+  }, [planTarget, planForm]);
+
+  const submitPlan = () => {
+    if (!planPreview || planPreview.installments.length === 0) {
+      setPlanError('Enter a first due date and either a number of months or a monthly amount.');
+      return;
+    }
+    addPaymentSchedule({
+      invoiceId: planTarget.id,
+      patientId: planTarget.patientId,
+      category: planForm.category,
+      totalAmount: planTarget.balanceDue,
+      downPayment: planPreview.downPayment,
+      firstDueDate: planForm.firstDueDate,
+      notes: planForm.notes,
+      installments: planPreview.installments,
+    });
+    notify(
+      `Payment plan set for ${planTarget.patientName} - ${planPreview.installments.length} monthly installments of about ${formatCurrency(planPreview.installments[0].amount)}.`,
+      'success',
+    );
+    setPlanTarget(null);
+  };
+
   const stats = useMemo(() => summariseInvoices(invoices), [invoices]);
 
   // Inline "collect payment" dialog state - lets you mark a payment as
@@ -248,6 +333,16 @@ export default function Billing() {
     },
   ];
 
+  if (activePlans.length > 0) {
+    statCards.push({
+      label: overdueTotal > 0 ? 'Installments Overdue' : 'Due This Month',
+      value: overdueTotal > 0 ? formatCurrency(overdueTotal) : formatCurrency(thisMonth.amount),
+      icon: <PlanIcon />,
+      color: overdueTotal > 0 ? colors.error : colors.primary,
+      bg: overdueTotal > 0 ? '#FEF2F2' : '#EFF6FF',
+    });
+  }
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       <Box>
@@ -257,9 +352,11 @@ export default function Billing() {
         </Typography>
       </Box>
 
+      {/* Five cards divide the row evenly rather than leaving the fifth
+          stranded alone on a second line once a payment plan exists. */}
       <Grid container spacing={2.5}>
         {statCards.map((card) => (
-          <Grid item xs={12} sm={6} md={3} key={card.label}>
+          <Grid item xs={12} sm={6} md={statCards.length === 5 ? 2.4 : 3} key={card.label}>
             <Card>
               <CardContent sx={{ p: '20px !important' }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
@@ -397,6 +494,17 @@ export default function Billing() {
                             Collect
                           </Button>
                         )}
+                        {isDoctor && inv.balanceDue > 0 && inv.status !== 'Waived' && !scheduleByInvoice[inv.id] && (
+                          <Button
+                            size="small"
+                            color="inherit"
+                            startIcon={<PlanIcon sx={{ fontSize: 15 }} />}
+                            onClick={() => openPlanDialog(inv)}
+                            sx={{ textTransform: 'none', fontWeight: 600, color: colors.textSecondary }}
+                          >
+                            Plan
+                          </Button>
+                        )}
                         {isDoctor && inv.status !== 'Waived' && (
                           <Button
                             size="small"
@@ -443,6 +551,151 @@ export default function Billing() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Installment payment plans */}
+      {activePlans.length > 0 && (
+        <TableContainer component={Paper}>
+          <Box sx={{ px: 2.5, py: 2, borderBottom: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+            <Box>
+              <Typography variant="subtitle2" fontWeight={700}>Payment Plans</Typography>
+              <Typography variant="caption" sx={{ color: colors.textSecondary }}>
+                {activePlans.length} active · {formatCurrency(thisMonth.amount)} due this month
+                {overdueTotal > 0 ? ` · ${formatCurrency(overdueTotal)} overdue` : ''}
+              </Typography>
+            </Box>
+          </Box>
+          <Stack divider={<Box sx={{ borderTop: `1px solid ${colors.border}` }} />}>
+            {activePlans.map(({ schedule, invoice, summary }) => {
+              const cat = PLAN_CATEGORY_COLORS[schedule.category] || PLAN_CATEGORY_COLORS.General;
+              const isOpen = openPlan === schedule.id;
+              const pct = summary.scheduledTotal > 0 ? Math.round((summary.paid / summary.scheduledTotal) * 100) : 0;
+              return (
+                <Box key={schedule.id}>
+                  <Box sx={{ px: 2.5, py: 1.75, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                    <Box sx={{ minWidth: 190, flex: 1 }}>
+                      <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
+                        <Typography sx={{ fontWeight: 700, fontSize: '0.88rem' }}>{schedule.patientName}</Typography>
+                        {schedule.category !== 'General' && (
+                          <Box sx={{ display: 'inline-flex', px: '7px', py: '2px', borderRadius: '5px', bgcolor: cat.bg }}>
+                            <Typography sx={{ fontSize: '0.66rem', fontWeight: 700, color: cat.color }}>{schedule.category}</Typography>
+                          </Box>
+                        )}
+                      </Stack>
+                      <Typography variant="caption" sx={{ color: colors.textSecondary, fontFamily: 'monospace' }}>
+                        {invoice.invoiceNumber}
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ minWidth: 165 }}>
+                      <Typography variant="caption" sx={{ color: colors.textSecondary, display: 'block' }}>Next due</Typography>
+                      {summary.nextDue ? (
+                        <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: summary.nextDue.state === INSTALLMENT_STATE.OVERDUE ? colors.error : colors.textPrimary }}>
+                          {formatCurrency(summary.nextDue.outstanding)} · {formatDate(summary.nextDue.dueDate)}
+                          {summary.nextDue.state === INSTALLMENT_STATE.OVERDUE ? ' (overdue)' : ''}
+                        </Typography>
+                      ) : (
+                        <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: colors.success }}>Settled in full</Typography>
+                      )}
+                    </Box>
+
+                    <Box sx={{ minWidth: 150 }}>
+                      <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: colors.textSecondary }}>
+                          {summary.rows.filter((r) => r.state === INSTALLMENT_STATE.PAID).length}/{summary.rows.length} paid
+                        </Typography>
+                        <Typography variant="caption" fontWeight={700}>{pct}%</Typography>
+                      </Stack>
+                      <LinearProgress
+                        variant="determinate"
+                        value={Math.min(pct, 100)}
+                        sx={{ height: 5, borderRadius: 999, bgcolor: colors.borderLight, '& .MuiLinearProgress-bar': { bgcolor: summary.overdue > 0 ? colors.error : summary.complete ? colors.success : colors.primary } }}
+                      />
+                    </Box>
+
+                    <Box sx={{ textAlign: 'right', minWidth: 95 }}>
+                      <Typography variant="caption" sx={{ color: colors.textSecondary, display: 'block' }}>Outstanding</Typography>
+                      <Typography sx={{ fontWeight: 800, color: summary.outstanding > 0 ? colors.textPrimary : colors.success }}>
+                        {formatCurrency(summary.outstanding)}
+                      </Typography>
+                    </Box>
+
+                    <Stack direction="row" gap={0.5} alignItems="center">
+                      {invoice.balanceDue > 0 && (
+                        <Button size="small" variant="contained" onClick={() => openCollect(invoice)} sx={{ textTransform: 'none', fontWeight: 700, fontSize: '0.75rem' }}>
+                          Collect
+                        </Button>
+                      )}
+                      <Button size="small" onClick={() => setOpenPlan(isOpen ? null : schedule.id)} sx={{ textTransform: 'none', fontWeight: 600, fontSize: '0.75rem', minWidth: 0 }}>
+                        {isOpen ? <ExpandLessIcon sx={{ fontSize: 19 }} /> : <ExpandMoreIcon sx={{ fontSize: 19 }} />}
+                      </Button>
+                    </Stack>
+                  </Box>
+
+                  {isOpen && (
+                    <Box sx={{ px: 2.5, pb: 2, bgcolor: colors.surfaceAlt, borderTop: `1px solid ${colors.border}`, pt: 1.5 }}>
+                      {summary.downPayment > 0 && (
+                        <Typography variant="caption" sx={{ color: colors.textSecondary, display: 'block', mb: 1 }}>
+                          Down payment {formatCurrency(summary.downPayment)} — {summary.downOutstanding > 0 ? `${formatCurrency(summary.downOutstanding)} still owed` : 'received'}
+                        </Typography>
+                      )}
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell sx={{ width: 40 }}>#</TableCell>
+                            <TableCell>Due</TableCell>
+                            <TableCell align="right">Amount</TableCell>
+                            <TableCell align="right">Outstanding</TableCell>
+                            <TableCell>State</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {summary.rows.map((r) => {
+                            const tone = r.state === INSTALLMENT_STATE.PAID ? colors.success
+                              : r.state === INSTALLMENT_STATE.OVERDUE ? colors.error
+                              : r.state === INSTALLMENT_STATE.PARTIAL ? '#D97706' : colors.textSecondary;
+                            return (
+                              <TableRow key={r.seq}>
+                                <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.75rem', color: colors.textLight }}>
+                                  {String(r.seq).padStart(2, '0')}
+                                </TableCell>
+                                <TableCell sx={{ fontSize: '0.82rem' }}>{formatDate(r.dueDate)}</TableCell>
+                                <TableCell align="right" sx={{ fontSize: '0.82rem' }}>{formatCurrency(r.amount)}</TableCell>
+                                <TableCell align="right" sx={{ fontSize: '0.82rem', fontWeight: 700 }}>
+                                  {r.outstanding > 0 ? formatCurrency(r.outstanding) : '—'}
+                                </TableCell>
+                                <TableCell>
+                                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: tone }}>{r.state}</Typography>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                      {schedule.notes && (
+                        <Typography variant="caption" sx={{ color: colors.textSecondary, display: 'block', mt: 1 }}>{schedule.notes}</Typography>
+                      )}
+                      {isDoctor && (
+                        <Button
+                          size="small"
+                          color="inherit"
+                          onClick={() => {
+                            cancelPaymentSchedule(schedule.id);
+                            notify('Payment plan cancelled — the balance stays due on the invoice.', 'info');
+                            setOpenPlan(null);
+                          }}
+                          sx={{ mt: 1, textTransform: 'none', fontWeight: 600, color: colors.textSecondary, fontSize: '0.75rem' }}
+                        >
+                          Cancel this plan
+                        </Button>
+                      )}
+                    </Box>
+                  )}
+                </Box>
+              );
+            })}
+          </Stack>
+        </TableContainer>
+      )}
 
       <Dialog open={Boolean(payInvoice)} onClose={closeCollect} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 700, borderBottom: `1px solid ${colors.border}` }}>Collect Payment</DialogTitle>
@@ -506,6 +759,147 @@ export default function Billing() {
         <DialogActions sx={{ p: 2, borderTop: `1px solid ${colors.border}` }}>
           <Button onClick={() => setWaiveTarget(null)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
           <Button onClick={confirmWaive} variant="contained" color="warning" sx={{ fontWeight: 700 }}>Waive Charge</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Set up an installment payment plan */}
+      <Dialog open={Boolean(planTarget)} onClose={() => setPlanTarget(null)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, borderBottom: `1px solid ${colors.border}` }}>
+          Payment Plan
+          <Typography variant="caption" sx={{ display: 'block', color: colors.textSecondary, fontWeight: 400, mt: 0.25 }}>
+            Spread the balance over monthly installments. No mark-up — the installments add back up to exactly the balance.
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', bgcolor: colors.surfaceAlt, p: 1.5, borderRadius: '8px', border: `1px solid ${colors.border}` }}>
+            <Box>
+              <Typography variant="caption" sx={{ color: colors.textSecondary }}>Invoice · {planTarget?.patientName}</Typography>
+              <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 700 }}>{planTarget?.invoiceNumber}</Typography>
+            </Box>
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography variant="caption" sx={{ color: colors.textSecondary }}>Balance to finance</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 800 }}>{formatCurrency(planTarget?.balanceDue || 0)}</Typography>
+            </Box>
+          </Box>
+
+          {planError && <Alert severity="error" sx={{ borderRadius: '8px', py: 0.5 }}>{planError}</Alert>}
+
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                select
+                label="Case type"
+                value={planForm.category}
+                onChange={(e) => { setPlanForm((f) => ({ ...f, category: e.target.value })); setPlanError(''); }}
+                fullWidth
+                size="small"
+              >
+                {PLAN_CATEGORIES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Down payment (PKR)"
+                type="number"
+                value={planForm.downPayment}
+                onChange={(e) => { setPlanForm((f) => ({ ...f, downPayment: e.target.value })); setPlanError(''); }}
+                fullWidth
+                size="small"
+                inputProps={{ min: 0, max: planTarget?.balanceDue }}
+                helperText="Taken off before the months are worked out."
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="First installment due"
+                type="date"
+                value={planForm.firstDueDate}
+                onChange={(e) => { setPlanForm((f) => ({ ...f, firstDueDate: e.target.value })); setPlanError(''); }}
+                fullWidth
+                size="small"
+                InputLabelProps={{ shrink: true }}
+                helperText="Every later one falls on the same day each month."
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Stack direction="row" spacing={1}>
+                <TextField
+                  select
+                  label="Set by"
+                  value={planForm.mode}
+                  onChange={(e) => { setPlanForm((f) => ({ ...f, mode: e.target.value })); setPlanError(''); }}
+                  sx={{ width: 130 }}
+                  size="small"
+                >
+                  <MenuItem value="count">Months</MenuItem>
+                  <MenuItem value="amount">Amount</MenuItem>
+                </TextField>
+                {planForm.mode === 'count' ? (
+                  <TextField
+                    label="Number of months"
+                    type="number"
+                    value={planForm.count}
+                    onChange={(e) => { setPlanForm((f) => ({ ...f, count: e.target.value })); setPlanError(''); }}
+                    fullWidth
+                    size="small"
+                    inputProps={{ min: 1, max: 60 }}
+                  />
+                ) : (
+                  <TextField
+                    label="Per month (PKR)"
+                    type="number"
+                    value={planForm.amount}
+                    onChange={(e) => { setPlanForm((f) => ({ ...f, amount: e.target.value })); setPlanError(''); }}
+                    fullWidth
+                    size="small"
+                    inputProps={{ min: 1 }}
+                  />
+                )}
+              </Stack>
+            </Grid>
+          </Grid>
+
+          <TextField
+            label="Note (optional)"
+            value={planForm.notes}
+            onChange={(e) => setPlanForm((f) => ({ ...f, notes: e.target.value }))}
+            fullWidth
+            size="small"
+            placeholder="e.g. Collected at each monthly adjustment visit"
+          />
+
+          {/* What will actually be saved */}
+          <Box sx={{ p: 1.75, borderRadius: '8px', border: `1px dashed ${colors.border}`, bgcolor: colors.surfaceAlt }}>
+            <Typography variant="caption" sx={{ color: colors.textSecondary, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.66rem' }}>
+              The plan
+            </Typography>
+            {planPreview && planPreview.installments.length > 0 ? (
+              <>
+                <Typography variant="body2" sx={{ mt: 0.75, fontWeight: 600 }}>
+                  {planPreview.downPayment > 0 ? `${formatCurrency(planPreview.downPayment)} down, then ` : ''}
+                  {planPreview.installments.length} × {formatCurrency(planPreview.installments[0].amount)} monthly
+                </Typography>
+                <Typography variant="caption" sx={{ color: colors.textSecondary, display: 'block', mt: 0.25 }}>
+                  {formatDate(planPreview.installments[0].dueDate)} → {formatDate(planPreview.installments[planPreview.installments.length - 1].dueDate)}
+                  {' · totals '}{formatCurrency(planPreview.downPayment + planPreview.financed)}
+                </Typography>
+                {planPreview.installments.length > 1
+                  && planPreview.installments[planPreview.installments.length - 1].amount !== planPreview.installments[0].amount && (
+                  <Typography variant="caption" sx={{ color: colors.textSecondary, display: 'block', mt: 0.5 }}>
+                    Last installment is {formatCurrency(planPreview.installments[planPreview.installments.length - 1].amount)} so the plan totals exactly the balance.
+                  </Typography>
+                )}
+              </>
+            ) : (
+              <Typography variant="body2" sx={{ mt: 0.75, color: colors.textSecondary }}>
+                Enter a first due date and either a number of months or a monthly amount.
+              </Typography>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, borderTop: `1px solid ${colors.border}` }}>
+          <Button onClick={() => setPlanTarget(null)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
+          <Button onClick={submitPlan} variant="contained" sx={{ fontWeight: 700 }}>Save Plan</Button>
         </DialogActions>
       </Dialog>
 
