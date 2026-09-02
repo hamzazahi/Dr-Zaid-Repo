@@ -36,6 +36,9 @@ const planFrom = (r) => ({
   dentistId: r.dentist_id ?? null, dentistName: r.staff?.name ?? 'Unassigned',
   title: r.title, status: r.status, createdDate: r.created_date, invoiceId: r.invoice_id ?? null,
   category: r.category ?? 'General',
+  // Ortho cases carry the two dates everything else derives from.
+  bandingDate: r.banding_date ?? '',
+  debondDate: r.debond_date ?? '',
   // Stages come back in their saved order; a plan is a sequence for Implant
   // and Ortho, and the order is meaningless but harmless for General.
   items: (r.plan_items ?? [])
@@ -52,6 +55,8 @@ const treatmentPlans = {
     const plan = await q(supabase.from('treatment_plans').insert({
       patient_id: d.patientId, dentist_id: d.dentistId || null, title: d.title?.trim() || 'Treatment Plan',
       category: d.category || 'General',
+      banding_date: d.bandingDate || null,
+      debond_date: d.debondDate || null,
     }).select().single());
     if (items.length) {
       await q(supabase.from('plan_items').insert(items.map((it, i) => ({
