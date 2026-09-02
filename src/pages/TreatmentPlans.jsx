@@ -35,7 +35,7 @@ import { useClinicData } from '../hooks/useClinicData';
 import { usePermissions } from '../hooks/usePermissions';
 import { useNotification } from '../hooks/useNotification';
 import { formatCurrency, formatDate } from '../utils/helpers';
-import { TREATMENT_TYPES, TREATMENT_COSTS, TOOTH_NUMBERS, PLAN_CATEGORIES, PLAN_CATEGORY_COLORS, PLAN_TEMPLATES } from '../utils/constants';
+import { TREATMENT_TYPES, TREATMENT_COSTS, TOOTH_NUMBERS, PLAN_CATEGORIES, PLAN_CATEGORY_COLORS, PLAN_TEMPLATES, PLAN_PHASE_NAMES, groupPlanPhases } from '../utils/constants';
 import { orthoCaseProgress, defaultDebondDate, ORTHO_PHASE } from '../utils/orthoCase';
 import { colors } from '../theme/theme';
 
@@ -74,7 +74,7 @@ function CategoryPill({ category }) {
 }
 
 export default function TreatmentPlans() {
-  const { patients, dentists, treatmentPlans, addTreatmentPlan, updateTreatmentPlanStatus, togglePlanItem } = useClinicData();
+  const { patients, dentists, treatmentPlans, addTreatmentPlan, updateTreatmentPlanStatus, togglePlanItem, acceptPlanPhase } = useClinicData();
   const { canEdit } = usePermissions();
   const editable = canEdit('/treatment-plans');
   const { notify } = useNotification();
@@ -178,7 +178,7 @@ export default function TreatmentPlans() {
       return;
     }
     const patient = patients.find((p) => p.id === form.patientId);
-    addTreatmentPlan(form);
+    addTreatmentPlan({ ...form, phaseNames: PLAN_PHASE_NAMES[form.category] || {} });
     setOpenDialog(false);
     resetForm();
     notify(`Treatment plan created for ${patient?.name}.`, 'success');
@@ -187,6 +187,17 @@ export default function TreatmentPlans() {
   const handleAccept = (plan) => {
     updateTreatmentPlanStatus(plan.id, 'Accepted');
     notify(`Plan accepted - invoice generated for ${plan.patientName}.`, 'success');
+  };
+
+  // Bill one phase. The patient is agreeing to this stage of the case, not to
+  // every stage months ahead.
+  const handleAcceptPhase = (plan, ph) => {
+    const ok = acceptPlanPhase(plan.id, ph.phase, { name: ph.name, total: ph.total });
+    if (!ok) return;
+    notify(
+      `${ph.name || `Phase ${ph.phase}`} billed - ${formatCurrency(ph.total)} invoiced to ${plan.patientName}.`,
+      'success',
+    );
   };
 
   const statCards = [
@@ -283,6 +294,8 @@ export default function TreatmentPlans() {
           {visiblePlans.map((plan) => {
             const total = planTotal(plan);
             const done = planDone(plan);
+            const phases = groupPlanPhases(plan);
+            const multiPhase = phases.length > 1;
             const ortho = plan.category === 'Ortho'
               ? orthoCaseProgress(
                   { bandingDate: plan.bandingDate, debondDate: plan.debondDate },
@@ -339,10 +352,15 @@ export default function TreatmentPlans() {
 
                   {/* Actions */}
                   <Stack direction="row" gap={1} alignItems="center">
-                    {plan.status === 'Proposed' && editable && (
+                    {plan.status === 'Proposed' && editable && !multiPhase && (
                       <Button size="small" variant="contained" startIcon={<ReceiptIcon sx={{ fontSize: 15 }} />} onClick={() => handleAccept(plan)} sx={{ fontWeight: 700, fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
                         Accept &amp; Bill
                       </Button>
+                    )}
+                    {multiPhase && (
+                      <Typography variant="caption" sx={{ color: colors.textSecondary, whiteSpace: 'nowrap' }}>
+                        {phases.filter((ph) => ph.invoiceId).length}/{phases.length} phases billed
+                      </Typography>
                     )}
                     {plan.invoiceId && (
                       <Button size="small" onClick={() => navigate('/billing')} sx={{ fontWeight: 600, fontSize: '0.75rem', textTransform: 'none' }}>
@@ -365,8 +383,42 @@ export default function TreatmentPlans() {
                         </Typography>
                       </Box>
                     )}
-                    <Stack sx={{ p: 1.5 }} spacing={0.5}>
-                      {plan.items.map((it, i) => {
+                    {phases.map((ph) => (
+                      <Box key={ph.phase}>
+                        {/* A phase header only appears when the case actually
+                            has phases - a single-phase plan reads as before. */}
+                        {multiPhase && (
+                          <Box sx={{ px: 2, pt: 1.75, pb: 0.5, display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                            <Typography sx={{ fontSize: '0.7rem', fontFamily: 'monospace', color: colors.textLight }}>
+                              {String(ph.phase).padStart(2, '0')}
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, flex: 1, minWidth: 120 }}>
+                              {ph.name}
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, color: colors.textSecondary }}>
+                              {formatCurrency(ph.total)}
+                            </Typography>
+                            {ph.invoiceId ? (
+                              <Box sx={{ display: 'inline-flex', px: '8px', py: '3px', borderRadius: '6px', bgcolor: '#ECFDF5' }}>
+                                <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: colors.success }}>Billed</Typography>
+                              </Box>
+                            ) : editable && ph.total > 0 ? (
+                              <Button
+                                size="small"
+                                variant="contained"
+                                startIcon={<ReceiptIcon sx={{ fontSize: 14 }} />}
+                                onClick={() => handleAcceptPhase(plan, ph)}
+                                sx={{ fontWeight: 700, fontSize: '0.7rem', py: 0.25, whiteSpace: 'nowrap' }}
+                              >
+                                Accept &amp; Bill
+                              </Button>
+                            ) : (
+                              <Typography variant="caption" sx={{ color: colors.textLight }}>Not billed</Typography>
+                            )}
+                          </Box>
+                        )}
+                    <Stack sx={{ p: 1.5, pt: multiPhase ? 0.5 : 1.5 }} spacing={0.5}>
+                      {ph.items.map((it, i) => {
                         // A wait is a healing period the clinic charts when it
                         // is confirmed - never a charge, and visibly not a
                         // procedure to be performed.
@@ -405,6 +457,8 @@ export default function TreatmentPlans() {
                         );
                       })}
                     </Stack>
+                      </Box>
+                    ))}
                   </Box>
                 </Collapse>
               </Card>
