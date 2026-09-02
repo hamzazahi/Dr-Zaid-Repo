@@ -23,6 +23,7 @@ from this repo **in order** (paste contents, Run):
 10. `supabase/migrations/0009_invoice_paid_adjust.sql` — let the doctor correct an invoice's paid amount
 11. `supabase/migrations/0010_plan_categories.sql` — Implant / Ortho treatment plan categories and ordered stages
 12. `supabase/migrations/0011_payment_schedules.sql` — installment payment plans (down payment + monthly installments)
+13. `supabase/migrations/0012_ortho_case_dates.sql` — banding / expected debond dates on an ortho plan
 
 (3 and 4 enable cross-device live sync; the app works without them, but two
 open front-desk screens won't update each other until they're run.
@@ -34,7 +35,10 @@ reconciles the payments ledger, so paid, balance and status stay derived.
 order and the healing periods those cases run through.
 12 adds installment payment plans on Billing. A schedule only records what is
 expected and when — the money still arrives as ordinary payments against the
-invoice, so paid, balance and status stay derived by the triggers.)
+invoice, so paid, balance and status stay derived by the triggers.
+13 turns an ortho plan into a case with a span: store the banding and expected
+debond dates and the months of treatment, progress and adjustment-visit count
+all follow.)
 
 **Verify the state machine:** Table Editor → `invoices` — you should see
 INV-2026-001 `Partially Paid` (6000/12000), INV-2026-002 `Paid`,

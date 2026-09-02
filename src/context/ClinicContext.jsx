@@ -768,6 +768,8 @@ export const ClinicProvider = ({ children }) => {
       dentistName: dentistObj?.name || 'Unassigned',
       title: data.title?.trim() || 'Treatment Plan',
       category: data.category || 'General',
+      bandingDate: data.bandingDate || '',
+      debondDate: data.debondDate || '',
       status: 'Proposed',
       createdDate: today(),
       invoiceId: null,

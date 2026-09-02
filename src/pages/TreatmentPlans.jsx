@@ -36,6 +36,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useNotification } from '../hooks/useNotification';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { TREATMENT_TYPES, TREATMENT_COSTS, TOOTH_NUMBERS, PLAN_CATEGORIES, PLAN_CATEGORY_COLORS, PLAN_TEMPLATES } from '../utils/constants';
+import { orthoCaseProgress, defaultDebondDate, ORTHO_PHASE } from '../utils/orthoCase';
 import { colors } from '../theme/theme';
 
 const AVATAR_COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626', '#0D9488', '#DB2777'];
@@ -81,7 +82,7 @@ export default function TreatmentPlans() {
 
   const [expanded, setExpanded] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
-  const [form, setForm] = useState({ patientId: '', dentistId: 'dentist-1', title: '', category: 'General', items: [EMPTY_ITEM()] });
+  const [form, setForm] = useState({ patientId: '', dentistId: 'dentist-1', title: '', category: 'General', bandingDate: '', debondDate: '', items: [EMPTY_ITEM()] });
   const [formError, setFormError] = useState('');
   const [filter, setFilter] = useState('All');
 
@@ -91,11 +92,29 @@ export default function TreatmentPlans() {
   // behind on a restorative plan.
   const applyCategory = (category) => {
     const template = PLAN_TEMPLATES[category] || [];
+    // An ortho case is a span: default the banding date to today and the
+    // expected debond to the usual 18 months out, both editable.
+    const banding = category === 'Ortho' ? new Date().toISOString().split('T')[0] : '';
     setForm((prev) => ({
       ...prev,
       category,
       title: prev.title || (category === 'General' ? '' : `${category} Case`),
+      bandingDate: banding,
+      debondDate: banding ? defaultDebondDate(banding) : '',
       items: template.length ? template.map((it) => ({ ...it })) : [EMPTY_ITEM()],
+    }));
+    setFormError('');
+  };
+
+  // Changing the banding date carries the expected debond along with it, unless
+  // the doctor has already set one deliberately.
+  const setBanding = (bandingDate) => {
+    setForm((prev) => ({
+      ...prev,
+      bandingDate,
+      debondDate: !prev.debondDate || prev.debondDate === defaultDebondDate(prev.bandingDate)
+        ? defaultDebondDate(bandingDate)
+        : prev.debondDate,
     }));
     setFormError('');
   };
@@ -112,6 +131,14 @@ export default function TreatmentPlans() {
   }), [treatmentPlans]);
 
   const formTotal = useMemo(() => form.items.reduce((s, it) => s + Number(it.cost || 0), 0), [form.items]);
+
+  // Live case length while the dates are being set.
+  const formOrtho = useMemo(
+    () => (form.category === 'Ortho'
+      ? orthoCaseProgress({ bandingDate: form.bandingDate, debondDate: form.debondDate })
+      : null),
+    [form.category, form.bandingDate, form.debondDate],
+  );
 
   const visiblePlans = useMemo(
     () => (filter === 'All' ? treatmentPlans : treatmentPlans.filter((p) => (p.category || 'General') === filter)),
@@ -139,13 +166,17 @@ export default function TreatmentPlans() {
   const addItem = () => setForm((prev) => ({ ...prev, items: [...prev.items, EMPTY_ITEM()] }));
   const removeItem = (idx) => setForm((prev) => ({ ...prev, items: prev.items.filter((_, i) => i !== idx) }));
 
-  const resetForm = () => { setForm({ patientId: '', dentistId: 'dentist-1', title: '', category: 'General', items: [EMPTY_ITEM()] }); setFormError(''); };
+  const resetForm = () => { setForm({ patientId: '', dentistId: 'dentist-1', title: '', category: 'General', bandingDate: '', debondDate: '', items: [EMPTY_ITEM()] }); setFormError(''); };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!form.patientId) { setFormError('Please select a patient.'); return; }
     if (form.items.length === 0) { setFormError('Add at least one procedure item.'); return; }
     if (form.items.some((it) => it.kind !== 'wait' && (!it.cost || Number(it.cost) < 0))) { setFormError('Each procedure needs a valid fee.'); return; }
+    if (form.category === 'Ortho' && form.bandingDate && form.debondDate && form.debondDate < form.bandingDate) {
+      setFormError('The expected debond date cannot be before the banding date.');
+      return;
+    }
     const patient = patients.find((p) => p.id === form.patientId);
     addTreatmentPlan(form);
     setOpenDialog(false);
@@ -252,6 +283,13 @@ export default function TreatmentPlans() {
           {visiblePlans.map((plan) => {
             const total = planTotal(plan);
             const done = planDone(plan);
+            const ortho = plan.category === 'Ortho'
+              ? orthoCaseProgress(
+                  { bandingDate: plan.bandingDate, debondDate: plan.debondDate },
+                  undefined,
+                  plan.status === 'Completed',
+                )
+              : null;
             const pct = plan.items.length ? Math.round((done / plan.items.length) * 100) : 0;
             const isOpen = expanded === plan.id;
             const canChart = plan.status !== 'Proposed';
@@ -271,6 +309,17 @@ export default function TreatmentPlans() {
                     <Typography variant="caption" sx={{ color: colors.textSecondary }}>
                       {plan.patientName} · {plan.dentistName} · {formatDate(plan.createdDate)}
                     </Typography>
+                    {/* An ortho case reads by its span, not its checklist. */}
+                    {ortho && (
+                      <Typography variant="caption" sx={{ display: 'block', color: ortho.overdueForDebond ? colors.error : colors.textSecondary, fontWeight: ortho.overdueForDebond ? 700 : 400 }}>
+                        {ortho.phase}
+                        {ortho.phase === ORTHO_PHASE.PLANNED
+                          ? ` · bands on ${formatDate(plan.bandingDate)}`
+                          : ortho.phase === ORTHO_PHASE.DUE
+                            ? ` · was due ${formatDate(plan.debondDate)}`
+                            : ` · month ${ortho.elapsedMonths} of ${ortho.totalMonths}, ${ortho.remainingMonths} to go`}
+                      </Typography>
+                    )}
                   </Box>
 
                   {/* Progress */}
@@ -399,6 +448,53 @@ export default function TreatmentPlans() {
                   {PLAN_CATEGORIES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
                 </TextField>
               </Grid>
+              {/* An ortho case is a span. These two dates are the only ones
+                  entered: the months of treatment, how far through the case is
+                  and how many adjustment visits to expect all follow. */}
+              {form.category === 'Ortho' && (
+                <>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      label="Banding date"
+                      type="date"
+                      value={form.bandingDate}
+                      onChange={(e) => setBanding(e.target.value)}
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                      helperText="When the appliance goes on."
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      label="Expected debond"
+                      type="date"
+                      value={form.debondDate}
+                      onChange={(e) => { setForm((p) => ({ ...p, debondDate: e.target.value })); setFormError(''); }}
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                      helperText="Defaults to 18 months out."
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <Box sx={{ px: 1.75, py: 1.25, borderRadius: '8px', border: `1px dashed ${colors.border}`, bgcolor: colors.surfaceAlt, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                      {formOrtho ? (
+                        <>
+                          <Typography sx={{ fontSize: '0.85rem', fontWeight: 700 }}>
+                            {formOrtho.totalMonths} months of treatment
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: colors.textSecondary }}>
+                            about {formOrtho.expectedVisits} monthly adjustment visits
+                          </Typography>
+                        </>
+                      ) : (
+                        <Typography variant="caption" sx={{ color: colors.textSecondary }}>
+                          Set both dates to see the case length.
+                        </Typography>
+                      )}
+                    </Box>
+                  </Grid>
+                </>
+              )}
             </Grid>
 
             <Typography variant="caption" sx={{ fontWeight: 700, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Procedures</Typography>
