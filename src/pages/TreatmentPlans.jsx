@@ -35,7 +35,7 @@ import { useClinicData } from '../hooks/useClinicData';
 import { usePermissions } from '../hooks/usePermissions';
 import { useNotification } from '../hooks/useNotification';
 import { formatCurrency, formatDate } from '../utils/helpers';
-import { TREATMENT_TYPES, TREATMENT_COSTS, TOOTH_NUMBERS } from '../utils/constants';
+import { TREATMENT_TYPES, TREATMENT_COSTS, TOOTH_NUMBERS, PLAN_CATEGORIES, PLAN_CATEGORY_COLORS, PLAN_TEMPLATES } from '../utils/constants';
 import { colors } from '../theme/theme';
 
 const AVATAR_COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626', '#0D9488', '#DB2777'];
@@ -58,7 +58,19 @@ function StatusPill({ status }) {
   );
 }
 
-const EMPTY_ITEM = () => ({ procedure: 'Filling', toothNumber: '11', cost: TREATMENT_COSTS.Filling });
+const EMPTY_ITEM = () => ({ procedure: 'Filling', toothNumber: '11', cost: TREATMENT_COSTS.Filling, kind: 'procedure' });
+
+// A plan's category badge. Implant and Ortho cases read differently from
+// general restorative work, so they are marked wherever a plan appears.
+function CategoryPill({ category }) {
+  if (!category || category === 'General') return null;
+  const c = PLAN_CATEGORY_COLORS[category] || PLAN_CATEGORY_COLORS.General;
+  return (
+    <Box sx={{ display: 'inline-flex', px: '8px', py: '3px', borderRadius: '6px', bgcolor: c.bg }}>
+      <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: c.color, letterSpacing: '0.02em' }}>{category}</Typography>
+    </Box>
+  );
+}
 
 export default function TreatmentPlans() {
   const { patients, dentists, treatmentPlans, addTreatmentPlan, updateTreatmentPlanStatus, togglePlanItem } = useClinicData();
@@ -69,8 +81,24 @@ export default function TreatmentPlans() {
 
   const [expanded, setExpanded] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
-  const [form, setForm] = useState({ patientId: '', dentistId: 'dentist-1', title: '', items: [EMPTY_ITEM()] });
+  const [form, setForm] = useState({ patientId: '', dentistId: 'dentist-1', title: '', category: 'General', items: [EMPTY_ITEM()] });
   const [formError, setFormError] = useState('');
+  const [filter, setFilter] = useState('All');
+
+  // Choosing Implant or Ortho loads that category's standard stages, in order,
+  // at the default fees - a starting point the doctor edits before saving.
+  // Switching back to General clears them rather than leaving ortho stages
+  // behind on a restorative plan.
+  const applyCategory = (category) => {
+    const template = PLAN_TEMPLATES[category] || [];
+    setForm((prev) => ({
+      ...prev,
+      category,
+      title: prev.title || (category === 'General' ? '' : `${category} Case`),
+      items: template.length ? template.map((it) => ({ ...it })) : [EMPTY_ITEM()],
+    }));
+    setFormError('');
+  };
 
   const planTotal = (plan) => plan.items.reduce((s, it) => s + Number(it.cost || 0), 0);
   const planDone = (plan) => plan.items.filter((it) => it.done).length;
@@ -84,6 +112,17 @@ export default function TreatmentPlans() {
   }), [treatmentPlans]);
 
   const formTotal = useMemo(() => form.items.reduce((s, it) => s + Number(it.cost || 0), 0), [form.items]);
+
+  const visiblePlans = useMemo(
+    () => (filter === 'All' ? treatmentPlans : treatmentPlans.filter((p) => (p.category || 'General') === filter)),
+    [treatmentPlans, filter],
+  );
+  const categoryCounts = useMemo(() => {
+    const counts = { All: treatmentPlans.length };
+    PLAN_CATEGORIES.forEach((c) => { counts[c] = 0; });
+    treatmentPlans.forEach((p) => { const c = p.category || 'General'; counts[c] = (counts[c] || 0) + 1; });
+    return counts;
+  }, [treatmentPlans]);
 
   // ── New plan form helpers ──
   const updateItem = (idx, field, value) => {
@@ -100,13 +139,13 @@ export default function TreatmentPlans() {
   const addItem = () => setForm((prev) => ({ ...prev, items: [...prev.items, EMPTY_ITEM()] }));
   const removeItem = (idx) => setForm((prev) => ({ ...prev, items: prev.items.filter((_, i) => i !== idx) }));
 
-  const resetForm = () => { setForm({ patientId: '', dentistId: 'dentist-1', title: '', items: [EMPTY_ITEM()] }); setFormError(''); };
+  const resetForm = () => { setForm({ patientId: '', dentistId: 'dentist-1', title: '', category: 'General', items: [EMPTY_ITEM()] }); setFormError(''); };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!form.patientId) { setFormError('Please select a patient.'); return; }
     if (form.items.length === 0) { setFormError('Add at least one procedure item.'); return; }
-    if (form.items.some((it) => !it.cost || Number(it.cost) < 0)) { setFormError('Each item needs a valid fee.'); return; }
+    if (form.items.some((it) => it.kind !== 'wait' && (!it.cost || Number(it.cost) < 0))) { setFormError('Each procedure needs a valid fee.'); return; }
     const patient = patients.find((p) => p.id === form.patientId);
     addTreatmentPlan(form);
     setOpenDialog(false);
@@ -161,6 +200,33 @@ export default function TreatmentPlans() {
         ))}
       </Grid>
 
+      {/* Category filter */}
+      {treatmentPlans.length > 0 && (
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          {['All', ...PLAN_CATEGORIES].map((c) => {
+            const active = filter === c;
+            const cfg = PLAN_CATEGORY_COLORS[c];
+            return (
+              <Button
+                key={c}
+                size="small"
+                onClick={() => setFilter(c)}
+                sx={{
+                  textTransform: 'none', fontWeight: 700, fontSize: '0.78rem', borderRadius: '8px',
+                  px: 1.75, py: 0.5, minWidth: 0,
+                  border: `1px solid ${active ? (cfg?.color || colors.primary) : colors.border}`,
+                  bgcolor: active ? (cfg?.bg || '#EEF2FF') : colors.surface,
+                  color: active ? (cfg?.color || colors.primary) : colors.textSecondary,
+                  '&:hover': { bgcolor: active ? (cfg?.bg || '#EEF2FF') : colors.surfaceAlt },
+                }}
+              >
+                {c} · {categoryCounts[c] ?? 0}
+              </Button>
+            );
+          })}
+        </Stack>
+      )}
+
       {/* Plan list */}
       {treatmentPlans.length === 0 ? (
         <Card sx={{ borderRadius: '12px' }}>
@@ -174,7 +240,16 @@ export default function TreatmentPlans() {
         </Card>
       ) : (
         <Stack spacing={2}>
-          {treatmentPlans.map((plan) => {
+          {visiblePlans.length === 0 && (
+            <Card sx={{ borderRadius: '12px' }}>
+              <Box sx={{ py: 5, textAlign: 'center' }}>
+                <Typography variant="body2" sx={{ color: colors.textSecondary }}>
+                  No {filter} plans yet. Choose a category when creating a plan to start one.
+                </Typography>
+              </Box>
+            </Card>
+          )}
+          {visiblePlans.map((plan) => {
             const total = planTotal(plan);
             const done = planDone(plan);
             const pct = plan.items.length ? Math.round((done / plan.items.length) * 100) : 0;
@@ -190,6 +265,7 @@ export default function TreatmentPlans() {
                   <Box sx={{ minWidth: 180, flex: 1 }}>
                     <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
                       <Typography sx={{ fontWeight: 700, fontSize: '0.9rem' }}>{plan.title}</Typography>
+                      <CategoryPill category={plan.category} />
                       <StatusPill status={plan.status} />
                     </Stack>
                     <Typography variant="caption" sx={{ color: colors.textSecondary }}>
@@ -241,32 +317,44 @@ export default function TreatmentPlans() {
                       </Box>
                     )}
                     <Stack sx={{ p: 1.5 }} spacing={0.5}>
-                      {plan.items.map((it) => (
-                        <Box
-                          key={it.id}
-                          onClick={() => canChart && togglePlanItem(plan.id, it.id)}
-                          sx={{
-                            display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 1, borderRadius: '8px',
-                            bgcolor: colors.surface, border: `1px solid ${colors.border}`,
-                            cursor: canChart ? 'pointer' : 'default',
-                            transition: 'background .12s ease',
-                            '&:hover': canChart ? { bgcolor: '#F8F9FF' } : {},
-                          }}
-                        >
-                          {it.done
-                            ? <DoneIcon sx={{ fontSize: 20, color: colors.success }} />
-                            : <UncheckedIcon sx={{ fontSize: 20, color: canChart ? colors.textLight : colors.borderLight }} />}
-                          <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: colors.textPrimary, textDecoration: it.done ? 'line-through' : 'none', opacity: it.done ? 0.6 : 1 }}>
-                              {it.procedure}
+                      {plan.items.map((it, i) => {
+                        // A wait is a healing period the clinic charts when it
+                        // is confirmed - never a charge, and visibly not a
+                        // procedure to be performed.
+                        const isWait = it.kind === 'wait';
+                        return (
+                          <Box
+                            key={it.id}
+                            onClick={() => canChart && togglePlanItem(plan.id, it.id)}
+                            sx={{
+                              display: 'flex', alignItems: 'center', gap: 1.5, px: 1.5, py: 1, borderRadius: '8px',
+                              bgcolor: isWait ? colors.surfaceAlt : colors.surface,
+                              border: isWait ? `1px dashed ${colors.border}` : `1px solid ${colors.border}`,
+                              cursor: canChart ? 'pointer' : 'default',
+                              transition: 'background .12s ease',
+                              '&:hover': canChart ? { bgcolor: isWait ? colors.borderLight : '#F8F9FF' } : {},
+                            }}
+                          >
+                            {it.done
+                              ? <DoneIcon sx={{ fontSize: 20, color: colors.success }} />
+                              : <UncheckedIcon sx={{ fontSize: 20, color: canChart ? colors.textLight : colors.borderLight }} />}
+                            <Typography sx={{ fontSize: '0.7rem', fontFamily: 'monospace', color: colors.textLight, minWidth: 18 }}>
+                              {String(i + 1).padStart(2, '0')}
                             </Typography>
-                            <Typography variant="caption" sx={{ color: colors.textSecondary }}>
-                              Tooth {it.toothNumber}
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography sx={{ fontSize: '0.85rem', fontWeight: isWait ? 500 : 600, fontStyle: isWait ? 'italic' : 'normal', color: isWait ? colors.textSecondary : colors.textPrimary, textDecoration: it.done ? 'line-through' : 'none', opacity: it.done ? 0.6 : 1 }}>
+                                {it.procedure}
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: colors.textSecondary }}>
+                                {isWait ? 'Healing period - tick when confirmed' : `Tooth ${it.toothNumber}`}
+                              </Typography>
+                            </Box>
+                            <Typography sx={{ fontWeight: 700, color: isWait ? colors.textLight : colors.textPrimary }}>
+                              {isWait ? 'No charge' : formatCurrency(it.cost)}
                             </Typography>
                           </Box>
-                          <Typography sx={{ fontWeight: 700, color: colors.textPrimary }}>{formatCurrency(it.cost)}</Typography>
-                        </Box>
-                      ))}
+                        );
+                      })}
                     </Stack>
                   </Box>
                 </Collapse>
@@ -299,21 +387,44 @@ export default function TreatmentPlans() {
               <Grid item xs={12} sm={3}>
                 <TextField label="Plan Title" value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="e.g. Full Mouth Rehab" fullWidth />
               </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  select
+                  label="Category"
+                  value={form.category}
+                  onChange={(e) => applyCategory(e.target.value)}
+                  fullWidth
+                  helperText="Implant and Ortho load their standard stages below - edit, re-price or remove any of them before saving."
+                >
+                  {PLAN_CATEGORIES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+                </TextField>
+              </Grid>
             </Grid>
 
             <Typography variant="caption" sx={{ fontWeight: 700, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Procedures</Typography>
             <Stack spacing={1.5} sx={{ mt: 1 }}>
               {form.items.map((it, idx) => (
                 <Stack key={idx} direction="row" spacing={1.5} alignItems="center">
-                  <TextField select label="Procedure" value={it.procedure} onChange={(e) => updateItem(idx, 'procedure', e.target.value)} sx={{ flex: 1 }} size="small">
-                    {TREATMENT_TYPES.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
-                  </TextField>
-                  <TextField select label="Tooth" value={it.toothNumber} onChange={(e) => updateItem(idx, 'toothNumber', e.target.value)} sx={{ width: 110 }} size="small">
-                    <MenuItem value="All">All</MenuItem>
-                    <MenuItem value="-">-</MenuItem>
-                    {TOOTH_NUMBERS.map((n) => <MenuItem key={n} value={n}>#{n}</MenuItem>)}
-                  </TextField>
-                  <TextField label="Fee (PKR)" type="number" value={it.cost} onChange={(e) => updateItem(idx, 'cost', e.target.value)} sx={{ width: 130 }} size="small" inputProps={{ min: 0 }} />
+                  {it.kind === 'wait' ? (
+                    // A healing period: named, unpriced, and removable if this
+                    // case does not need it.
+                    <Box sx={{ flex: 1, px: 1.5, py: 1, borderRadius: '8px', border: `1px dashed ${colors.border}`, bgcolor: colors.surfaceAlt }}>
+                      <Typography sx={{ fontSize: '0.82rem', fontStyle: 'italic', color: colors.textSecondary }}>{it.procedure}</Typography>
+                      <Typography variant="caption" sx={{ color: colors.textLight }}>Waiting period · no charge</Typography>
+                    </Box>
+                  ) : (
+                    <>
+                      <TextField select label="Procedure" value={it.procedure} onChange={(e) => updateItem(idx, 'procedure', e.target.value)} sx={{ flex: 1 }} size="small">
+                        {TREATMENT_TYPES.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+                      </TextField>
+                      <TextField select label="Tooth" value={it.toothNumber} onChange={(e) => updateItem(idx, 'toothNumber', e.target.value)} sx={{ width: 110 }} size="small">
+                        <MenuItem value="All">All</MenuItem>
+                        <MenuItem value="-">-</MenuItem>
+                        {TOOTH_NUMBERS.map((n) => <MenuItem key={n} value={n}>#{n}</MenuItem>)}
+                      </TextField>
+                      <TextField label="Fee (PKR)" type="number" value={it.cost} onChange={(e) => updateItem(idx, 'cost', e.target.value)} sx={{ width: 130 }} size="small" inputProps={{ min: 0 }} />
+                    </>
+                  )}
                   <IconButton size="small" onClick={() => removeItem(idx)} disabled={form.items.length === 1} sx={{ color: colors.error }}>
                     <DeleteIcon sx={{ fontSize: 19 }} />
                   </IconButton>

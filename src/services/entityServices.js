@@ -35,17 +35,28 @@ const planFrom = (r) => ({
   id: r.id, patientId: r.patient_id, patientName: r.patients?.name ?? 'Unknown',
   dentistId: r.dentist_id ?? null, dentistName: r.staff?.name ?? 'Unassigned',
   title: r.title, status: r.status, createdDate: r.created_date, invoiceId: r.invoice_id ?? null,
-  items: (r.plan_items ?? []).map((it) => ({ id: it.id, procedure: it.procedure, toothNumber: it.tooth_number ?? '-', cost: Number(it.cost) || 0, done: it.done })),
+  category: r.category ?? 'General',
+  // Stages come back in their saved order; a plan is a sequence for Implant
+  // and Ortho, and the order is meaningless but harmless for General.
+  items: (r.plan_items ?? [])
+    .slice()
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    .map((it) => ({
+      id: it.id, procedure: it.procedure, toothNumber: it.tooth_number ?? '-',
+      cost: Number(it.cost) || 0, done: it.done, kind: it.kind ?? 'procedure',
+    })),
 });
 const treatmentPlans = {
   list: async () => (await q(supabase.from('treatment_plans').select(`*, ${P_NAME}, ${S_NAME}, plan_items(*)`).order('created_at', { ascending: false }))).map(planFrom),
   create: async (d, items) => {
     const plan = await q(supabase.from('treatment_plans').insert({
       patient_id: d.patientId, dentist_id: d.dentistId || null, title: d.title?.trim() || 'Treatment Plan',
+      category: d.category || 'General',
     }).select().single());
     if (items.length) {
-      await q(supabase.from('plan_items').insert(items.map((it) => ({
+      await q(supabase.from('plan_items').insert(items.map((it, i) => ({
         plan_id: plan.id, procedure: it.procedure, tooth_number: it.toothNumber || '-', cost: Number(it.cost) || 0,
+        sort_order: i + 1, kind: it.kind === 'wait' ? 'wait' : 'procedure',
       }))).select());
     }
     const full = await q(supabase.from('treatment_plans').select(`*, ${P_NAME}, ${S_NAME}, plan_items(*)`).eq('id', plan.id).single());

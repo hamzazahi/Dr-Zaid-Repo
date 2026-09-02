@@ -752,6 +752,8 @@ export const ClinicProvider = ({ children }) => {
       procedure: it.procedure,
       toothNumber: it.toothNumber || '-',
       cost: Number(it.cost) || 0,
+      // A wait (healing, osseointegration) is charted, never charged.
+      kind: it.kind === 'wait' ? 'wait' : 'procedure',
       done: false,
     }));
     const newPlan = {
@@ -761,6 +763,7 @@ export const ClinicProvider = ({ children }) => {
       dentistId: data.dentistId,
       dentistName: dentistObj?.name || 'Unassigned',
       title: data.title?.trim() || 'Treatment Plan',
+      category: data.category || 'General',
       status: 'Proposed',
       createdDate: today(),
       invoiceId: null,
