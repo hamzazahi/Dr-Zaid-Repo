@@ -1,9 +1,16 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
+  Alert,
   Avatar,
   Box,
+  Button,
   Card,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Grid,
+  IconButton,
   LinearProgress,
   Table,
   TableBody,
@@ -18,8 +25,11 @@ import {
   AttachMoney as MoneyIcon,
   ListAlt as ListIcon,
   EventBusy as DebondDueIcon,
+  DeleteOutline as DeleteIcon,
 } from '@mui/icons-material';
 import { useClinicData } from '../hooks/useClinicData';
+import { usePermissions } from '../hooks/usePermissions';
+import { useNotification } from '../hooks/useNotification';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { orthoCaseProgress, ORTHO_PHASE } from '../utils/orthoCase';
 import { colors } from '../theme/theme';
@@ -28,7 +38,24 @@ const AVATAR_COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626', '#
 const avatarColor = (name) => AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
 
 export default function Orthodontics() {
-  const { patients, treatments, dentists, treatmentPlans } = useClinicData();
+  const { patients, treatments, dentists, treatmentPlans, deleteTreatmentPlan } = useClinicData();
+  const { isDoctor } = usePermissions();
+  const { notify } = useNotification();
+
+  // Removing a case is the doctor's call and cannot be undone, so it goes
+  // through a confirmation that spells out what survives it.
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const billedPhases = useMemo(
+    () => (deleteTarget?.plan.phases || []).filter((ph) => ph.invoiceId).length,
+    [deleteTarget],
+  );
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    const { plan } = deleteTarget;
+    deleteTreatmentPlan(plan.id);
+    notify(`${plan.title} for ${plan.patientName} deleted.`, 'success');
+    setDeleteTarget(null);
+  };
 
   // Real ortho cases: treatment plans filed under the Ortho category, each
   // carrying its banding and expected debond dates. Everything shown about a
@@ -145,6 +172,7 @@ export default function Orthodontics() {
                   <TableCell>Progress</TableCell>
                   <TableCell>Stage</TableCell>
                   <TableCell align="right">Case fee</TableCell>
+                  {isDoctor && <TableCell align="right" sx={{ width: 56 }} />}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -187,6 +215,18 @@ export default function Orthodontics() {
                       </Box>
                     </TableCell>
                     <TableCell align="right"><Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: '#0D9488' }}>{formatCurrency(value)}</Typography></TableCell>
+                    {isDoctor && (
+                      <TableCell align="right">
+                        <IconButton
+                          size="small"
+                          aria-label={`Delete ${plan.patientName}'s ortho case`}
+                          onClick={() => setDeleteTarget({ plan, value })}
+                          sx={{ color: colors.textLight, '&:hover': { color: colors.error, bgcolor: '#FEF2F2' } }}
+                        >
+                          <DeleteIcon sx={{ fontSize: 19 }} />
+                        </IconButton>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -268,6 +308,40 @@ export default function Orthodontics() {
           </Card>
         </>
       )}
+
+      {/* Delete an ortho case - destructive, doctor-only, and explicit about
+          what it does not touch. */}
+      <Dialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, borderBottom: `1px solid ${colors.border}` }}>Delete Ortho Case</DialogTitle>
+        <DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box>
+            <Typography variant="caption" sx={{ color: colors.textSecondary }}>Case · {deleteTarget?.plan.patientName}</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 700 }}>{deleteTarget?.plan.title}</Typography>
+            {deleteTarget?.plan.bandingDate && (
+              <Typography variant="caption" sx={{ color: colors.textSecondary }}>
+                Banded {formatDate(deleteTarget.plan.bandingDate)}
+                {deleteTarget.plan.debondDate ? ` · debond due ${formatDate(deleteTarget.plan.debondDate)}` : ''}
+              </Typography>
+            )}
+          </Box>
+
+          <Alert severity="warning" sx={{ borderRadius: '8px', py: 0.5 }}>
+            This removes the case and its {deleteTarget?.plan.items.length || 0} stage{(deleteTarget?.plan.items.length || 0) !== 1 ? 's' : ''}. It cannot be undone.
+          </Alert>
+
+          {billedPhases > 0 && (
+            <Alert severity="info" sx={{ borderRadius: '8px', py: 0.5 }}>
+              {billedPhases} phase{billedPhases !== 1 ? 's have' : ' has'} already been billed.
+              Those invoices stay on Billing — deleting the case does not cancel what the patient owes.
+              Collect or waive them there instead.
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2, borderTop: `1px solid ${colors.border}` }}>
+          <Button onClick={() => setDeleteTarget(null)} color="inherit" sx={{ fontWeight: 600 }}>Cancel</Button>
+          <Button onClick={confirmDelete} variant="contained" color="error" sx={{ fontWeight: 700 }}>Delete Case</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

@@ -867,6 +867,30 @@ export const ClinicProvider = ({ children }) => {
     }));
   }, [live, treatmentPlans]);
 
+  // Remove a treatment plan - a case opened by mistake, a duplicate, a patient
+  // who never went ahead. Doctor-only (the database enforces that too).
+  //
+  // Its stages and phases go with it. Any invoice already raised does NOT: the
+  // patient either owes that money or does not, and that is settled on Billing
+  // by collecting or waiving it, never by deleting the clinical record. The
+  // confirmation dialog says so before the doctor commits.
+  const deleteTreatmentPlan = useCallback((id) => {
+    const plan = treatmentPlans.find((p) => p.id === id);
+    if (!plan) return false;
+    setTreatmentPlans((prev) => prev.filter((p) => p.id !== id));
+    if (live) {
+      es.treatmentPlans.remove(id)
+        .catch((e) => { console.error('[live] deleteTreatmentPlan:', e.message); reloadLive('treatmentPlans'); });
+    }
+    const billed = (plan.phases || []).filter((ph) => ph.invoiceId).length;
+    logAudit(
+      'Treatment Plans',
+      'Plan deleted',
+      `${plan.title} (${plan.category || 'General'}) for ${plan.patientName}${billed ? ` - ${billed} billed phase${billed !== 1 ? 's' : ''}, invoices kept` : ''}`,
+    );
+    return true;
+  }, [live, treatmentPlans, reloadLive, logAudit]);
+
   // Accept and bill ONE phase of a plan. Billing the whole case up front asks
   // the patient to commit to stages that are months away; a phase is what they
   // are actually agreeing to today. Each phase raises its own invoice through
@@ -1841,6 +1865,7 @@ export const ClinicProvider = ({ children }) => {
       updateTreatmentPlanStatus,
       togglePlanItem,
       acceptPlanPhase,
+      deleteTreatmentPlan,
       staff,
       addStaff,
       updateStaffStatus,
@@ -1923,6 +1948,7 @@ export const ClinicProvider = ({ children }) => {
       patients, appointments, treatments, invoices, payments, dentists,
       toothRecords, toothHistory, updateTooth, prescriptions, addPrescription,
       updatePrescriptionStatus, treatmentPlans, addTreatmentPlan, acceptPlanPhase,
+      deleteTreatmentPlan,
       updateTreatmentPlanStatus, togglePlanItem, staff, addStaff, updateStaffStatus,
       labCases, addLabCase, updateLabCaseStatus, updateLabCase, recalls, addRecall,
       sendRecallReminder, updateRecallStatus, documents, addDocument, deleteDocument,
