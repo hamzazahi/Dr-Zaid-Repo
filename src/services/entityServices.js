@@ -83,6 +83,9 @@ const treatmentPlans = {
   },
   update: (id, patch) => q(supabase.from('treatment_plans').update(patch).eq('id', id)),
   setItemDone: (itemId, done) => q(supabase.from('plan_items').update({ done }).eq('id', itemId)),
+  // Stages and phases cascade with the plan. Any invoice already raised for it
+  // does NOT - money owed survives the record being removed.
+  remove: (id) => q(supabase.from('treatment_plans').delete().eq('id', id)),
   // Record the invoice raised for one phase. Upserts so a plan created before
   // phases existed still gets its row.
   setPhaseInvoice: (planId, phase, invoiceId, name) =>
