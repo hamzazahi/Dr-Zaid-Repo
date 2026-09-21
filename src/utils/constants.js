@@ -3,6 +3,7 @@
 export const TREATMENT_TYPES = [
   'Consultation',
   'Filling',
+  'Root Canal',
   'Cap Cementation',
   'Crown Trimming',
   'Extraction (Normal)',
@@ -35,6 +36,7 @@ export const TREATMENT_TYPES = [
 export const TREATMENT_COSTS = {
   'Consultation': 500,
   'Filling': 3000,
+  'Root Canal': 10000,
   'Cap Cementation': 1500,
   'Crown Trimming': 1000,
   'Extraction (Normal)': 3500,
