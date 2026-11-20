@@ -41,7 +41,7 @@ import {
 } from '@mui/icons-material';
 import { useClinicData } from '../hooks/useClinicData';
 import { useNotification } from '../hooks/useNotification';
-import { formatCurrency, formatDate } from '../utils/helpers';
+import { formatDate } from '../utils/helpers';
 import { colors } from '../theme/theme';
 
 // Free-typeable suggestions — staff can enter anything not in the list.
